@@ -10,7 +10,7 @@
 <div class="row">
   <div class="col-sm-6">
     <form action="" method="post">
-      {% include "atmo/_form.html" %}
+      {{form}}
       {% csrf_token %}
       <button class="btn btn-default btn-md" type="submit">Get recommendations</button>
     </form>
