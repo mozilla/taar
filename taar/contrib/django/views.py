@@ -13,6 +13,7 @@ ADDON_MAPPING_URL = ("https://s3-us-west-2.amazonaws.com/"
 def get_client_recommendations(request):
     form = AddonRecommendationsForm()
     recommendations = []
+    error_text = ""
     if request.method == 'POST':
         form = AddonRecommendationsForm(data=request.POST)
         if form.is_valid():
@@ -31,11 +32,11 @@ def get_client_recommendations(request):
                     error_text = ("It wasn't possible to retrieve"
                                   "the list of addons")
                 cache.set('addon_mapping', addon_mapping)
-            recommendations_names = [addon_mapping.get(r, "")
-                                     for r in recommendations]
+            recommendations = [addon_mapping.get(r, "")
+                               for r in recommendations]
     context = {
         'form': form,
-        'recommendations': recommendations_names,
+        'recommendations': recommendations,
         'error_text': error_text
     }
 
