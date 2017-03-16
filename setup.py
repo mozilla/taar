@@ -10,6 +10,14 @@ setup(
     author_email='fx-data-dev@mozilla.org',
     url='https://github.com/mdoglio/taar',
     license='MPL 2.0',
+    install_requires=[
+        'numpy',
+        'requests',
+        'thriftpy',
+        'six',
+        'ply'
+    ],
+    dependency_links=['https://github.com/wbolster/happybase/archive/33b7700375ba59f1810c30c8cd531577b0718498.zip#egg=happybase-1.0.1'],
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Environment :: Web Environment :: Mozilla',
