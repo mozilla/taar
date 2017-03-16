@@ -1,0 +1,27 @@
+{% extends "taar/base.html" %}
+{% load staticfiles %}
+
+{% block page_title %}Addon recommender{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2>Addon recommender <small class="hidden-xs hidden-sm">Get addon recommendations for your browser.</small></h2>
+</div>
+<div class="row">
+  <div class="col-sm-6">
+    <form action="" method="post">
+      {% include "atmo/_form.html" %}
+      {% csrf_token %}
+      <button class="btn btn-default btn-md" type="submit">Get recommendations</button>
+    </form>
+    {% if form.is_valid and form.data.client_id %}
+      <ul>
+      {% for recommendation in recommendations %}
+        <li>{{ recommendation }}</li>
+      {% empty %}
+      No recommendations found :(
+      {% endfor %}
+      </ul>
+    {% endif %}
+</div>
+{% endblock %}
