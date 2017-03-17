@@ -10,18 +10,19 @@ ADDON_MAPPING_URL =\
 
 def fetch_json(uri):
     """ Perform an HTTP GET on the given uri, return the results as json.
-    If there is an error fetching the data, raise an exception.
 
     Args:
         uri: the string URI to fetch.
 
     Returns:
-        A JSON object with the response.
+        A JSON object with the response or None if the status code of the
+        response is an error code.
     """
-    data = requests.get(uri)
-    # Raise an exception if the fetch failed.
-    data.raise_for_status()
-    return data.json()
+    r = requests.get(uri)
+    if r.status_code != requests.codes.ok:
+        return None
+
+    return r.json()
 
 
 # http://garage.pimentech.net/libcommonPython_src_python_libcommon_javastringhashcode/
@@ -47,14 +48,14 @@ class CollaborativeRecommender:
     def __init__(self):
         # Download the addon mappings.
         self.addon_mapping = fetch_json(ADDON_MAPPING_URL)
-        self.model = None
-        self.raw_item_matrix = None
-
-        self._load_model()
-
-    def _load_model(self):
-        # Download the JSON item matrix.
         self.raw_item_matrix = fetch_json(ADDON_MODEL_URL)
+        self.model = None
+
+        self._build_model()
+
+    def _build_model(self):
+        if self.raw_item_matrix is None:
+            return
 
         # Build a dense numpy matrix out of it.
         num_rows = len(self.raw_item_matrix)
