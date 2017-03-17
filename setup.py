@@ -16,9 +16,11 @@ setup(
         'requests',
         'thriftpy',
         'six',
-        'ply'
+        'ply',
+        'boto3',
+        'happybase',
     ],
-    dependency_links=['https://github.com/wbolster/happybase/archive/33b7700375ba59f1810c30c8cd531577b0718498.zip#egg=happybase-1.0.1'],
+    dependency_links=['https://github.com/wbolster/happybase/archive/33b7700375ba59f1810c30c8cd531577b0718498.zip#egg=happybase'],
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Environment :: Web Environment :: Mozilla',
