@@ -4,6 +4,7 @@ setup(
     name='mozilla-taar',
     use_scm_version=True,
     setup_requires=['setuptools_scm'],
+    include_package_data = True,
     packages=find_packages(exclude=['tests', 'tests/*']),
     description='Telemetry-Aware Addon Recommender',
     author='Mozilla Foundation',
