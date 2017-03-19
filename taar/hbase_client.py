@@ -9,8 +9,8 @@ class HBaseClient:
 
     def __init__(self):
         self.tablename = 'main_summary'
-        self.column_family = 'cf'
-        self.column = 'cf:payload'
+        self.column_family = b'cf'
+        self.column = b'cf:payload'
         if HBaseClient._hostname is None:
             HBaseClient._hostname = self._get_master_address()
             print(HBaseClient._hostname)
@@ -43,5 +43,5 @@ class HBaseClient:
             for key, data in table.scan(row_start=row_start, limit=1,
                                         columns=[self.column_family],
                                         reverse=True):
-                return json.loads(data[self.column])
+                return json.loads(data[self.column].decode("utf-8"))
         return None
