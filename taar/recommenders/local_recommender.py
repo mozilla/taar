@@ -39,12 +39,12 @@ class LocalRecommender:
             return False
 
         client_locale = client_data.get('settings.locale')
-        if client_locale in self.model and len(self.model.get(client_locale, [])) > 0:
+        if client_locale in self.top_addons_per_local and len(self.top_addons_per_local.get(client_locale, [])) > 0:
             return True
 
         return False
 
     def recommend(self, client_data, limit):
         client_locale = client_data.get('settings.locale')
-        return self.model[client_locale][:limit]
+        return self.top_addons_per_local[client_locale][:limit]
 
