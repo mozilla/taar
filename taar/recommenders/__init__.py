@@ -1,3 +1,4 @@
 from .collaborative_recommender import CollaborativeRecommender
+from .locale_recommender import LocaleRecommender
 from .empty_recommender import EmptyRecommender
 from .recommendation_manager import RecommendationManager

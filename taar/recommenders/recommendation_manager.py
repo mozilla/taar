@@ -1,5 +1,6 @@
 import logging
 from .collaborative_recommender import CollaborativeRecommender
+from .locale_recommender import LocaleRecommender
 from .empty_recommender import EmptyRecommender
 from ..profile_fetcher import ProfileFetcher
 
@@ -25,6 +26,7 @@ class RecommendationManager:
         if not RecommendationManager.recommenders:
             logger.info("Initializing recommenders")
             RecommendationManager.recommenders.append(CollaborativeRecommender())
+            RecommendationManager.recommenders.append(LocaleRecommender())
             RecommendationManager.recommenders.append(EmptyRecommender())
 
     def recommend(self, client_id, limit):
