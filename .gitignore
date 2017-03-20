@@ -91,3 +91,5 @@ ENV/
 # MAC os garbage
 .DS_Store
 
+# Pycharm garbage (j/k jetbrains you know i love you) 
+.idea

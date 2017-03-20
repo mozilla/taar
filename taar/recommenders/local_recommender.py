@@ -1,23 +1,23 @@
 import requests
 
-ADDON_LIST_PER_LOCALE_URL =\
-    "local address"
+ADDON_LIST_PER_LOCALE_URL = 'http://www.thiswillonedaybearealurl.com/amazing_things.json'
     # TODO: this should be a public s3 bucket IFF we are allowed to share this info publically.
 
 def fetch_json(uri):
     """ Perform an HTTP GET on the given uri, return the results as json.
-    If there is an error fetching the data, raise an exception.
 
     Args:
         uri: the string URI to fetch.
 
     Returns:
-        A JSON object with the response.
+        A JSON object with the response or None if the status code of the
+        response is an error code.
     """
-    data = requests.get(uri)
-    # Raise an exception if the fetch failed.
-    data.raise_for_status()
-    return data.json()
+    r = requests.get(uri)
+    if r.status_code != requests.codes.ok:
+        return None
+
+    return r.json()
 
 class LocalRecommender:
     """ A recommender class that returns top N addons based on the geo-locale associated with the client info.
@@ -28,7 +28,7 @@ class LocalRecommender:
     """
     def __init__(self):
         self.model = None
-        self._load_model()
+        self.model = self._load_model()?
 
     def _load_model(self):
         # Download the JSON containing up-to-date addons per locale
@@ -46,6 +46,8 @@ class LocalRecommender:
 
     def recommend(self, client_data, limit):
         client_locale = client_data.get('settings.locale')
-        top_n_dict = self._load_model()
-        # TODO: do we want to truncate this?
-        return top_n_dict[client_locale]
+        top_n_dict = self.model()
+        top_n_list = top_n_dict[client_locale]
+        if len(top_n_list) > limit:
+            del(top_n_list[limit:])
+        return top_n_list
