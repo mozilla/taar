@@ -27,8 +27,7 @@ class LocalRecommender:
     This recommender may provide useful recommendations when collaborative_recommender may not work
     """
     def __init__(self):
-        self.model = None
-        self.model = self._load_model()
+        self.top_addons_per_local = self._load_model()
 
     def _load_model(self):
         # Download the JSON containing up-to-date addons per locale
@@ -39,15 +38,13 @@ class LocalRecommender:
         if self.top_addons_per_local is None:
             return False
 
-        if len(self.top_addons_per_local[client_data.get('settings.locale', [])]) > 0:
+        client_locale = client_data.get('settings.locale')
+        if client_locale in self.model and len(self.model.get(client_locale, [])) > 0:
             return True
-        # some addons are available for this locale
+
         return False
 
     def recommend(self, client_data, limit):
         client_locale = client_data.get('settings.locale')
-        top_n_dict = self.model()
-        top_n_list = top_n_dict[client_locale]
-        if len(top_n_list) > limit:
-            del(top_n_list[limit:])
-        return top_n_list
+        return self.model[client_locale][:limit]
+
