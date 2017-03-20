@@ -1,9 +1,8 @@
-from .utils import fetch_json
+from ..recommenders import utils
 
-# TODO: this should be a public s3 bucket IFF we are allowed
-# to share this info publically.
-ADDON_LIST_PER_LOCALE_URL = \
-    'http://www.thiswillonedaybearealurl.com/amazing_things.json'
+
+ADDON_LIST_BUCKET = 'telemetry-private-analysis-2'
+ADDON_LIST_KEY = 'mdoglio_top10_addons/top10_dict.json'
 
 
 class LocaleRecommender:
@@ -17,13 +16,13 @@ class LocaleRecommender:
     may not work.
     """
     def __init__(self):
-        self.top_addons_per_locale = fetch_json(ADDON_LIST_PER_LOCALE_URL)
+        self.top_addons_per_locale = utils.get_s3_json_content(ADDON_LIST_BUCKET,
+                                                               ADDON_LIST_KEY)
 
     def can_recommend(self, client_data):
         # We can't recommend if we don't have our data files.
         if self.top_addons_per_locale is None:
             return False
-
         client_locale = client_data.get('locale', None)
         if not isinstance(client_locale, str):
             return False
