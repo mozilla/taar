@@ -28,7 +28,7 @@ class LocalRecommender:
     """
     def __init__(self):
         self.model = None
-        self.model = self._load_model()?
+        self.model = self._load_model()
 
     def _load_model(self):
         # Download the JSON containing up-to-date addons per locale
