@@ -1,8 +1,7 @@
 import pytest
-import responses
 
-from taar.recommenders.locale_recommender import LocaleRecommender, ADDON_LIST_PER_LOCALE_URL
-
+from taar.recommenders import LocaleRecommender
+from taar.recommenders import utils
 
 FAKE_LOCALE_DATA = {
     "te-ST": [
@@ -16,40 +15,35 @@ FAKE_LOCALE_DATA = {
 
 
 @pytest.fixture
-def activate_error_responses():
-    responses.add(responses.GET, ADDON_LIST_PER_LOCALE_URL, json={"error": "not found"}, status=404)
+def mock_s3_json_downloader(monkeypatch):
+    monkeypatch.setattr('taar.recommenders.utils.get_s3_json_content',
+                        lambda x, y: FAKE_LOCALE_DATA)
 
 
-@pytest.fixture
-def activate_responses():
-    responses.add(responses.GET, ADDON_LIST_PER_LOCALE_URL, json=FAKE_LOCALE_DATA)
-
-
-@responses.activate
-def test_can_recommend(activate_responses):
+def test_can_recommend(mock_s3_json_downloader):
     r = LocaleRecommender()
 
     # Test that we can't recommend if we have not enough client info.
     assert not r.can_recommend({})
     assert not r.can_recommend({"locale": []})
 
-    # Check that we can recommend if we the user has at least an addon.
+    # Check that we can recommend if the user has at least an addon.
     assert r.can_recommend({"locale": "en"})
 
 
-@responses.activate
-def test_can_recommend_no_model(activate_error_responses):
+def test_can_recommend_no_model(mock_s3_json_downloader):
     r = LocaleRecommender()
 
-    # We should never be able to recommend if something went wrong with the model.
+    # We should never be able to recommend if something went
+    # wrong with the model.
     assert not r.can_recommend({})
     assert not r.can_recommend({"locale": []})
-    assert not r.can_recommend({"locale": "en"})
+    assert not r.can_recommend({"locale": "it"})
 
 
-@responses.activate
-def test_recommendations(activate_responses):
-    # Test that the locale recommender returns the correct locale dependent addons.
+def test_recommendations(mock_s3_json_downloader):
+    # Test that the locale recommender returns the correct
+    # locale dependent addons.
     r = LocaleRecommender()
     recommendations = r.recommend({"locale": "en"}, 10)
 
