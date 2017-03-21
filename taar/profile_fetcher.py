@@ -8,7 +8,10 @@ class ProfileFetcher:
         self.hbase_client = HBaseClient()
 
     def get(self, client_id):
-        addons_list = self.hbase_client.get_client_addons(client_id)
+        profile_data = self.hbase_client.get_client_profile(client_id)
         addon_ids = [addon['addon_id']
-                     for addon in addons_list['active_addons']]
-        return {"installed_addons": addon_ids}
+                     for addon in profile_data['active_addons']]
+        return {
+            "installed_addons": addon_ids,
+            "locale": profile_data['locale']
+        }
