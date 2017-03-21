@@ -33,10 +33,10 @@ class HBaseClient:
 
         return reservations[0]["Instances"][0]["NetworkInterfaces"][0]["PrivateIpAddress"]
 
-    def get_client_addons(self, client_id):
-        """Retrieve the list of addons for the given client
+    def get_client_profile(self, client_id):
+        """Retrieve the latest row for the given client in HBase
 
-        Only the last known version of the list of addons is retrieved"""
+        Only the last known version of the info is retrieved"""
         with contextlib.closing(Connection(self._hostname)) as connection:
             table = connection.table(self.tablename)
             row_start = "{}:{}".format(client_id, "99999999")
