@@ -82,13 +82,15 @@ class CollaborativeRecommender:
         for addon in self.raw_item_matrix:
             # We don't really need to show the items we requested. They will always
             # end up with the greatest score.
-            if addon.get("id") in installed_addons:
+            hashed_id = str(addon.get("id"))
+            if (hashed_id in installed_addons or
+                hashed_id not in self.addon_mapping):
                 continue
 
             dist = np.dot(user_factors_transposed, addon.get('features'))
-            # TODO: The next function should read the addon ids from the "addon_mapping"
-            # looking them up by 'id' (which is an hashed value).
-            addon_id = str(addon.get('id'))  # self.addon_mapping[str(addon.get('id'))]
+            # Read the addon ids from the "addon_mapping" looking it
+            # up by 'id' (which is an hashed value).
+            addon_id = self.addon_mapping[hashed_id].get("id")
             distances[addon_id] = dist
 
         # Sort the suggested addons by their score and return the sorted list of addon
