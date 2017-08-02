@@ -5,9 +5,9 @@ from taar.recommenders.collaborative_recommender import CollaborativeRecommender
 
 
 FAKE_MAPPING = {
-    "1234": {"id": "some-id@nice", "name": "Nice addon name"},
-    "4567": {"id": "some-other@id", "name": "Better than the previous one"},
-    "7890": {"id": "8bae1075-f34e-451a-8053-9a7aacfd5af9", "name": "Super"}
+    "1234": {"id": "some-id@nice", "name": "Nice addon name", "isWebextension": True},
+    "4567": {"id": "some-other@id", "name": "Better than the previous one", "isWebextension": True},
+    "7890": {"id": "8bae1075-f34e-451a-8053-9a7aacfd5af9", "name": "Super", "isWebextension": False}
 }
 FAKE_ADDON_MATRIX = [
     {"id": "1234", "features": [1.0, 0.0, 0.0]},
@@ -63,6 +63,7 @@ def test_recommendations(activate_responses):
     assert len(recommendations) == 1
 
     # We are not sure about what addon will be recommended in the test.
-    # Only make sure the reported id is among the expected ones.
-    ADDON_IDS = [value['id'] for value in FAKE_MAPPING.values()]
+    # Only make sure the reported id is among the expected ones and that
+    # it's a webextension.
+    ADDON_IDS = [value['id'] for value in FAKE_MAPPING.values() if value['isWebextension']]
     assert recommendations[0] in ADDON_IDS
