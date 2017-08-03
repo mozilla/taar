@@ -18,7 +18,7 @@ def test_profile_fetcher_returns_dict(monkeypatch):
                         get_client_profile_mock)
 
     monkeypatch.setattr(hbase_client.HBaseClient,
-                        '_get_master_address',
+                        '_get_hbase_hostname',
                         lambda x: 'master-ip-address')
 
     fetcher = ProfileFetcher()
