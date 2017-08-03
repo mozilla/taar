@@ -7,15 +7,16 @@ from happybase import Connection
 class HBaseClient:
     _hostname = None
 
-    def __init__(self):
+    def __init__(self, hbase_hostname=None):
         self.tablename = 'main_summary'
         self.column_family = b'cf'
         self.column = b'cf:payload'
-        if HBaseClient._hostname is None:
-            HBaseClient._hostname = self._get_master_address()
-            print(HBaseClient._hostname)
+        if hbase_hostname is None:
+            self.hbase_hostname = self._get_hbase_hostname()
+        else:
+            self.hbase_hostname = hbase_hostname
 
-    def _get_master_address(self):
+    def _get_hbase_hostname(self):
         client = boto3.client('ec2')
         reservations = client.describe_instances(Filters=[
             {'Name': 'tag:Name', 'Values': ['telemetry-hbase']},
@@ -37,7 +38,7 @@ class HBaseClient:
         """Retrieve the latest row for the given client in HBase
 
         Only the last known version of the info is retrieved"""
-        with contextlib.closing(Connection(self._hostname)) as connection:
+        with contextlib.closing(Connection(self.hbase_hostname)) as connection:
             table = connection.table(self.tablename)
             row_start = "{}:{}".format(client_id, "99999999")
             for key, data in table.scan(row_start=row_start, limit=1,
