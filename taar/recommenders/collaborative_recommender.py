@@ -1,3 +1,4 @@
+import logging
 import numpy as np
 import operator as op
 
@@ -7,6 +8,8 @@ ADDON_MODEL_URL =\
     "https://s3-us-west-2.amazonaws.com/telemetry-public-analysis-2/telemetry-ml/addon_recommender/item_matrix.json"
 ADDON_MAPPING_URL =\
     "https://s3-us-west-2.amazonaws.com/telemetry-public-analysis-2/telemetry-ml/addon_recommender/addon_mapping.json"
+
+logger = logging.getLogger(__name__)
 
 
 # http://garage.pimentech.net/libcommonPython_src_python_libcommon_javastringhashcode/
@@ -32,7 +35,13 @@ class CollaborativeRecommender:
     def __init__(self):
         # Download the addon mappings.
         self.addon_mapping = fetch_json(ADDON_MAPPING_URL)
+        if self.addon_mapping is None:
+            logger.error("Cannot download the addon mapping file {}".format(ADDON_MAPPING_URL))
+
         self.raw_item_matrix = fetch_json(ADDON_MODEL_URL)
+        if self.addon_mapping is None:
+            logger.error("Cannot download the model file {}".format(ADDON_MODEL_URL))
+
         self.model = None
 
         self._build_model()

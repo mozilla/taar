@@ -1,8 +1,12 @@
+import logging
 from ..recommenders import utils
 
 
 ADDON_LIST_BUCKET = 'telemetry-private-analysis-2'
 ADDON_LIST_KEY = 'mdoglio_top10_addons/top10_dict.json'
+
+
+logger = logging.getLogger(__name__)
 
 
 class LocaleRecommender:
@@ -18,6 +22,8 @@ class LocaleRecommender:
     def __init__(self):
         self.top_addons_per_locale = utils.get_s3_json_content(ADDON_LIST_BUCKET,
                                                                ADDON_LIST_KEY)
+        if self.top_addons_per_locale is None:
+            logger.error("Cannot download the top per locale file {}".format(ADDON_LIST_KEY))
 
     def can_recommend(self, client_data):
         # We can't recommend if we don't have our data files.
