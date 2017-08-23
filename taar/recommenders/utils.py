@@ -29,13 +29,13 @@ def get_s3_json_content(s3_bucket, s3_key):
 
     The file is downloaded and then cached for future use.
     """
-    s3 = boto3.client('s3')
     local_filename = '_'.join([s3_bucket, s3_key]).replace('/', '_')
     local_path = os.path.join(gettempdir(), local_filename)
 
     if not os.path.exists(local_path):
         with open(local_path, 'wb') as data:
             try:
+                s3 = boto3.client('s3')
                 s3.download_fileobj(s3_bucket, s3_key, data)
             except ClientError:
                 return None
