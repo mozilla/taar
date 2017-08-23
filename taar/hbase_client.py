@@ -1,7 +1,11 @@
 import contextlib
 import json
 import boto3
+import logging
 from happybase import Connection
+
+
+logger = logging.getLogger(__name__)
 
 
 class HBaseClient:
@@ -12,7 +16,11 @@ class HBaseClient:
         self.column_family = b'cf'
         self.column = b'cf:payload'
         if hbase_hostname is None:
-            self.hbase_hostname = self._get_hbase_hostname()
+            try:
+                self.hbase_hostname = self._get_hbase_hostname()
+            except Exception:
+                logger.exception("Failed to get HBase hostname")
+                raise
         else:
             self.hbase_hostname = hbase_hostname
 
@@ -38,11 +46,15 @@ class HBaseClient:
         """Retrieve the latest row for the given client in HBase
 
         Only the last known version of the info is retrieved"""
-        with contextlib.closing(Connection(self.hbase_hostname)) as connection:
-            table = connection.table(self.tablename)
-            row_start = "{}:{}".format(client_id, "99999999")
-            for key, data in table.scan(row_start=row_start, limit=1,
-                                        columns=[self.column_family],
-                                        reverse=True):
-                return json.loads(data[self.column].decode("utf-8"))
+        try:
+            with contextlib.closing(Connection(self.hbase_hostname)) as connection:
+                table = connection.table(self.tablename)
+                row_start = "{}:{}".format(client_id, "99999999")
+                for key, data in table.scan(row_start=row_start, limit=1,
+                                            columns=[self.column_family],
+                                            reverse=True):
+                    return json.loads(data[self.column].decode("utf-8"))
+        except Exception:
+            logger.exception("Connection to HBase failed", extra={"client_id": client_id})
+
         return None
