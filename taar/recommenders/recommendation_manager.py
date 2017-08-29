@@ -34,6 +34,8 @@ class RecommendationManager:
     def recommend(self, client_id, limit):
         # Get the info for the requested client id.
         client_info = self.profile_fetcher.get(client_id)
+        if client_info is None:
+            return []
 
         # Compute the recommendation.
         for r in self.recommenders:

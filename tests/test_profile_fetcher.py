@@ -30,3 +30,17 @@ def test_profile_fetcher_returns_dict(monkeypatch):
         ],
         "locale": "it-IT"
     }
+
+
+def test_profile_fetcher_returns_none(monkeypatch):
+    monkeypatch.setattr(hbase_client.HBaseClient,
+                        'get_client_profile',
+                        lambda x, y: None)
+
+    monkeypatch.setattr(hbase_client.HBaseClient,
+                        '_get_hbase_hostname',
+                        lambda x: 'master-ip-address')
+
+    fetcher = ProfileFetcher()
+
+    assert fetcher.get("random-client-id") is None
