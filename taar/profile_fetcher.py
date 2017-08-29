@@ -1,4 +1,8 @@
+import logging
 from .hbase_client import HBaseClient
+
+
+logger = logging.getLogger(__name__)
 
 
 class ProfileFetcher:
@@ -12,8 +16,12 @@ class ProfileFetcher:
 
     def get(self, client_id):
         profile_data = self.hbase_client.get_client_profile(client_id)
-        addon_ids = [addon['addon_id']
-                     for addon in profile_data['active_addons']]
+
+        if profile_data is None:
+            logger.error("Client profile not found", extra={"client_id": client_id})
+            return None
+
+        addon_ids = [addon['addon_id'] for addon in profile_data['active_addons']]
         return {
             "installed_addons": addon_ids,
             "locale": profile_data['locale']
