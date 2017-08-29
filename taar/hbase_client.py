@@ -11,8 +11,8 @@ logger = logging.getLogger(__name__)
 class HBaseClient:
     _hostname = None
 
-    def __init__(self, hbase_hostname=None):
-        self.tablename = 'main_summary'
+    def __init__(self, hbase_hostname=None, table_name='addon_recommender_view'):
+        self.tablename = table_name
         self.column_family = b'cf'
         self.column = b'cf:payload'
         if hbase_hostname is None:
@@ -49,12 +49,11 @@ class HBaseClient:
         try:
             with contextlib.closing(Connection(self.hbase_hostname)) as connection:
                 table = connection.table(self.tablename)
-                row_start = "{}:{}".format(client_id, "99999999")
-                for key, data in table.scan(row_start=row_start, limit=1,
-                                            columns=[self.column_family],
-                                            reverse=True):
-                    return json.loads(data[self.column].decode("utf-8"))
+                client_row = table.row(client_id, columns=[self.column_family])
+                if client_row:
+                    return json.loads(client_row[self.column].decode("utf-8"))
         except Exception:
             logger.exception("Connection to HBase failed", extra={"client_id": client_id})
 
+        logger.info("Client information not found", extra={"client_id": client_id})
         return None
