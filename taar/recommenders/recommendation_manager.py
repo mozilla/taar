@@ -44,14 +44,13 @@ class RecommendationManager(object):
         # Compute the recommendation.
         for r in self.recommenders:
             if r.can_recommend(client_info):
-                recommender_name = r.__class__.__name__
                 logger.info("Recommender selected", extra={
-                    "client_id": client_id, "recommender": recommender_name
+                    "client_id": client_id, "recommender": r
                 })
                 recommendations = r.recommend(client_info, limit)
                 if not recommendations:
                     logger.info("No recommendations", extra={
-                        "client_id": client_id, "recommender": recommender_name
+                        "client_id": client_id, "recommender": r
                     })
 
                 return []

@@ -54,3 +54,9 @@ def test_recommendations(mock_s3_json_downloader):
     # Make sure that the reported addons are the one from the fake data.
     for addon_id in recommendations:
         assert addon_id in FAKE_LOCALE_DATA["en"]
+
+
+def test_recommender_str(mock_s3_json_downloader):
+    # Tests that the string representation of the recommender is correct
+    r = LocaleRecommender()
+    assert str(r) == "LocaleRecommender"
