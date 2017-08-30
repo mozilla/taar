@@ -1,27 +1,30 @@
 language: python
 python:
-  # We don't actually use the Travis Python, but this keeps it organized.
-  - "3.5"
+- '3.5'
 install:
-  - sudo apt-get update
-  # We do this conditionally because it saves us some downloading if the
-  # version is the same.
-  - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-  - bash miniconda.sh -b -p $HOME/miniconda
-  - export PATH="$HOME/miniconda/bin:$PATH"
-  - hash -r
-  - conda config --set always_yes yes --set changeps1 no
-  - conda update -q conda
-  # Useful for debugging any issues with conda
-  - conda info -a
-
-  # Replace dep1 dep2 ... with your dependencies
-  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
-  - source activate test-environment
-  - pip install -e . --process-dependency-links
-  - pip install -r test_requirements.txt
+- sudo apt-get update
+- wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+- bash miniconda.sh -b -p $HOME/miniconda
+- export PATH="$HOME/miniconda/bin:$PATH"
+- hash -r
+- conda config --set always_yes yes --set changeps1 no
+- conda update -q conda
+- conda info -a
+- conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
+- source activate test-environment
+- pip install -e . --process-dependency-links
+- pip install -r test_requirements.txt
 script:
-  - flake8 taar tests
-  - py.test --cov taar tests
+- flake8 taar tests
+- py.test --cov taar tests
 after_success:
-  - coveralls
+- coveralls
+deploy:
+  provider: pypi
+  user: mdoglio
+  distributions: sdist bdist_wheel
+  password:
+    secure: L2+PqFb9kNgAC1k6ElgWlny9J3yIQXHiNB6zoe4DMSeugT7KE90ggGghF9wt/OBfkPhe7BXZD7mwOnCa/eub68j3ENKIIChjlzLmiuBi2ynciAyraWineesGCMwyCwbVD4vpW0FdVDSY+ycpf2Xtow4cEfj1UoVPJ/u4Xl5GCdKLZRwLk1nRoUJWxoR/HJq+/0cc+DBvfAJMOya54OLXNMaNI0TJjwn2JD7w1NHf+phtIDhcg834KlRnEIlsLkLwyk/ANypfKroEaHAYG6A5J+oCA/ZKnl8EZwF4M70S9WQsTzYMwa02Aezp/mcAg2pfUYQNunjOYF+pnsd3SdeltgF65d66G3St05GBrn7G5Zl1hsbEkCb+0rIVGIi4oypUK2eAtgFFeR/f0NJTCijhGfa45d5lJlHFpMhTncWJTBBJ0NLOfuNVhTsEieK/FnZxHRFpuOXkgLrMe1FVl+FGs3ZMdh0Uu35SoA2odxq9/LJn8lzL8jUQJ/MgFTMoaPQSOKKS8Fxf4lWpmJfOvYupwulp3I5+86SNonI6qBY82KQ5E3vmaCWXLr4KcTRc2+U0rjOiEKt0yA6bhtkAKWRrvQl1Idefn1g9k9FfIDj0V+wuzUEMCn+QRJRYsM0LtD2T2M1GX24oyQUSzwO5ZyoPUZG6hzFXg8DylsjGY/JNzUA=
+  on:
+    tags: true
+    repo: mozilla/taar
