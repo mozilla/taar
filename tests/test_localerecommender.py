@@ -1,7 +1,6 @@
 import pytest
 
 from taar.recommenders import LocaleRecommender
-from taar.recommenders import utils
 
 FAKE_LOCALE_DATA = {
     "te-ST": [
