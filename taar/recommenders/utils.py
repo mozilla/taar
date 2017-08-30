@@ -39,5 +39,6 @@ def get_s3_json_content(s3_bucket, s3_key):
                 s3.download_fileobj(s3_bucket, s3_key, data)
             except ClientError:
                 return None
-        with open(local_path, 'r') as data:
-            return json.loads(data.read())
+
+    with open(local_path, 'r') as data:
+        return json.loads(data.read())
