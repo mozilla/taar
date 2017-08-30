@@ -21,6 +21,7 @@ install:
   - pip install -e . --process-dependency-links
   - pip install -r test_requirements.txt
 script:
+  - flake8 taar tests
   - py.test --cov taar tests
 after_success:
   - coveralls
