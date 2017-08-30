@@ -2,6 +2,7 @@ import logging
 import numpy as np
 import operator as op
 
+from .base_recommender import BaseRecommender
 from .utils import fetch_json
 
 ADDON_MODEL_URL =\
@@ -24,7 +25,7 @@ def positive_hash(s):
     return java_string_hashcode(s) & 0x7FFFFF
 
 
-class CollaborativeRecommender:
+class CollaborativeRecommender(BaseRecommender):
     """ The addon recommendation interface to the collaborative filtering model.
 
     Usage example::

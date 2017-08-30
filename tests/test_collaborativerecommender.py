@@ -67,3 +67,10 @@ def test_recommendations(activate_responses):
     # it's a webextension.
     ADDON_IDS = [value['id'] for value in FAKE_MAPPING.values() if value['isWebextension']]
     assert recommendations[0] in ADDON_IDS
+
+
+@responses.activate
+def test_recommender_str(activate_responses):
+    # Tests that the string representation of the recommender is correct
+    r = CollaborativeRecommender()
+    assert str(r) == "CollaborativeRecommender"
