@@ -94,8 +94,8 @@ class CollaborativeRecommender:
             # suggestions.
             hashed_id = str(addon.get("id"))
             if (hashed_id in installed_addons or
-                hashed_id not in self.addon_mapping or
-                self.addon_mapping[hashed_id].get("isWebextension", False) is False):
+                    hashed_id not in self.addon_mapping or
+                    self.addon_mapping[hashed_id].get("isWebextension", False) is False):
                 continue
 
             dist = np.dot(user_factors_transposed, addon.get('features'))
