@@ -1,6 +1,6 @@
 import logging
 from ..recommenders import utils
-
+from .base_recommender import BaseRecommender
 
 ADDON_LIST_BUCKET = 'telemetry-private-analysis-2'
 ADDON_LIST_KEY = 'mdoglio_top10_addons/top10_dict.json'
@@ -9,7 +9,7 @@ ADDON_LIST_KEY = 'mdoglio_top10_addons/top10_dict.json'
 logger = logging.getLogger(__name__)
 
 
-class LocaleRecommender:
+class LocaleRecommender(BaseRecommender):
     """ A recommender class that returns top N addons based on the client geo-locale.
 
     This will load a json file containing updated top n addons in use per geo locale
