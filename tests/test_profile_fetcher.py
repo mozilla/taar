@@ -23,7 +23,7 @@ def test_profile_fetcher_returns_dict(monkeypatch):
 
     fetcher = ProfileFetcher()
 
-    fetcher.get("random-client-id") == {
+    assert fetcher.get("random-client-id") == {
         "installed_addons": [
             "e10srollout@mozilla.org",
             "firefox@getpocket.com"
