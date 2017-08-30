@@ -1,7 +1,6 @@
 import logging
 from .collaborative_recommender import CollaborativeRecommender
 from .locale_recommender import LocaleRecommender
-from .empty_recommender import EmptyRecommender
 from ..profile_fetcher import ProfileFetcher
 
 
@@ -25,8 +24,7 @@ class RecommendationManager:
             logger.info("Initializing recommenders")
             self.recommenders = (
                 CollaborativeRecommender(),
-                LocaleRecommender(),
-                EmptyRecommender()
+                LocaleRecommender()
             )
         else:
             self.recommenders = recommenders
@@ -44,11 +42,14 @@ class RecommendationManager:
                 logger.info("Recommender selected", extra={
                     "client_id": client_id, "recommender": recommender_name
                 })
-
                 recommendations = r.recommend(client_info, limit)
-                if len(recommendations) == 0:
+                if not recommendations:
                     logger.info("No recommendations", extra={
                         "client_id": client_id, "recommender": recommender_name
                     })
 
-                return recommendations
+                return []
+        logger.info("No recommender can recommend addons", extra={
+            "client_id": client_id
+        })
+        return []
