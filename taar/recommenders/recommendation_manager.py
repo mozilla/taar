@@ -53,7 +53,7 @@ class RecommendationManager(object):
                         "client_id": client_id, "recommender": r
                     })
 
-                return []
+                return recommendations
         logger.info("No recommender can recommend addons", extra={
             "client_id": client_id
         })
