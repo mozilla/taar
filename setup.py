@@ -19,6 +19,7 @@ setup(
         'ply',
         'boto3',
         'happybase',
+        'scipy'
     ],
     dependency_links=['https://github.com/wbolster/happybase/archive/33b7700375ba59f1810c30c8cd531577b0718498.zip#egg=happybase'],
     classifiers=[
