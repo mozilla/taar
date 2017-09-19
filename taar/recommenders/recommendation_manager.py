@@ -1,5 +1,6 @@
 import logging
 from .collaborative_recommender import CollaborativeRecommender
+from .legacy_recommender import LegacyRecommender
 from .locale_recommender import LocaleRecommender
 from ..profile_fetcher import ProfileFetcher
 
@@ -24,6 +25,7 @@ class RecommendationManager(object):
         if not recommenders:
             logger.info("Initializing recommenders")
             self.recommenders = (
+                LegacyRecommender(),
                 CollaborativeRecommender(),
                 LocaleRecommender()
             )

@@ -20,14 +20,14 @@ def test_can_recommend(mock_s3_json_downloader):
 
     # Test that we can't recommend if we have not enough client info.
     assert not r.can_recommend({})
-    assert not r.can_recommend({"disabled_addon_ids": []})
+    assert not r.can_recommend({"disabled_addons_ids": []})
 
     # Check that we can not recommend if no *legacy* addons are detected,
     # but addon is in loaded resource.
     profile_without_legacy = dict(
         client_id="test-client-id",
-        disabled_addon_ids=["test_guid_7",
-                            "test_guid_8"],
+        disabled_addons_ids=["test_guid_7",
+                             "test_guid_8"],
         locale="it-IT"
     )
 
@@ -41,8 +41,8 @@ def test_recommendations(mock_s3_json_downloader):
     limit = 10
     profile_with_legacy = dict(
         client_id="test-client-id",
-        disabled_addon_ids=["{test_guid_1}",
-                            "test_guid_8"],
+        disabled_addons_ids=["{test_guid_1}",
+                             "test_guid_8"],
         locale="it-IT"
     )
 
