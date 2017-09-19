@@ -30,7 +30,7 @@ class LegacyRecommender(BaseRecommender):
             return False
 
         # Get active addons from the client data and pull the legacy GUIDS.
-        legacy_addons = client_data.get('disabled_addon_ids', None)
+        legacy_addons = client_data.get('disabled_addons_ids', None)
 
         # Can't use this recommender is no addons are installed.
         if not legacy_addons or not isinstance(legacy_addons, list):
@@ -41,7 +41,7 @@ class LegacyRecommender(BaseRecommender):
         return len(set(legacy_addons).intersection(self.legacy_replacements.keys())) > 0
 
     def recommend(self, client_data, limit):
-        legacy_addons = client_data.get('disabled_addon_ids')
+        legacy_addons = client_data.get('disabled_addons_ids', [])
 
         legacy_replacements = [self.legacy_replacements[client_addon_n]
                                for client_addon_n in legacy_addons if client_addon_n in self.legacy_replacements]
