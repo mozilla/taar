@@ -3,7 +3,7 @@ from ..recommenders import utils
 from .base_recommender import BaseRecommender
 
 ADDON_LIST_BUCKET = 'telemetry-private-analysis-2'
-ADDON_LIST_KEY = 'mdoglio_top10_addons/top10_dict.json'
+ADDON_LIST_KEY = 'taar/locale/top10_dict.json'
 
 
 logger = logging.getLogger(__name__)
