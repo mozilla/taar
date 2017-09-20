@@ -3,7 +3,7 @@ from ..recommenders import utils
 from .base_recommender import BaseRecommender
 from scipy.spatial import distance
 
-S3_BUCKET = 'telemetry-private-analysis-2'
+S3_BUCKET = 'telemetry-parquet'
 DONOR_LIST_KEY = 'taar/legacy/addon_donors.json'
 LR_CURVES_SIMILARITY_TO_PROBABILITY = 'taar/legacy/test/lr_curves.json'
 

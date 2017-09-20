@@ -2,7 +2,7 @@ import logging
 from ..recommenders import utils
 from .base_recommender import BaseRecommender
 
-ADDON_LIST_BUCKET = 'telemetry-private-analysis-2'
+ADDON_LIST_BUCKET = 'telemetry-parquet'
 ADDON_LIST_KEY = 'taar/locale/top10_dict.json'
 
 
