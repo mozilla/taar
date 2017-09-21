@@ -11,8 +11,8 @@ from taar.recommenders.similarity_recommender import \
 FAKE_DONOR_DATA = [
     {
         "activeAddons": ["{test-guid-1}", "{test-guid-2}", "{test-guid-3}", "{test-guid-4}"],
-        "geoCity": "nowhere-us",
-        "subsessionLength": 1300,
+        "geo_city": "nowhere-us",
+        "subsession_length": 1300,
         "locale": "en-US",
         "os": "mac",
         "bookmark_count": 7,
@@ -22,8 +22,8 @@ FAKE_DONOR_DATA = [
     },
     {
         "activeAddons": ["{test-guid-5}", "{test-guid-6}", "{test-guid-7}", "{test-guid-8}"],
-        "geoCity": "pompei-it",
-        "subsessionLength": 67832,
+        "geo_city": "pompei-it",
+        "subsession_length": 67832,
         "locale": "it-IT",
         "os": "Linux",
         "bookmark_count": 8166,
@@ -33,8 +33,8 @@ FAKE_DONOR_DATA = [
     },
     {
         "activeAddons": ["{test-guid-9}", "{test-guid-10}", "{test-guid-11}", "{test-guid-12}"],
-        "geoCity": "brasilia-br",
-        "subsessionLength": 5411,
+        "geo_city": "brasilia-br",
+        "subsession_length": 5411,
         "locale": "br-PT",
         "os": "windows",
         "bookmark_count": 17,
@@ -56,8 +56,8 @@ def generate_a_fake_taar_client():
     return {
         "client_id": "test-client-001",
         "activeAddons": [],
-        "geoCity": "rio-br",
-        "subsessionLength": 4911,
+        "geo_city": "rio-br",
+        "subsession_length": 4911,
         "locale": "br-PT",
         "os": "windows",
         "bookmark_count": 57,
@@ -149,7 +149,7 @@ def test_distance_functions(instantiate_mocked_s3_bucket):
     assert len(recs) > 0
 
     # Make it a generally poor match for the donors.
-    test_client.update({'total_uri': 10, 'bookmark_count': 2, 'subsessionLength': 10})
+    test_client.update({'total_uri': 10, 'bookmark_count': 2, 'subsession_length': 10})
 
     all_client_values_zero = test_client
     # Make all categorical variables non-matching with any donor.

@@ -7,8 +7,8 @@ S3_BUCKET = 'telemetry-parquet'
 DONOR_LIST_KEY = 'taar/legacy/addon_donors.json'
 LR_CURVES_SIMILARITY_TO_PROBABILITY = 'taar/legacy/test/lr_curves.json'
 
-CATEGORICAL_FEATURES = ["geoCity", "locale", "os"]
-CONTINUOUS_FEATURES = ["subsessionLength", "bookmark_count", "tab_open_count", "total_uri", "unique_tlds"]
+CATEGORICAL_FEATURES = ["geo_city", "locale", "os"]
+CONTINUOUS_FEATURES = ["subsession_length", "bookmark_count", "tab_open_count", "total_uri", "unique_tlds"]
 
 logger = logging.getLogger(__name__)
 
@@ -54,9 +54,9 @@ class SimilarityRecommender(BaseRecommender):
         if self.donors_list is None or self.lr_curves is None:
             return False
 
-        # Check that the client info contains a non-None value for each required telemetry field.
-        REQUIRED_FIELDS = ["geoCity", "subsessionLength", "locale", "os", "bookmark_count", "tab_open_count",
-                           "total_uri", "unique_tlds"]
+        # Check that the client info contains a non-None value for each required
+        # telemetry field.
+        REQUIRED_FIELDS = CATEGORICAL_FEATURES + CONTINUOUS_FEATURES
 
         has_fields = all([client_data.get(f, None) is not None for f in REQUIRED_FIELDS])
         if not has_fields:
