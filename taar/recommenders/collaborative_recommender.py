@@ -66,7 +66,6 @@ class CollaborativeRecommender(BaseRecommender):
 
         # We only get meaningful recommendation if a client has at least an
         # addon installed.
-        # TODO: should we exclude system addons?
         if len(client_data.get('installed_addons', [])) > 0:
             return True
 
