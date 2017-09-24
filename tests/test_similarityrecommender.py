@@ -5,12 +5,12 @@ import pytest
 import scipy.stats
 from moto import mock_s3
 from taar.recommenders.similarity_recommender import \
-    SimilarityRecommender, CATEGORICAL_FEATURES, CONTINUOUS_FEATURES, S3_BUCKET
-
+    CATEGORICAL_FEATURES, CONTINUOUS_FEATURES, S3_BUCKET, DONOR_LIST_KEY, LR_CURVES_SIMILARITY_TO_PROBABILITY, \
+    SimilarityRecommender
 
 FAKE_DONOR_DATA = [
     {
-        "activeAddons": ["{test-guid-1}", "{test-guid-2}", "{test-guid-3}", "{test-guid-4}"],
+        "active_addons": ["{test-guid-1}", "{test-guid-2}", "{test-guid-3}", "{test-guid-4}"],
         "geo_city": "nowhere-us",
         "subsession_length": 1300,
         "locale": "en-US",
@@ -21,7 +21,7 @@ FAKE_DONOR_DATA = [
         "unique_tlds": 500
     },
     {
-        "activeAddons": ["{test-guid-5}", "{test-guid-6}", "{test-guid-7}", "{test-guid-8}"],
+        "active_addons": ["{test-guid-5}", "{test-guid-6}", "{test-guid-7}", "{test-guid-8}"],
         "geo_city": "pompei-it",
         "subsession_length": 67832,
         "locale": "it-IT",
@@ -32,7 +32,7 @@ FAKE_DONOR_DATA = [
         "unique_tlds": 1203
     },
     {
-        "activeAddons": ["{test-guid-9}", "{test-guid-10}", "{test-guid-11}", "{test-guid-12}"],
+        "active_addons": ["{test-guid-9}", "{test-guid-10}", "{test-guid-11}", "{test-guid-12}"],
         "geo_city": "brasilia-br",
         "subsession_length": 5411,
         "locale": "br-PT",
@@ -74,10 +74,10 @@ def instantiate_mocked_s3_bucket():
     conn = boto3.resource('s3', region_name='us-west-2')
     conn.create_bucket(Bucket=S3_BUCKET)
     # Write the fake addon donor data to the mocked S3.
-    conn.Object(S3_BUCKET, key='taar/legacy/addon_donors.json').put(Body=json.dumps(FAKE_DONOR_DATA))
+    conn.Object(S3_BUCKET, key=DONOR_LIST_KEY).put(Body=json.dumps(FAKE_DONOR_DATA))
     # Write the fake lr curves data to the mocked S3.
     fake_lrs = generate_fake_lr_curves(1000)
-    conn.Object(S3_BUCKET, key='taar/legacy/test/lr_curves.json').put(Body=json.dumps(fake_lrs))
+    conn.Object(S3_BUCKET, key=LR_CURVES_SIMILARITY_TO_PROBABILITY).put(Body=json.dumps(fake_lrs))
 
     yield conn
     mock_s3().stop()
