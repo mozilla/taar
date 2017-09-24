@@ -2,6 +2,7 @@ import logging
 from .collaborative_recommender import CollaborativeRecommender
 from .legacy_recommender import LegacyRecommender
 from .locale_recommender import LocaleRecommender
+from .similarity_recommender import SimilarityRecommender
 from ..profile_fetcher import ProfileFetcher
 
 
@@ -27,6 +28,7 @@ class RecommendationManager(object):
             self.recommenders = (
                 LegacyRecommender(),
                 CollaborativeRecommender(),
+                SimilarityRecommender(),
                 LocaleRecommender()
             )
         else:
