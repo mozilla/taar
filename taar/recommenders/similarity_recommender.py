@@ -3,12 +3,12 @@ from ..recommenders import utils
 from .base_recommender import BaseRecommender
 from scipy.spatial import distance
 
-S3_BUCKET = 'telemetry-parquet'
-DONOR_LIST_KEY = 'taar/legacy/addon_donors.json'
-LR_CURVES_SIMILARITY_TO_PROBABILITY = 'taar/legacy/test/lr_curves.json'
-
 CATEGORICAL_FEATURES = ["geo_city", "locale", "os"]
 CONTINUOUS_FEATURES = ["subsession_length", "bookmark_count", "tab_open_count", "total_uri", "unique_tlds"]
+
+S3_BUCKET = 'telemetry-parquet'
+DONOR_LIST_KEY = 'taar/similarity/donors.json'
+LR_CURVES_SIMILARITY_TO_PROBABILITY = 'taar/similarity/lr_curves.json'
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ class SimilarityRecommender(BaseRecommender):
             d = {
                 'categorical_features': [donor.get(specified_key) for specified_key in CATEGORICAL_FEATURES],
                 'continuous_features': [donor.get(specified_key) for specified_key in CONTINUOUS_FEATURES],
-                'active_addons': donor['activeAddons']
+                'active_addons': donor['active_addons']
             }
             self.donors_list.append(d)
 
