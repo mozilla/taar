@@ -83,6 +83,15 @@ def instantiate_mocked_s3_bucket():
     mock_s3().stop()
 
 
+@mock_s3
+def test_soft_fail():
+    # Create a new instance of a SimilarityRecommender.
+    r = SimilarityRecommender()
+
+    # Don't recommend if the source files cannot be found.
+    assert not r.can_recommend({})
+
+
 def test_can_recommend(instantiate_mocked_s3_bucket):
     # Create a new instance of a SimilarityRecommender.
     r = SimilarityRecommender()
