@@ -34,8 +34,6 @@ class SimilarityRecommender(BaseRecommender):
         if self.donors_pool is None:
             logger.error("Cannot download the donor list: {}".format(DONOR_LIST_KEY))
 
-        self.num_donors = len(self.donors_pool)
-
         # Download the probability mapping curves from similarity to likelihood of being a good donor.
         self.lr_curves = utils.get_s3_json_content(S3_BUCKET, LR_CURVES_SIMILARITY_TO_PROBABILITY)
         if self.lr_curves is None:
@@ -49,6 +47,10 @@ class SimilarityRecommender(BaseRecommender):
         One matrix is for the continuous features and the other is for
         the categorical features. This is needed to speed up the similarity
         recommendation process."""
+        if self.donors_pool is None or self.lr_curves is None:
+            return None
+
+        self.num_donors = len(self.donors_pool)
 
         # Build a numpy matrix cache for the continuous features.
         self.continuous_features = np.zeros((self.num_donors, len(CONTINUOUS_FEATURES)))
