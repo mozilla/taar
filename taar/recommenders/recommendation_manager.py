@@ -49,12 +49,12 @@ class RecommendationManager(object):
         for r in self.recommenders:
             if r.can_recommend(client_info):
                 logger.info("Recommender selected", extra={
-                    "client_id": client_id, "recommender": r
+                    "client_id": client_id, "recommender": str(r)
                 })
                 recommendations = r.recommend(client_info, limit)
                 if not recommendations:
                     logger.info("No recommendations", extra={
-                        "client_id": client_id, "recommender": r
+                        "client_id": client_id, "recommender": str(r)
                     })
 
                 return recommendations
