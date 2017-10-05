@@ -1,7 +1,7 @@
 # Taar
 Telemetry-Aware Addon Recommender
 
-ToC : (Table Of Contents):
+Table of Contents (ToC):
 ===========================
 
 * [How does it work?](#how-does-it-work)
