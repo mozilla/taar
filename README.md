@@ -1,6 +1,13 @@
 # Taar
 Telemetry-Aware Addon Recommender
 
+ToC : (Table Of Contents):
+===========================
+
+* [How does it work?](#how-does-it-work)
+* [Supported models](#supported-models)
+* [Instructions for Releasing Updates](#instructions-for-releasing-updates)
+
 ## How does it work?
 The recommendation strategy is implemented through the [RecommendationManager](taar/recommenders/recommendation_manager.py). Once a recommendation is requested for a specific [client id](https://firefox-source-docs.mozilla.org/toolkit/components/telemetry/telemetry/data/common-ping.html), the recommender iterates through all the registered models (e.g. [CollaborativeRecommender](taar/recommenders/collaborative_recommender.py)) linearly in their registered order. Results are returned from the first module that can perform a recommendation.
 
