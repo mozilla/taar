@@ -41,6 +41,17 @@ FAKE_DONOR_DATA = [
         "tab_open_count": 3,
         "total_uri": 432,
         "unique_tlds": 10
+    },
+    {
+        "active_addons": ["{test-guid-13}", "{test-guid-14}"],
+        "geo_city": "??",
+        "subsession_length": 1,
+        "locale": "br-PT",
+        "os": "",
+        "bookmark_count": None,
+        "tab_open_count": 1000,
+        "total_uri": None,
+        "unique_tlds": 2
     }
 ]
 
