@@ -1,4 +1,4 @@
-# taar
+# Taar
 Telemetry-Aware Addon Recommender
 
 ## How does it work?
