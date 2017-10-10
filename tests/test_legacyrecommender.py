@@ -3,9 +3,17 @@ import pytest
 from taar.recommenders import LegacyRecommender
 
 FAKE_LEGACY_DATA = {
-    "{test_guid_1}": ["test_guid_2", "test_guid_3"],
-    "test_guid_4": ["{test_guid_5}"],
-    "{test_guid_6}": ["test_guid_7"]
+    "guid-01":
+        ["guid-02"],
+    "guid-03":
+        ["guid-05"],
+    "guid-05":
+        ["guid-06"],
+    "guid-07": ["guid-08-1", "guid-09-2", "guid-10-3", "guid-11-4"],
+    "guid-12": ["guid-13-1", "guid-14-2", "guid-15-3", "guid-16-4",
+                "guid-17-5", "guid-18-6", "guid-19-7", "guid-20-8",
+                "guid-21-9", "guid-22-10"],
+    "guid-23": []
 }
 
 
@@ -41,8 +49,8 @@ def test_recommendations(mock_s3_json_downloader):
     limit = 10
     profile_with_legacy = dict(
         client_id="test-client-id",
-        disabled_addons_ids=["{test_guid_1}",
-                             "test_guid_8"],
+        disabled_addons_ids=["guid-01",
+                             "guid-05"],
         locale="it-IT"
     )
 
@@ -52,8 +60,21 @@ def test_recommendations(mock_s3_json_downloader):
     assert isinstance(recommendations, list)
 
     # Make sure that the reported addons are the ones from the fake data.
-    assert "test_guid_2" in recommendations
-    assert "test_guid_3" in recommendations
+    assert "guid-02" in recommendations
+    assert "guid-06" in recommendations
+
+    profile_with_many_legacy = dict(
+        client_id="test-client-id",
+        disabled_addons_ids=["guid-01",
+                             "guid-05",
+                             "guid-12"],
+        locale="it-IT"
+    )
+
+    recommendations = r.recommend(profile_with_many_legacy, limit)
+    assert len(recommendations) <= limit
+    assert "guid-13-1" in recommendations
+    assert "guid-22-10" not in recommendations
 
 
 def test_recommender_str(mock_s3_json_downloader):
