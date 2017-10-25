@@ -56,7 +56,10 @@ class RecommendationManager(object):
                     logger.info("No recommendations", extra={
                         "client_id": client_id, "recommender": str(r)
                     })
-
+                else:
+                    logger.info("Recommendations served", extra={
+                        "client_id": client_id, "recommended_addons": str(recommendations)
+                    })
                 return recommendations
         logger.info("No recommender can recommend addons", extra={
             "client_id": client_id
