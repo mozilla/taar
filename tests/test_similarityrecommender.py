@@ -159,6 +159,59 @@ def test_get_lr(instantiate_mocked_s3_bucket):
     assert r.get_lr(0.001) > r.get_lr(5.0)
 
 
+def test_compute_clients_dist(instantiate_mocked_s3_bucket):
+    # Test the distance function computation.
+    r = SimilarityRecommender()
+    test_clients = [
+        {
+            "client_id": "test-client-002",
+            "activeAddons": [],
+            "geo_city": "sfo-us",
+            "subsession_length": 1,
+            "locale": "en-US",
+            "os": "windows",
+            "bookmark_count": 1,
+            "tab_open_count": 1,
+            "total_uri": 1,
+            "unique_tlds": 1
+        },
+        {
+            "client_id": "test-client-003",
+            "activeAddons": [],
+            "geo_city": "brasilia-br",
+            "subsession_length": 1,
+            "locale": "br-PT",
+            "os": "windows",
+            "bookmark_count": 10,
+            "tab_open_count": 1,
+            "total_uri": 1,
+            "unique_tlds": 1
+        },
+        {
+            "client_id": "test-client-004",
+            "activeAddons": [],
+            "geo_city": "brasilia-br",
+            "subsession_length": 100,
+            "locale": "br-PT",
+            "os": "windows",
+            "bookmark_count": 10,
+            "tab_open_count": 10,
+            "total_uri": 100,
+            "unique_tlds": 10
+        }
+    ]
+    per_client_test = []
+
+    # Compute a different set of distances for each set of clients.
+    for tc in test_clients:
+        test_distances = r.compute_clients_dist(tc)
+        assert len(test_distances) == len(FAKE_DONOR_DATA)
+        per_client_test.append(test_distances[2][0])
+
+    # Ensure the different clients also had different distances to a specific donor.
+    assert per_client_test[0] >= per_client_test[1] >= per_client_test[2]
+
+
 def test_distance_functions(instantiate_mocked_s3_bucket):
     # Tests the similarity functions via expected output when passing modified client data.
     r = SimilarityRecommender()

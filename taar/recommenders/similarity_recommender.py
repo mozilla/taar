@@ -104,20 +104,10 @@ class SimilarityRecommender(BaseRecommender):
         # Compute LR based on numerator and denominator values
         return float(numer_val) / float(denum_val)
 
-    def get_similar_donors(self, client_data):
-        """Computes a set of :float: similarity scores between a client and a set of candidate
-        donors for which comparable variables have been measured.
-
-        A custom similarity metric is defined in this function that combines the Hamming distance
-        for categorical variables with the Canberra distance for continuous variables into a
-        univariate similarity metric between the client and a set of candidate donors loaded during
-        init.
-
-        :param client_data: a client data payload including a subset fo telemetry fields.
-        :return: the sorted approximate likelihood ratio (np.array) corresponding to the
-                 internally computed similarity score and a list of indices that link
-                 each LR score with the related donor in the |self.donors_pool|.
-        """
+    # # # CAUTION! # # #
+    # Any changes to this function must be reflected in the corresponding ETL job.
+    # https://github.com/mozilla/python_mozetl/blob/master/mozetl/taar/taar_similarity.py
+    def compute_clients_dist(self, client_data):
         client_categorical_feats = [client_data.get(specified_key) for specified_key in CATEGORICAL_FEATURES]
         client_continuous_feats = [client_data.get(specified_key) for specified_key in CONTINUOUS_FEATURES]
 
@@ -135,7 +125,24 @@ class SimilarityRecommender(BaseRecommender):
         # Take the product of similarities to attain a univariate similarity score.
         # Addition of 0.001 to the continuous features avoids a zero value from the
         # categorical variables, allowing categorical features precedence.
-        distances = (cont_features + 0.001) * cat_features
+        return (cont_features + 0.001) * cat_features
+
+    def get_similar_donors(self, client_data):
+        """Computes a set of :float: similarity scores between a client and a set of candidate
+        donors for which comparable variables have been measured.
+
+        A custom similarity metric is defined in this function that combines the Hamming distance
+        for categorical variables with the Canberra distance for continuous variables into a
+        univariate similarity metric between the client and a set of candidate donors loaded during
+        init.
+
+        :param client_data: a client data payload including a subset fo telemetry fields.
+        :return: the sorted approximate likelihood ratio (np.array) corresponding to the
+                 internally computed similarity score and a list of indices that link
+                 each LR score with the related donor in the |self.donors_pool|.
+        """
+        # Compute the distance between self and any comparable client.
+        distances = self.compute_clients_dist(client_data)
 
         # Compute the LR based on precomputed distributions that relate the score
         # to a probability of providing good addon recommendations.
