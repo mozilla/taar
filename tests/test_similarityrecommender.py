@@ -165,7 +165,7 @@ def test_distance_functions(instantiate_mocked_s3_bucket):
 
     # Generate a fake client.
     test_client = generate_a_fake_taar_client()
-    recs = r.recommend(test_client)
+    recs = r.recommend(test_client, 10)
     assert len(recs) > 0
 
     # Make it a generally poor match for the donors.
@@ -174,23 +174,23 @@ def test_distance_functions(instantiate_mocked_s3_bucket):
     all_client_values_zero = test_client
     # Make all categorical variables non-matching with any donor.
     all_client_values_zero.update({key: 'zero' for key in test_client.keys() if key in CATEGORICAL_FEATURES})
-    recs = r.recommend(all_client_values_zero)
+    recs = r.recommend(all_client_values_zero, 10)
     assert len(recs) == 0
 
     # Make all continuous variables equal to zero.
     all_client_values_zero.update({key: 0 for key in test_client.keys() if key in CONTINUOUS_FEATURES})
-    recs = r.recommend(all_client_values_zero)
+    recs = r.recommend(all_client_values_zero, 10)
     assert len(recs) == 0
 
     # Make all categorical variables non-matching with any donor.
     all_client_values_high = test_client
     all_client_values_high.update({key: 'one billion' for key in test_client.keys() if key in CATEGORICAL_FEATURES})
-    recs = r.recommend(all_client_values_high)
+    recs = r.recommend(all_client_values_high, 10)
     assert len(recs) == 0
 
     # Make all continuous variables equal to a very high numerical value.
     all_client_values_high.update({key: 1e60 for key in test_client.keys() if key in CONTINUOUS_FEATURES})
-    recs = r.recommend(all_client_values_high)
+    recs = r.recommend(all_client_values_high, 10)
     assert len(recs) == 0
 
     # Test for 0.0 values if j_c is not normalized and j_d is fine.

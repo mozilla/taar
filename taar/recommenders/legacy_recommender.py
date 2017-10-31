@@ -24,7 +24,7 @@ class LegacyRecommender(BaseRecommender):
         if self.legacy_replacements is None:
             logger.error("Cannot download the JSON resource: {}".format(ADDON_LIST_KEY))
 
-    def can_recommend(self, client_data):
+    def can_recommend(self, client_data, extra_data={}):
         # We can't recommend if we don't have our data files.
         if self.legacy_replacements is None:
             return False
@@ -40,7 +40,7 @@ class LegacyRecommender(BaseRecommender):
         # then no recommendation is possible.
         return len(set(legacy_addons).intersection(self.legacy_replacements.keys())) > 0
 
-    def recommend(self, client_data, limit):
+    def recommend(self, client_data, limit, extra_data={}):
         legacy_addons = client_data.get('disabled_addons_ids', [])
 
         legacy_replacements = [self.legacy_replacements[client_addon_n]

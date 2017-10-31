@@ -59,7 +59,7 @@ class CollaborativeRecommender(BaseRecommender):
         for index, row in enumerate(self.raw_item_matrix):
             self.model[index, :] = row['features']
 
-    def can_recommend(self, client_data):
+    def can_recommend(self, client_data, extra_data={}):
         # We can't recommend if we don't have our data files.
         if self.raw_item_matrix is None or self.model is None or self.addon_mapping is None:
             return False
@@ -71,7 +71,7 @@ class CollaborativeRecommender(BaseRecommender):
 
         return False
 
-    def recommend(self, client_data, limit):
+    def recommend(self, client_data, limit, extra_data={}):
         # Addons identifiers are stored as positive hash values within the model.
         installed_addons =\
             [positive_hash(addon_id) for addon_id in client_data.get('installed_addons', [])]

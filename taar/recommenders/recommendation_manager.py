@@ -34,11 +34,15 @@ class RecommendationManager(object):
         else:
             self.recommenders = recommenders
 
-    def recommend(self, client_id, limit):
+    def recommend(self, client_id, limit, extra_data={}):
         """Return recommendations for the given client.
 
         The recommendation logic will go through each recommender and pick the
         first one that "can_recommend".
+
+        :param client_id: the client unique id.
+        :param limit: the maximum number of recommendations to return.
+        :param extra_data: a dictionary with extra client data.
         """
         # Get the info for the requested client id.
         client_info = self.profile_fetcher.get(client_id)
@@ -47,11 +51,11 @@ class RecommendationManager(object):
 
         # Compute the recommendation.
         for r in self.recommenders:
-            if r.can_recommend(client_info):
+            if r.can_recommend(client_info, extra_data):
                 logger.info("Recommender selected", extra={
                     "client_id": client_id, "recommender": str(r)
                 })
-                recommendations = r.recommend(client_info, limit)
+                recommendations = r.recommend(client_info, limit, extra_data)
                 if not recommendations:
                     logger.info("No recommendations", extra={
                         "client_id": client_id, "recommender": str(r)
