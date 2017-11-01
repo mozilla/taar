@@ -60,3 +60,25 @@ def test_recommender_str(mock_s3_json_downloader):
     # Tests that the string representation of the recommender is correct
     r = LocaleRecommender()
     assert str(r) == "LocaleRecommender"
+
+
+def test_recommender_extra_data(mock_s3_json_downloader):
+    # Test that the recommender uses locale data from the "extra"
+    # section if available.
+    def validate_recommendations(data, expected_locale):
+        # Make sure the structure of the recommendations is correct and that we
+        # recommended the the right addon.
+        assert isinstance(data, list)
+        assert len(data) == len(FAKE_LOCALE_DATA[expected_locale])
+
+        # Make sure that the reported addons are the one from the fake data.
+        for addon_id in data:
+            assert addon_id in FAKE_LOCALE_DATA[expected_locale]
+
+    r = LocaleRecommender()
+    recommendations = r.recommend({}, 10, extra_data={"locale": "en"})
+    validate_recommendations(recommendations, "en")
+
+    # Make sure that we favour client data over the extra data.
+    recommendations = r.recommend({"locale": "en"}, 10, extra_data={"locale": "te-ST"})
+    validate_recommendations(recommendations, "en")

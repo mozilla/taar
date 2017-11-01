@@ -11,10 +11,10 @@ class StubRecommender(BaseRecommender):
         self._can_recommend = can_recommend
         self._recommendations = stub_recommendations
 
-    def can_recommend(self, client_info):
+    def can_recommend(self, client_info, extra_data={}):
         return self._can_recommend
 
-    def recommend(self, client_data, limit):
+    def recommend(self, client_data, limit, extra_data={}):
         return self._recommendations
 
 

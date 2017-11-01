@@ -68,7 +68,7 @@ class SimilarityRecommender(BaseRecommender):
         # This will significantly speed up |get_lr|.
         self.lr_curves_cache = np.array([s[0] for s in self.lr_curves])
 
-    def can_recommend(self, client_data):
+    def can_recommend(self, client_data, extra_data={}):
         # We can't recommend if we don't have our data files.
         if self.donors_pool is None or self.lr_curves is None:
             return False
@@ -154,7 +154,7 @@ class SimilarityRecommender(BaseRecommender):
         indices = (-lrs_from_scores).argsort()
         return lrs_from_scores[indices], indices
 
-    def recommend(self, client_data, limit=10):
+    def recommend(self, client_data, limit, extra_data={}):
         donor_set_ranking, indices = self.get_similar_donors(client_data)
         # 2.0 corresponds to a likelihood ratio of 2 meaning that donors are less than twice
         # as likely to be 'good'. A value > 1.0 is sufficient, but we like this to be high.

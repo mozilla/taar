@@ -25,11 +25,14 @@ class LocaleRecommender(BaseRecommender):
         if self.top_addons_per_locale is None:
             logger.error("Cannot download the top per locale file {}".format(ADDON_LIST_KEY))
 
-    def can_recommend(self, client_data):
+    def can_recommend(self, client_data, extra_data={}):
         # We can't recommend if we don't have our data files.
         if self.top_addons_per_locale is None:
             return False
-        client_locale = client_data.get('locale', None)
+
+        # If we have data coming from other sources, we can use that for
+        # recommending.
+        client_locale = client_data.get('locale', None) or extra_data.get('locale', None)
         if not isinstance(client_locale, str):
             return False
 
@@ -41,6 +44,8 @@ class LocaleRecommender(BaseRecommender):
 
         return True
 
-    def recommend(self, client_data, limit):
-        client_locale = client_data.get('locale')
+    def recommend(self, client_data, limit, extra_data={}):
+        # If we have data coming from multiple sourecs, prefer the one
+        # from 'client_data'.
+        client_locale = client_data.get('locale') or extra_data.get('locale', None)
         return self.top_addons_per_locale.get(client_locale, [])[:limit]
