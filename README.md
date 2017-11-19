@@ -3,7 +3,7 @@
 <details><summary><sub><b>Telemetry-Aware Addon Recommender</b></sub>
 </summary>
 
-<details><summary><sub><b>Table of Contentns</sub></sub></summary>
+<details><summary><sub><b>Table of Contents</sub></sub></summary>
 
 #### Table of Contents (ToC):
 
