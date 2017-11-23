@@ -15,17 +15,21 @@ logger = logging.getLogger(__name__)
 
 
 class SimilarityRecommender(BaseRecommender):
-    """ A recommender class that returns top N addons based on the client similarity
-    with a set of candidate addon donors. Several telemetry fields are used to compute
-    pairwise similarity with the donors and similarities are converted into a likelihood
-    ratio of being a good match versus not being a good match. These quantities are then
-    used to rank specific addons for recommendation.
+    """ A recommender class that returns top N addons based on the
+    client similarity with a set of candidate addon donors.
 
-    This will load a json file containing updated list of addon donors updated periodically
-    by a separate weekly process using Longitdudinal Telemetry data.
+    Several telemetry fields are used to compute pairwise similarity
+    with the donors and similarities are converted into a likelihood
+    ratio of being a good match versus not being a good match. These
+    quantities are then used to rank specific addons for
+    recommendation.
 
-    This recommender may provide useful recommendations when collaborative_recommender
-    may not work.
+    This will load a json file containing updated list of addon donors
+    updated periodically by a separate weekly process using
+    Longitdudinal Telemetry data.
+
+    This recommender may provide useful recommendations when
+    collaborative_recommender may not work.
     """
 
     def __init__(self):
@@ -156,19 +160,20 @@ class SimilarityRecommender(BaseRecommender):
 
     def recommend(self, client_data, limit, extra_data={}):
         donor_set_ranking, indices = self.get_similar_donors(client_data)
-        # 2.0 corresponds to a likelihood ratio of 2 meaning that donors are less than twice
-        # as likely to be 'good'. A value > 1.0 is sufficient, but we like this to be high.
-        if donor_set_ranking[0] < 2.0:
+        donor_log_lrs = np.log(donor_set_ranking)
+        # 1.0 corresponds to a log likelihood ratio of 0 meaning that donors are equally
+        # likely to be 'good'. A value > 0.0 is sufficient, but we like this to be high.
+        if donor_log_lrs[0] < 0.1:
             logger.warning("Addons recommended with very low similarity score, perhaps donor set is unrepresentative",
                            extra={"maximum_similarity": donor_set_ranking[0]})
 
         # Retrieve the indices of the highest ranked donors and then append their
         # installed addons.
-        highest_scores_indices = indices[donor_set_ranking > 1.0]
-
+        index_lrs_iter = zip(indices[donor_log_lrs > 0.0], donor_log_lrs)
         recommendations = []
-        for good_candidate_index in highest_scores_indices:
-            recommendations.extend(self.donors_pool[good_candidate_index]['active_addons'])
+        for (index, lrs) in index_lrs_iter:
+            candidate = (self.donors_pool[index]['active_addons'], lrs)
+            recommendations.append(candidate)
             if len(recommendations) > limit:
                 break
         return recommendations[:limit]
