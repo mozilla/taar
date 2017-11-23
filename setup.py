@@ -3,7 +3,8 @@ from setuptools import find_packages, setup
 setup(
     name='mozilla-taar',
     use_scm_version=True,
-    setup_requires=['setuptools_scm'],
+    setup_requires=['setuptools_scm', 'pytest-runner'],
+    tests_require=['pytest'],
     include_package_data = True,
     packages=find_packages(exclude=['tests', 'tests/*']),
     description='Telemetry-Aware Addon Recommender',
