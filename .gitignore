@@ -44,6 +44,7 @@ nosetests.xml
 coverage.xml
 *,cover
 .hypothesis/
+fixtures
 
 # Translations
 *.mo
@@ -93,3 +94,6 @@ ENV/
 
 # Pycharm garbage (j/k jetbrains you know i love you)
 .idea
+
+# vim garbage
+*.sw?
