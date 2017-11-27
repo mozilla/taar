@@ -72,6 +72,11 @@ class CollaborativeRecommender(BaseRecommender):
         return False
 
     def recommend(self, client_data, limit, extra_data={}):
+        """We only get meaningful recommendation if a client has at least an
+        addon installed."""
+        if len(client_data.get('installed_addons', [])) == 0:
+            return []
+
         # Addons identifiers are stored as positive hash values within the model.
         installed_addons =\
             [positive_hash(addon_id) for addon_id in client_data.get('installed_addons', [])]
