@@ -78,13 +78,14 @@ class CollaborativeRecommender(BaseRecommender):
             return []
 
         # Addons identifiers are stored as positive hash values within the model.
-        installed_addons =\
+        installed_addons_as_hashes =\
             [positive_hash(addon_id) for addon_id in client_data.get('installed_addons', [])]
 
         # Build the query vector by setting the position of the queried addons to 1.0
         # and the other to 0.0.
-        query_vector = np.array([1.0 if (entry.get("id") in installed_addons) else 0.0
-                                 for entry in self.raw_item_matrix])
+        query_vector = np.array([1.0
+                                 if (positive_hash(entry.get("id")) in installed_addons_as_hashes)
+                                 else 0.0 for entry in self.raw_item_matrix])
 
         # Build the user factors matrix.
         user_factors = np.matmul(query_vector, self.model)
@@ -97,19 +98,22 @@ class CollaborativeRecommender(BaseRecommender):
             # We don't really need to show the items we requested. They will always
             # end up with the greatest score. Also filter out legacy addons from the
             # suggestions.
-            hashed_id = str(addon.get("id"))
-            if (hashed_id in installed_addons or
-                    hashed_id not in self.addon_mapping or
-                    self.addon_mapping[hashed_id].get("isWebextension", False) is False):
+            hashed_id = positive_hash(addon.get("id"))
+            str_hashed_id = str(hashed_id)
+            if (hashed_id in installed_addons_as_hashes or
+                    str_hashed_id not in self.addon_mapping or
+                    self.addon_mapping[str_hashed_id].get("isWebextension", False) is False):
                 continue
 
             dist = np.dot(user_factors_transposed, addon.get('features'))
             # Read the addon ids from the "addon_mapping" looking it
             # up by 'id' (which is an hashed value).
-            addon_id = self.addon_mapping[hashed_id].get("id")
+            addon_id = self.addon_mapping[str_hashed_id].get("id")
             distances[addon_id] = dist
 
         # Sort the suggested addons by their score and return the sorted list of addon
         # ids.
-        sorted_dists = sorted(distances.items(), key=op.itemgetter(1), reverse=True)
+        sorted_dists = sorted(distances.items(),
+                              key=op.itemgetter(1),
+                              reverse=True)
         return [s[0] for s in sorted_dists[:limit]]
