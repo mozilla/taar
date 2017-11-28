@@ -82,3 +82,7 @@ def test_recommender_extra_data(mock_s3_json_downloader):
     # Make sure that we favour client data over the extra data.
     recommendations = r.recommend({"locale": "en"}, 10, extra_data={"locale": "te-ST"})
     validate_recommendations(recommendations, "en")
+
+
+def test_recommendation_weights(mock_s3_json_downloader):
+    raise NotImplementedError

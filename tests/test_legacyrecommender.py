@@ -81,3 +81,7 @@ def test_recommender_str(mock_s3_json_downloader):
     # Tests that the string representation of the recommender is correct
     r = LegacyRecommender()
     assert str(r) == "LegacyRecommender"
+
+
+def test_recommendation_weights(mock_s3_json_downloader):
+    raise NotImplementedError
