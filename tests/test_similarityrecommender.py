@@ -251,3 +251,7 @@ def test_distance_functions(instantiate_mocked_s3_bucket):
     j_d = 0.42
     assert abs(j_c * j_d) == 0.0
     assert abs((j_c + 0.01) * j_d) != 0.0
+
+
+def test_recommendation_weights(instantiate_mocked_s3_bucket):
+    raise NotImplementedError
