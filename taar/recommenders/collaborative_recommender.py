@@ -72,11 +72,6 @@ class CollaborativeRecommender(BaseRecommender):
         return False
 
     def recommend(self, client_data, limit, extra_data={}):
-        """We only get meaningful recommendation if a client has at least an
-        addon installed."""
-        if len(client_data.get('installed_addons', [])) == 0:
-            return []
-
         # Addons identifiers are stored as positive hash values within the model.
         installed_addons_as_hashes =\
             [positive_hash(addon_id) for addon_id in client_data.get('installed_addons', [])]
@@ -95,9 +90,9 @@ class CollaborativeRecommender(BaseRecommender):
         # space.
         distances = {}
         for addon in self.raw_item_matrix:
-            # We don't really need to show the items we requested. They will always
-            # end up with the greatest score. Also filter out legacy addons from the
-            # suggestions.
+            # We don't really need to show the items we requested.
+            # They will always end up with the greatest score. Also
+            # filter out legacy addons from the suggestions.
             hashed_id = positive_hash(addon.get("id"))
             str_hashed_id = str(hashed_id)
             if (hashed_id in installed_addons_as_hashes or
@@ -111,8 +106,8 @@ class CollaborativeRecommender(BaseRecommender):
             addon_id = self.addon_mapping[str_hashed_id].get("id")
             distances[addon_id] = dist
 
-        # Sort the suggested addons by their score and return the sorted list of addon
-        # ids.
+        # Sort the suggested addons by their score and return the
+        # sorted list of addon ids.
         sorted_dists = sorted(distances.items(),
                               key=op.itemgetter(1),
                               reverse=True)

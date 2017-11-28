@@ -1,5 +1,5 @@
 """
-Test cases for the TAAR core library.
+Test cases for the TAAR CollaborativeRecommender
 """
 
 import pytest
@@ -8,16 +8,7 @@ import responses
 from taar.recommenders.collaborative_recommender import ADDON_MAPPING_URL
 from taar.recommenders.collaborative_recommender import ADDON_MODEL_URL
 from taar.recommenders.collaborative_recommender import CollaborativeRecommender
-
-def java_string_hashcode(s):
-    h = 0
-    for c in s:
-        h = (31 * h + ord(c)) & 0xFFFFFFFF
-    return ((h + 0x80000000) & 0xFFFFFFFF) - 0x80000000
-
-
-def positive_hash(s):
-    return java_string_hashcode(s) & 0x7FFFFF
+from taar.recommenders.collaborative_recommender import positive_hash
 
 """
 We need to generate a synthetic list of addons and relative weights
@@ -96,9 +87,9 @@ def test_empty_recommendations(activate_responses):
     r = CollaborativeRecommender()
 
     assert not r.can_recommend({})
-    recommendations = r.recommend({}, 1)
-    assert isinstance(recommendations, list)
-    assert len(recommendations) == 0
+
+    # Note that calling recommend() if can_recommend has failed is not
+    # defined.
 
 
 @responses.activate
@@ -106,12 +97,6 @@ def test_best_recommendation(activate_responses):
     # Make sure the structure of the recommendations is correct and that we
     # recommended the the right addon.
     r = CollaborativeRecommender()
-
-    # An empty set of addons should always give an empty list of
-    # recommendations
-    recommendations = r.recommend({}, 1)
-    assert isinstance(recommendations, list)
-    assert len(recommendations) == 0
 
     # An non-empty set of addons should give a list of recommendations
     fixture_client_data = {"installed_addons": ["addon4.id"]}
