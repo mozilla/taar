@@ -2,6 +2,7 @@
 Test cases for the TAAR CollaborativeRecommender
 """
 
+import numpy
 import pytest
 import responses
 
@@ -32,7 +33,7 @@ for addon in ADDON_SPACE:
 # This matrix sets up addon2 as an overweighted recommended addon
 FAKE_ADDON_MATRIX = []
 for i, addon in enumerate(ADDON_SPACE):
-    row = {"id": addon['id'], "features": [0, 0.2, 0, 0.1, 0]}
+    row = {"id": addon['id'], "features": [0, 0.2, 0.0, 0.1, 0.15]}
     row['features'][i] = 1.0
     FAKE_ADDON_MATRIX.append(row)
 
@@ -107,7 +108,45 @@ def test_best_recommendation(activate_responses):
 
     # Verify that addon2 - the most heavy weighted addon was
     # recommended
-    assert recommendations[0]  == 'addon2.id'
+    result = recommendations[0]
+    assert type(result) is tuple
+    assert len(result) == 2
+    assert result[0] == 'addon2.id'
+    assert type(result[1]) is numpy.float64
+    assert numpy.isclose(result[1], numpy.float64('0.3225'))
+
+
+@responses.activate
+def test_recommendation_weights(activate_responses):
+    """
+    Weights should be ordered greatest to lowest
+    """
+    r = CollaborativeRecommender()
+
+    # An non-empty set of addons should give a list of recommendations
+    fixture_client_data = {"installed_addons": ["addon4.id"]}
+    assert r.can_recommend(fixture_client_data)
+    recommendations = r.recommend(fixture_client_data, 2)
+    assert isinstance(recommendations, list)
+    assert len(recommendations) == 2
+
+    # Verify that addon2 - the most heavy weighted addon was
+    # recommended
+    result = recommendations[0]
+    assert type(result) is tuple
+    assert len(result) == 2
+    assert result[0] == 'addon2.id'
+    assert type(result[1]) is numpy.float64
+    assert numpy.isclose(result[1], numpy.float64('0.3225'))
+
+    # Verify that addon2 - the most heavy weighted addon was
+    # recommended
+    result = recommendations[1]
+    assert type(result) is tuple
+    assert len(result) == 2
+    assert result[0] == 'addon5.id'
+    assert type(result[1]) is numpy.float64
+    assert numpy.isclose(result[1], numpy.float64('0.29'))
 
 
 @responses.activate
