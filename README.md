@@ -1,6 +1,8 @@
 # Taar
 Telemetry-Aware Addon Recommender
 
+[![Build Status](https://travis-ci.org/mozilla/taar.svg?branch=master)](https://travis-ci.org/mozilla/taar)
+
 Table of Contents (ToC):
 ===========================
 
