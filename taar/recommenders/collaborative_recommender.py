@@ -96,8 +96,8 @@ class CollaborativeRecommender(BaseRecommender):
             hashed_id = positive_hash(addon.get("id"))
             str_hashed_id = str(hashed_id)
             if (hashed_id in installed_addons_as_hashes or
-                str_hashed_id not in self.addon_mapping or
-                self.addon_mapping[str_hashed_id].get("isWebextension", False) is False):
+                    str_hashed_id not in self.addon_mapping or
+                    self.addon_mapping[str_hashed_id].get("isWebextension", False) is False):
                 continue
 
             dist = np.dot(user_factors_transposed, addon.get('features'))
@@ -111,4 +111,4 @@ class CollaborativeRecommender(BaseRecommender):
         sorted_dists = sorted(distances.items(),
                               key=op.itemgetter(1),
                               reverse=True)
-        return [s[0] for s in sorted_dists[:limit]]
+        return [(s[0], s[1]) for s in sorted_dists[:limit]]
