@@ -52,7 +52,8 @@ def test_recommendations(mock_s3_json_downloader):
     assert len(recommendations) == len(FAKE_LOCALE_DATA["en"])
 
     # Make sure that the reported addons are the one from the fake data.
-    for addon_id in recommendations:
+    for (addon_id, weight) in recommendations:
+        assert 1 == weight
         assert addon_id in FAKE_LOCALE_DATA["en"]
 
 
@@ -72,8 +73,9 @@ def test_recommender_extra_data(mock_s3_json_downloader):
         assert len(data) == len(FAKE_LOCALE_DATA[expected_locale])
 
         # Make sure that the reported addons are the one from the fake data.
-        for addon_id in data:
+        for (addon_id, weight) in data:
             assert addon_id in FAKE_LOCALE_DATA[expected_locale]
+            assert 1 == weight
 
     r = LocaleRecommender()
     recommendations = r.recommend({}, 10, extra_data={"locale": "en"})
@@ -82,7 +84,3 @@ def test_recommender_extra_data(mock_s3_json_downloader):
     # Make sure that we favour client data over the extra data.
     recommendations = r.recommend({"locale": "en"}, 10, extra_data={"locale": "te-ST"})
     validate_recommendations(recommendations, "en")
-
-
-def test_recommendation_weights(mock_s3_json_downloader):
-    raise NotImplementedError
