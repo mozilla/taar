@@ -43,19 +43,21 @@ class LegacyRecommender(BaseRecommender):
     def recommend(self, client_data, limit, extra_data={}):
         legacy_addons = client_data.get('disabled_addons_ids', [])
 
-        legacy_replacements = [self.legacy_replacements[client_addon_n]
-                               for client_addon_n in legacy_addons if client_addon_n in self.legacy_replacements]
+        replacements = [self.legacy_replacements[legacy_addon]
+                               for legacy_addon in legacy_addons
+                               if legacy_addon in self.legacy_replacements]
+
 
         recommendations = []
-        # Flatten output recommendations.
-        for addon_list in legacy_replacements:
-            recommendations.extend(addon_list)
+        while len(recommendations) < limit and len(replacements) > 0:
+            remove_list = []
+            for idx, replace_list in enumerate(replacements):
+                if len(replace_list) == 0:
+                    remove_list.append(idx)
+                    continue
+                recommendations.append((replace_list.pop(0), 1))
+            remove_list.reverse()
+            for idx in remove_list:
+                del replacements[idx]
 
-        # It is possible that some specific replacement addon recommendations are dropped if the number of viable
-        # recommendations per installed legacy addons exceeds the recommendation list limit.
-        num_recommendation = len(recommendations)
-        if num_recommendation > limit:
-            logger.warning("Recommendation list truncated",
-                           extra={"limit": limit, "num_recommendations": num_recommendation})
-
-        return recommendations[:limit]
+        return recommendations
