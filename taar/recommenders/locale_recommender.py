@@ -48,4 +48,5 @@ class LocaleRecommender(BaseRecommender):
         # If we have data coming from multiple sourecs, prefer the one
         # from 'client_data'.
         client_locale = client_data.get('locale') or extra_data.get('locale', None)
-        return self.top_addons_per_locale.get(client_locale, [])[:limit]
+        result_list = self.top_addons_per_locale.get(client_locale, [])[:limit]
+        return [(x, 1.0) for x in result_list]
