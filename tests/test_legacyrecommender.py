@@ -1,3 +1,4 @@
+import json
 import pytest
 
 from taar.recommenders import LegacyRecommender
@@ -57,6 +58,10 @@ def test_recommendations(mock_s3_json_downloader):
     )
 
     recommendations = r.recommend(profile_with_many_legacy, LIMIT)
+
+    with open('/tmp/legacy_recommender.json', 'w') as fout:
+        fout.write(json.dumps(recommendations))
+
     assert len(recommendations) == LIMIT
     assert ("guid-13-1", 1) in recommendations
     assert ("guid-21-9", 1) not in recommendations

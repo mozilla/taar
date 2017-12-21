@@ -37,8 +37,8 @@ class RecommendationManager(object):
     def recommend(self, client_id, limit, extra_data={}):
         """Return recommendations for the given client.
 
-        The recommendation logic will go through each recommender and pick the
-        first one that "can_recommend".
+        The recommendation logic will go through each recommender and
+        pick the first one that "can_recommend".
 
         :param client_id: the client unique id.
         :param limit: the maximum number of recommendations to return.
