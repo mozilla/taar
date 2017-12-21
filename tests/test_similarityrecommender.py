@@ -127,18 +127,10 @@ def test_recommendations(mock_s3_continuous_data):
     assert isinstance(recommendation_list, list)
     assert len(recommendation_list) == 1
 
-    recommendations, weight = recommendation_list[0]
-
-    # Make sure the structure of the recommendations is correct and that we recommended the the right addons.
-    assert isinstance(recommendations, list)
+    recommendation, weight = recommendation_list[0]
 
     # Make sure that the reported addons are the expected ones from the most similar donor.
-    assert "{test-guid-1}" in recommendations
-    assert "{test-guid-2}" in recommendations
-    assert "{test-guid-3}" in recommendations
-    assert "{test-guid-4}" in recommendations
-    assert len(recommendations) == 4
-
+    assert "{test-guid-1}" == recommendation
     assert type(weight) == np.float64
 
 
@@ -265,8 +257,7 @@ def test_weights_continuous(mock_s3_continuous_data):
 
     assert len(recommendation_list) == 2
     for recommendation, weight in recommendation_list:
-        assert isinstance(recommendation, list)
-        assert isinstance(recommendation[0], str)
+        assert isinstance(recommendation, str)
         assert isinstance(weight, float)
 
     # Test that sorting is appropriate.
@@ -298,8 +289,7 @@ def test_weights_categorical(mock_s3_categorical_data):
     assert len(recommendation_list) == 2
     # Make sure the structure of the recommendations is correct and that we recommended the the right addons.
     for recommendation, weight in recommendation_list:
-        assert isinstance(recommendation, list)
-        assert isinstance(recommendation[0], str)
+        assert isinstance(recommendation, str)
         assert isinstance(weight, float)
 
     # Test that sorting is appropriate.
