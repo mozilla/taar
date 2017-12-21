@@ -187,8 +187,9 @@ class SimilarityRecommender(BaseRecommender):
         index_lrs_iter = zip(indices[donor_log_lrs > 0.0], donor_log_lrs)
         recommendations = []
         for (index, lrs) in index_lrs_iter:
-            candidate = (self.donors_pool[index]['active_addons'], lrs)
-            recommendations.append(candidate)
+            for term in self.donors_pool[index]['active_addons']:
+                candidate = (term, lrs)
+                recommendations.append(candidate)
             if len(recommendations) > limit:
                 break
         return recommendations[:limit]
