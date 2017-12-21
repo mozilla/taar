@@ -2,6 +2,7 @@
 Test cases for the TAAR CollaborativeRecommender
 """
 
+import json
 import numpy
 import pytest
 import responses
@@ -103,6 +104,10 @@ def test_best_recommendation(activate_responses):
     fixture_client_data = {"installed_addons": ["addon4.id"]}
     assert r.can_recommend(fixture_client_data)
     recommendations = r.recommend(fixture_client_data, 1)
+
+    with open('/tmp/collaborative_recommender.json', 'w') as fout:
+        fout.write(json.dumps(recommendations))
+
     assert isinstance(recommendations, list)
     assert len(recommendations) == 1
 

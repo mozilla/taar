@@ -4,6 +4,8 @@ from ..recommenders import utils
 from .base_recommender import BaseRecommender
 from scipy.spatial import distance
 
+FLOOR_DISTANCE_ADJUSTMENT = 0.001
+
 CATEGORICAL_FEATURES = ["geo_city", "locale", "os"]
 CONTINUOUS_FEATURES = ["subsession_length", "bookmark_count", "tab_open_count", "total_uri", "unique_tlds"]
 
@@ -69,9 +71,6 @@ class SimilarityRecommender(BaseRecommender):
             features = [d.get(specified_key) for specified_key in CATEGORICAL_FEATURES]
             self.categorical_features[idx] = np.array([features], dtype="object")
 
-        # This will significantly speed up |get_lr|.
-        self.lr_curves_cache = np.array([s[0] for s in self.lr_curves])
-
     def can_recommend(self, client_data, extra_data={}):
         # We can't recommend if we don't have our data files.
         if self.donors_pool is None or self.lr_curves is None:
@@ -100,7 +99,16 @@ class SimilarityRecommender(BaseRecommender):
         :returns: The approximate float likelihood ratio corresponding to provided score.
         """
         # Find the index of the closest value that was precomputed in lr_curves
-        idx = np.argmin(abs(score - self.lr_curves_cache))
+        # This will significantly speed up |get_lr|.
+
+        # The lr_curves_cache is a list of scalar distance
+        # measurements
+        lr_curves_cache = np.array([s[0] for s in self.lr_curves])
+
+        # np.argmin produces the index to the part of the curve
+        # where distance is the smallest to the score which we are
+        # inspecting currently.
+        idx = np.argmin(abs(score - lr_curves_cache))
 
         numer_val = self.lr_curves[idx][1][0]
         denum_val = self.lr_curves[idx][1][1]
@@ -120,16 +128,22 @@ class SimilarityRecommender(BaseRecommender):
         cont_features = distance.cdist(self.continuous_features,
                                        np.array([client_continuous_feats]),
                                        'canberra')
+
+        # Compute the distance
         # The lambda trick is needed to prevent |cdist| from force-casting the
         # string features to double.
         cat_features = distance.cdist(self.categorical_features,
                                       np.array([client_categorical_feats]),
                                       lambda x, y: distance.hamming(x, y))
 
-        # Take the product of similarities to attain a univariate similarity score.
-        # Addition of 0.001 to the continuous features avoids a zero value from the
-        # categorical variables, allowing categorical features precedence.
-        return (cont_features + 0.001) * cat_features
+        # Take the product of similarities to attain a univariate
+        # similarity score.
+        # Note that the addition of 0.001 to the continuous features
+        # sets a floor value to the distance in continuous similarity
+        # scores.  There is no such floor value set for categorical
+        # features so this adjustment prioritizes categorical
+        # similarity over continous similarity
+        return (cont_features + FLOOR_DISTANCE_ADJUSTMENT) * cat_features
 
     def get_similar_donors(self, client_data):
         """Computes a set of :float: similarity scores between a client and a set of candidate
@@ -150,6 +164,7 @@ class SimilarityRecommender(BaseRecommender):
 
         # Compute the LR based on precomputed distributions that relate the score
         # to a probability of providing good addon recommendations.
+
         lrs_from_scores =\
             np.array([self.get_lr(distances[i]) for i in range(self.num_donors)])
 
