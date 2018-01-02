@@ -79,7 +79,7 @@ class CollaborativeRecommender(BaseRecommender):
         # Build the query vector by setting the position of the queried addons to 1.0
         # and the other to 0.0.
         query_vector = np.array([1.0
-                                 if (positive_hash(entry.get("id")) in installed_addons_as_hashes)
+                                 if (entry.get("id") in installed_addons_as_hashes)
                                  else 0.0 for entry in self.raw_item_matrix])
 
         # Build the user factors matrix.
@@ -93,7 +93,7 @@ class CollaborativeRecommender(BaseRecommender):
             # We don't really need to show the items we requested.
             # They will always end up with the greatest score. Also
             # filter out legacy addons from the suggestions.
-            hashed_id = positive_hash(addon.get("id"))
+            hashed_id = addon.get("id")
             str_hashed_id = str(hashed_id)
             if (hashed_id in installed_addons_as_hashes or
                     str_hashed_id not in self.addon_mapping or

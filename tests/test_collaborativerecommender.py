@@ -28,14 +28,22 @@ ADDON_SPACE = [{"id": "addon1.id", "name": "addon1.name", "isWebextension": True
 FAKE_MAPPING = {}
 for addon in ADDON_SPACE:
     java_hash = positive_hash(addon['id'])
-    FAKE_MAPPING[java_hash] = addon
+    FAKE_MAPPING[str(java_hash)] = addon
 
 # This matrix sets up addon2 as an overweighted recommended addon
 FAKE_ADDON_MATRIX = []
 for i, addon in enumerate(ADDON_SPACE):
-    row = {"id": addon['id'], "features": [0, 0.2, 0.0, 0.1, 0.15]}
+    row = {"id": positive_hash(addon['id']), "features": [0, 0.2, 0.0, 0.1, 0.15]}
     row['features'][i] = 1.0
     FAKE_ADDON_MATRIX.append(row)
+
+"""
+FAKE_ADDON_MATRIX = [
+    {"id": 1234, "features": [1.0, 0.0, 0.0]},
+    {"id": 4567, "features": [0.0, 1.0, 0.0]},
+    {"id": 7890, "features": [0.0, 0.0, 1.0]}
+]
+"""
 
 
 @pytest.fixture
