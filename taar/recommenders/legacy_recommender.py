@@ -44,9 +44,8 @@ class LegacyRecommender(BaseRecommender):
         legacy_addons = client_data.get('disabled_addons_ids', [])
 
         replacements = [self.legacy_replacements[legacy_addon]
-                               for legacy_addon in legacy_addons
-                               if legacy_addon in self.legacy_replacements]
-
+                        for legacy_addon in legacy_addons
+                        if legacy_addon in self.legacy_replacements]
 
         recommendations = []
         while len(recommendations) < limit and len(replacements) > 0:

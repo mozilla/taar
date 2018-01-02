@@ -2,7 +2,6 @@
 Test cases for the TAAR CollaborativeRecommender
 """
 
-import json
 import numpy
 import pytest
 import responses
@@ -105,9 +104,6 @@ def test_best_recommendation(activate_responses):
     assert r.can_recommend(fixture_client_data)
     recommendations = r.recommend(fixture_client_data, 1)
 
-    with open('/tmp/collaborative_recommender.json', 'w') as fout:
-        fout.write(json.dumps(recommendations))
-
     assert isinstance(recommendations, list)
     assert len(recommendations) == 1
 
@@ -156,6 +152,9 @@ def test_recommendation_weights(activate_responses):
 
 @responses.activate
 def test_recommender_str(activate_responses):
-    # Tests that the string representation of the recommender is correct
+    """Tests that the string representation of the recommender is correct
+    """
+    # TODO: this test is brittle and should be removed once it is safe
+    # to do so
     r = CollaborativeRecommender()
     assert str(r) == "CollaborativeRecommender"
