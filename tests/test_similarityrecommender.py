@@ -15,9 +15,6 @@ def generate_fake_lr_curves(num_elements, ceiling=10.0):
     """
     Generate a mock likelihood ratio (LR) curve that can be used for
     testing.
-
-    Note that this curve: TODO: provide description of high density
-    and low density portions of the curve.
     """
     lr_index = list(np.linspace(0, ceiling, num_elements))
 
