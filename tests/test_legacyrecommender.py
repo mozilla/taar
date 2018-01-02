@@ -1,4 +1,3 @@
-import json
 import pytest
 
 from taar.recommenders import LegacyRecommender
@@ -46,7 +45,11 @@ def test_can_recommend(mock_s3_json_downloader):
 
 
 def test_recommendations(mock_s3_json_downloader):
-    # Test that the legacy recommender returns the correct addons from the json loaded.
+    """Test that the legacy recommender returns the correct addons from the json loaded.
+
+    The JSON output for this recommender should be a list of 2-tuples
+    of (GUID, weight).
+    """
     r = LegacyRecommender()
 
     profile_with_many_legacy = dict(
@@ -59,9 +62,6 @@ def test_recommendations(mock_s3_json_downloader):
 
     recommendations = r.recommend(profile_with_many_legacy, LIMIT)
 
-    with open('/tmp/legacy_recommender.json', 'w') as fout:
-        fout.write(json.dumps(recommendations))
-
     assert len(recommendations) == LIMIT
     assert ("guid-13-1", 1) in recommendations
     assert ("guid-21-9", 1) not in recommendations
@@ -70,6 +70,9 @@ def test_recommendations(mock_s3_json_downloader):
 
 
 def test_recommender_str(mock_s3_json_downloader):
-    # Tests that the string representation of the recommender is correct
+    """Tests that the string representation of the recommender is correct
+    """
+    # TODO: this test is brittle and should be removed once it is safe
+    # to do so
     r = LegacyRecommender()
     assert str(r) == "LegacyRecommender"

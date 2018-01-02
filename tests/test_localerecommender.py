@@ -1,4 +1,3 @@
-import json
 import pytest
 
 from taar.recommenders import LocaleRecommender
@@ -42,13 +41,14 @@ def test_can_recommend_no_model(mock_s3_json_downloader):
 
 
 def test_recommendations(mock_s3_json_downloader):
-    # Test that the locale recommender returns the correct
-    # locale dependent addons.
+    """Test that the locale recommender returns the correct
+    locale dependent addons.
+
+    The JSON output for this recommender should be a list of 2-tuples
+    of (GUID, weight).
+    """
     r = LocaleRecommender()
     recommendations = r.recommend({"locale": "en"}, 10)
-
-    with open('/tmp/locale_recommender.json', 'w') as fout:
-        fout.write(json.dumps(recommendations))
 
     # Make sure the structure of the recommendations is correct and that we
     # recommended the the right addon.
@@ -62,7 +62,10 @@ def test_recommendations(mock_s3_json_downloader):
 
 
 def test_recommender_str(mock_s3_json_downloader):
-    # Tests that the string representation of the recommender is correct
+    """Tests that the string representation of the recommender is correct
+    """
+    # TODO: this test is brittle and should be removed once it is safe
+    # to do so
     r = LocaleRecommender()
     assert str(r) == "LocaleRecommender"
 
