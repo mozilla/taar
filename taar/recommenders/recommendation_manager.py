@@ -10,7 +10,8 @@ logger = logging.getLogger(__name__)
 
 
 class RecommendationManager(object):
-    """A class representing a collection of recommenders."""
+    """This class determines which of the set of recommendation
+    engines will actually be used to generate recommendations."""
 
     def __init__(self, profile_fetcher=None, recommenders=None):
         """Initialize the user profile fetcher and the recommenders.
@@ -25,14 +26,14 @@ class RecommendationManager(object):
 
         if not recommenders:
             logger.info("Initializing recommenders")
-            self.recommenders = (
+            self.linear_recommenders = (
                 LegacyRecommender(),
                 CollaborativeRecommender(),
                 SimilarityRecommender(),
                 LocaleRecommender()
             )
         else:
-            self.recommenders = recommenders
+            self.linear_recommenders = recommenders
 
     def recommend(self, client_id, limit, extra_data={}):
         """Return recommendations for the given client.
@@ -50,7 +51,24 @@ class RecommendationManager(object):
             return []
 
         # Compute the recommendation.
-        for r in self.recommenders:
+
+        # Select recommendation output based on extra_data['branch']
+        branch_selector = extra_data.get('branch', 'control')
+        if branch_selector not in ('control', 'linear', 'ensemble'):
+            return []
+        branch_method = getattr(self, 'recommend_%s' % branch_selector)
+        return branch_method(client_info, client_id, limit, extra_data)
+
+    def recommend_control(self, client_info, client_id, limit, extra_data):
+        return []
+
+    def recommend_ensemble(self, client_info, client_id, limit, extra_data):
+        return [("ensemble_guid1", 0.1),
+                ("ensemble_guid2", 0.2),
+                ("ensemble_guid3", 0.3)]
+
+    def recommend_linear(self, client_info, client_id, limit, extra_data):
+        for r in self.linear_recommenders:
             if r.can_recommend(client_info, extra_data):
                 logger.info("Recommender selected", extra={
                     "client_id": client_id, "recommender": str(r)
