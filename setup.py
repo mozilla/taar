@@ -1,8 +1,9 @@
 from setuptools import find_packages, setup
 
 setup(
-    name='mozilla-taar',
-    use_scm_version=True,
+    name='mozilla-taar2',
+    use_scm_version=False,
+    version='0.0.19',
     setup_requires=['setuptools_scm', 'pytest-runner'],
     tests_require=['pytest'],
     include_package_data = True,
@@ -10,7 +11,7 @@ setup(
     description='Telemetry-Aware Addon Recommender',
     author='Mozilla Foundation',
     author_email='fx-data-dev@mozilla.org',
-    url='https://github.com/mdoglio/taar',
+    url='https://github.com/mozilla/taar',
     license='MPL 2.0',
     install_requires=[
         'numpy',
@@ -19,10 +20,8 @@ setup(
         'six',
         'ply',
         'boto3',
-        'happybase',
         'scipy'
     ],
-    dependency_links=['https://github.com/wbolster/happybase/archive/33b7700375ba59f1810c30c8cd531577b0718498.zip#egg=happybase'],
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Environment :: Web Environment :: Mozilla',
