@@ -63,9 +63,10 @@ class RecommendationManager(object):
         return []
 
     def recommend_ensemble(self, client_info, client_id, limit, extra_data):
-        return [("ensemble_guid1", 0.1),
-                ("ensemble_guid2", 0.2),
-                ("ensemble_guid3", 0.3)]
+        return [("{6fffa594-4786-4c9f-825f-29350aa59069}", 0.9),
+                ("jid1-BoFifL9Vbdl2zQ@jetpack", 0.8),
+                ("adguardadblocker@adguard.com", 0.7),
+                ("foxyproxy@eric.h.jung", 0.6)]
 
     def recommend_linear(self, client_info, client_id, limit, extra_data):
         for r in self.linear_recommenders:
