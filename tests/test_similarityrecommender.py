@@ -7,8 +7,8 @@ from moto import mock_s3
 from taar.recommenders.similarity_recommender import \
     CATEGORICAL_FEATURES, CONTINUOUS_FEATURES, S3_BUCKET, DONOR_LIST_KEY, LR_CURVES_SIMILARITY_TO_PROBABILITY, \
     SimilarityRecommender
-from similarity_data import CONTINUOUS_FEATURE_FIXTURE_DATA
-from similarity_data import CATEGORICAL_FEATURE_FIXTURE_DATA
+from .similarity_data import CONTINUOUS_FEATURE_FIXTURE_DATA
+from .similarity_data import CATEGORICAL_FEATURE_FIXTURE_DATA
 
 
 def generate_fake_lr_curves(num_elements, ceiling=10.0):

@@ -1,6 +1,7 @@
 from taar.profile_fetcher import ProfileFetcher
 from taar.recommenders import RecommendationManager
 from taar.recommenders.base_recommender import BaseRecommender
+from .test_similarityrecommender import mock_s3_categorical_data   # noqa
 
 
 class MockProfileController:
@@ -60,7 +61,7 @@ def test_recommendation_strategy():
     assert results == EXPECTED_ADDONS
 
 
-def test_recommendation_ensemble():
+def test_recommendation_ensemble(mock_s3_categorical_data):
     """The recommendation manager support an ensemble
     method.  We want to verify that at least the dispatch
     to the stub ensemble recommendation is correctly executing.
