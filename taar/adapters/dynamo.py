@@ -5,6 +5,7 @@
 import boto3
 import json
 import logging
+import zlib
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,10 @@ class ProfileController:
         """
         try:
             response = self._table.get_item(Key={'client_id': client_id})
-            return json.loads(response['Item']['json_payload'])
+            compressed_bytes = response['Item']['json_payload'].value
+            json_byte_data = zlib.decompress(compressed_bytes)
+            json_str_data = json_byte_data.decode('utf8')
+            return json.loads(json_str_data)
         except Exception:
             # Return None on error.  The caller in ProfileFetcher will
             # handle error logging
