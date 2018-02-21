@@ -20,19 +20,6 @@ class MockRecommender:
         return sorted(self._guid_map.items(), key=lambda item: -item[1])
 
 
-def generate_a_fake_taar_client():
-    return {'client_id': 'test-client-001',
-            'activeAddons': [],
-            'geo_city': 'brasilia-br',
-            'subsession_length': 4911,
-            'locale': 'br-PT',
-            'os': 'mac',
-            'bookmark_count': 7,
-            'tab_open_count': 4,
-            'total_uri': 222,
-            'unique_tlds': 21}
-
-
 @pytest.fixture
 def mock_s3_ensemble_weights():
     result_data = {'ensemble_weights': {'legacy': 10000,
@@ -67,7 +54,7 @@ def test_recommendations(mock_s3_ensemble_weights):
                          'similarity': mock_similarity,
                          'locale': mock_locale}
     r = EnsembleRecommender(mock_recommenders)
-    client = generate_a_fake_taar_client()
+    client = {}  # Anything will work here
     recommendation_list = r.recommend(client, 10)
     assert isinstance(recommendation_list, list)
     assert recommendation_list == EXPECTED_RESULTS
