@@ -33,8 +33,9 @@ class EnsembleRecommender(BaseRecommender):
 
     def can_recommend(self, client_data, extra_data={}):
         """The ensemble recommender is always going to be
-        available"""
-        return True
+        available if at least one recommender is available"""
+        return sum([self._recommender_map[rkey].can_recommend(client_data)
+                    for rkey in self.RECOMMENDER_KEYS])
 
     def recommend(self, client_data, limit, extra_data={}):
         """
