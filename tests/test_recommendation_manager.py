@@ -59,30 +59,3 @@ def test_recommendation_strategy():
                                 10,
                                 extra_data={'branch': 'linear'})
     assert results == EXPECTED_ADDONS
-
-
-def test_recommendation_ensemble(mock_s3_categorical_data):    # noqa
-    """The recommendation manager support an ensemble
-    method.  We want to verify that at least the dispatch
-    to the stub ensemble recommendation is correctly executing.
-    """
-    EXPECTED_ADDONS = [("{6fffa594-4786-4c9f-825f-29350aa59069}", 0.9),
-                       ("jid1-BoFifL9Vbdl2zQ@jetpack", 0.8),
-                       ("adguardadblocker@adguard.com", 0.7),
-                       ("foxyproxy@eric.h.jung", 0.6)]
-
-    # Create a stub ProfileFetcher that always returns the same
-    # client data.
-    class StubFetcher:
-        def get(self, client_id):
-            return {'client_id': '00000'}
-
-    # Configure the recommender so that only the second model
-    # can recommend and return the expected addons.
-
-    # Make sure the recommender returns the expected addons.
-    manager = RecommendationManager(StubFetcher())
-    results = manager.recommend("client-id",
-                                10,
-                                extra_data={'branch': 'ensemble'})
-    assert results == EXPECTED_ADDONS
