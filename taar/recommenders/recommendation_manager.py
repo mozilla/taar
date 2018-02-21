@@ -14,7 +14,7 @@ class RecommendationManager(object):
     """This class determines which of the set of recommendation
     engines will actually be used to generate recommendations."""
 
-    def __init__(self, profile_fetcher=None):
+    def __init__(self, profile_fetcher=None, recommenders=None):
         """Initialize the user profile fetcher and the recommenders.
         """
         if profile_fetcher is None:
@@ -23,18 +23,24 @@ class RecommendationManager(object):
         else:
             self.profile_fetcher = profile_fetcher
 
-        self._recommender_map = {'legacy': LegacyRecommender(),
-                                 'collaborative': CollaborativeRecommender(),
-                                 'similarity': SimilarityRecommender(),
-                                 'locale': LocaleRecommender()}
+        if recommenders:
+            # This branch of code only runs under test.  We need to
+            # fix the recommender_map so that it only initializes when
+            # run in production
+            self.linear_recommenders = recommenders
+        else:
+            self._recommender_map = {'legacy': LegacyRecommender(),
+                                     'collaborative': CollaborativeRecommender(),
+                                     'similarity': SimilarityRecommender(),
+                                     'locale': LocaleRecommender()}
 
-        self._recommender_map['ensemble'] = EnsembleRecommender(self._recommenders)
+            self._recommender_map['ensemble'] = EnsembleRecommender(self._recommenders)
+            logger.info("Initializing recommenders")
 
-        logger.info("Initializing recommenders")
-        self.linear_recommenders = (self._recommender_map['legacy'],
-                                    self._recommender_map['collaborative'],
-                                    self._recommender_map['similarity'],
-                                    self._recommender_map['locale'])
+            self.linear_recommenders = (self._recommender_map['legacy'],
+                                        self._recommender_map['collaborative'],
+                                        self._recommender_map['similarity'],
+                                        self._recommender_map['locale'])
 
     def recommend(self, client_id, limit, extra_data={}):
         """Return recommendations for the given client.
