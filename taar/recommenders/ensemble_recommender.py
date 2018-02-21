@@ -50,6 +50,7 @@ class EnsembleRecommender(BaseRecommender):
         weight each recommender appropriate so that the ordering is
         correct.
         """
+
         flattened_results = []
         for rkey in self.RECOMMENDER_KEYS:
             recommender = self._recommender_map[rkey]
@@ -64,7 +65,7 @@ class EnsembleRecommender(BaseRecommender):
                 flattened_results.extend(reweighted_results)
 
         # Sort the results by the GUID
-        flattened_results.sort(lambda item: item[0])
+        flattened_results.sort(key=lambda item: item[0])
 
         # group by the guid, sum up the weights for recurring GUID
         # suggestions across all recommenders
@@ -77,6 +78,7 @@ class EnsembleRecommender(BaseRecommender):
             ensemble_suggestions.append(item)
 
         # Sort in reverse order (greatest weight to least)
-        ensemble_suggestions.sort(lambda x: -x[1])
+        ensemble_suggestions.sort(key=lambda x: -x[1])
         results = ensemble_suggestions[:limit]
+        print(results, flattened_results)
         return results
