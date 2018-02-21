@@ -26,6 +26,8 @@ class EnsembleRecommender(BaseRecommender):
 
         # Copy the map of the recommenders
 
+        # TODO: verify that the recommender keys match what we've used
+        # in the ensemble training
         self.RECOMMENDER_KEYS = ['legacy', 'collaborative', 'similarity', 'locale']
         self._recommender_map = recommender_map
 
