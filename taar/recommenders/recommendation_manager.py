@@ -61,25 +61,16 @@ class RecommendationManager(object):
         return branch_method(client_info, client_id, limit, extra_data)
 
     def recommend_control(self, client_info, client_id, limit, extra_data):
+        """Run the control recommender - that is nothing"""
         return []
 
     def recommend_ensemble(self, client_info, client_id, limit, extra_data):
-        """
-        TODO: vng Call each of the recommenders in order that the
-        ensemble training uses.  Multiply the weight confidence from
-        the recommender with the ensemble confidence for that
-        recommender from training.
-
-        Group by GUID and sum confidences.
-
-        Sort by confidence, trim resultset size to limit.
-        """
-        return [("{6fffa594-4786-4c9f-825f-29350aa59069}", 0.9),
-                ("jid1-BoFifL9Vbdl2zQ@jetpack", 0.8),
-                ("adguardadblocker@adguard.com", 0.7),
-                ("foxyproxy@eric.h.jung", 0.6)]
+        """Run the ensemble recommender """
+        recommender = self._recommender_map['ensemble']
+        return recommender.recommend(client_info, limit, extra_data)
 
     def recommend_linear(self, client_info, client_id, limit, extra_data):
+        """Run the linear recommender"""
         for r in self.linear_recommenders:
             if r.can_recommend(client_info, extra_data):
                 logger.info("Recommender selected", extra={
