@@ -50,7 +50,7 @@ class RecommendationManager:
             self.linear_recommenders.append(recommender)
             self._recommender_map[rkey] = recommender
 
-        self._recommender_map['ensemble'] = EnsembleRecommender(self.linear_recommenders)
+        self._recommender_map['ensemble'] = EnsembleRecommender(self._recommender_map)
 
     def recommend(self, client_id, limit, extra_data={}):
         """Return recommendations for the given client.
