@@ -2,6 +2,13 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import json
+import boto3
+import pytest
+from moto import mock_s3
+from taar.recommenders.ensemble_recommender import S3_BUCKET
+from taar.recommenders.ensemble_recommender import ENSEMBLE_WEIGHTS
+
 
 class MockRecommender:
     """The MockRecommender takes in a map of GUID->weight."""
@@ -52,3 +59,17 @@ class MockProfileController:
 
     def get_client_profile(self, client_id):
         return self._profile
+
+
+@pytest.fixture
+def mock_s3_ensemble_weights():
+    result_data = {'ensemble_weights': {'legacy': 10000,
+                                        'collaborative': 1000,
+                                        'similarity': 100,
+                                        'locale': 10}}
+    mock_s3().start()
+    conn = boto3.resource('s3', region_name='us-west-2')
+    conn.create_bucket(Bucket=S3_BUCKET)
+    conn.Object(S3_BUCKET, key=ENSEMBLE_WEIGHTS).put(Body=json.dumps(result_data))
+    yield conn
+    mock_s3().stop()
