@@ -2,14 +2,7 @@ from taar.profile_fetcher import ProfileFetcher
 from taar.recommenders import RecommendationManager
 from taar.recommenders.base_recommender import BaseRecommender
 from .test_similarityrecommender import mock_s3_categorical_data   # noqa
-
-
-class MockProfileController:
-    def __init__(self, mock_profile):
-        self._profile = mock_profile
-
-    def get_client_profile(self, client_id):
-        return self._profile
+from .mocks import MockProfileController, MockRecommenderFactory
 
 
 class StubRecommender(BaseRecommender):
@@ -28,7 +21,8 @@ class StubRecommender(BaseRecommender):
 
 def test_none_profile_returns_empty_list():
     fetcher = ProfileFetcher(MockProfileController(None))
-    rec_manager = RecommendationManager(fetcher, ("fake-recommender", ))
+    factory = MockRecommenderFactory()
+    rec_manager = RecommendationManager(factory, fetcher)
     assert rec_manager.recommend("random-client-id", 10) == []
 
 
@@ -46,15 +40,13 @@ def test_recommendation_strategy():
 
     # Configure the recommender so that only the second model
     # can recommend and return the expected addons.
-    recommenders = (
-        StubRecommender(False, []),
-        StubRecommender(True, EXPECTED_ADDONS),
-        StubRecommender(False, []),
-    )
+    factory = MockRecommenderFactory(legacy=lambda: StubRecommender(False, []),
+                                     collaborative=lambda: StubRecommender(True, EXPECTED_ADDONS),
+                                     similarity=lambda: StubRecommender(False, []),
+                                     locale=lambda: StubRecommender(False, []))
 
     # Make sure the recommender returns the expected addons.
-    manager = RecommendationManager(StubFetcher(),
-                                    recommenders)
+    manager = RecommendationManager(factory, StubFetcher())
     results = manager.recommend("client-id",
                                 10,
                                 extra_data={'branch': 'linear'})
