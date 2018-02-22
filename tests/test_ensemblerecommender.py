@@ -1,13 +1,9 @@
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
-
 from taar.recommenders import EnsembleRecommender
-from .mocks import MockRecommenderFactory
-from .mocks import mock_s3_ensemble_weights
+from .mocks import MockRecommenderFactory    # noqa
+from .mocks import mock_s3_ensemble_weights  # noqa
 
+def test_recommendations(mock_s3_ensemble_weights):   # noqa
 
-def test_recommendations(mock_s3_ensemble_weights):
     EXPECTED_RESULTS = [('cde', 12000.0),
                         ('bcd', 11000.0),
                         ('abc', 10023.0),
