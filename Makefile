@@ -7,5 +7,6 @@ upload:
 
 test:
 	python setup.py test
+	flake8 taar tests
 
 
