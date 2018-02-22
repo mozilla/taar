@@ -3,7 +3,7 @@ from setuptools import find_packages, setup
 setup(
     name='mozilla-taar2',
     use_scm_version=False,
-    version='0.0.19',
+    version='0.0.21',
     setup_requires=['setuptools_scm', 'pytest-runner'],
     tests_require=['pytest'],
     include_package_data = True,
