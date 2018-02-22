@@ -4,43 +4,53 @@ from .legacy_recommender import LegacyRecommender
 from .locale_recommender import LocaleRecommender
 from .similarity_recommender import SimilarityRecommender
 from .ensemble_recommender import EnsembleRecommender
-from ..profile_fetcher import ProfileFetcher
 
 
 logger = logging.getLogger(__name__)
 
 
-class RecommendationManager(object):
+class RecommenderFactory:
+    """
+    A RecommenderFactory provides support to create recommenders.
+
+    The existence of a factory enables injection of dependencies into
+    the RecommendationManager and eases the implementation of test
+    harnesses.
+    """
+    def __init__(self):
+        self._recommender_factory_map = {'legacy': LegacyRecommender,
+                                         'collaborative': CollaborativeRecommender,
+                                         'similarity': SimilarityRecommender,
+                                         'locale': LocaleRecommender}
+
+    def get_names(self):
+        return self._recommender_factory_map.keys()
+
+    def create(self, recommender_name):
+        return self._recommender_factory_map[recommender_name]()
+
+
+class RecommendationManager:
     """This class determines which of the set of recommendation
     engines will actually be used to generate recommendations."""
 
-    def __init__(self, profile_fetcher=None, recommenders=None):
+    LINEAR_RECOMMENDER_ORDER = ['legacy', 'collaborative', 'similarity', 'locale']
+
+    def __init__(self, recommender_factory, profile_fetcher):
         """Initialize the user profile fetcher and the recommenders.
         """
-        if profile_fetcher is None:
-            logger.info("Initializing profile_fetcher")
-            self.profile_fetcher = ProfileFetcher()
-        else:
-            self.profile_fetcher = profile_fetcher
+        self.profile_fetcher = profile_fetcher
+        self.linear_recommenders = []
+        self._recommender_map = {}
 
-        if recommenders:
-            # This branch of code only runs under test.  We need to
-            # fix the recommender_map so that it only initializes when
-            # run in production
-            self.linear_recommenders = recommenders
-        else:
-            self._recommender_map = {'legacy': LegacyRecommender(),
-                                     'collaborative': CollaborativeRecommender(),
-                                     'similarity': SimilarityRecommender(),
-                                     'locale': LocaleRecommender()}
+        logger.info("Initializing recommenders")
+        for rkey in self.LINEAR_RECOMMENDER_ORDER:
+            recommender = recommender_factory.create(rkey)
 
-            self._recommender_map['ensemble'] = EnsembleRecommender(self._recommenders)
-            logger.info("Initializing recommenders")
+            self.linear_recommenders.append(recommender)
+            self._recommender_map[rkey] = recommender
 
-            self.linear_recommenders = (self._recommender_map['legacy'],
-                                        self._recommender_map['collaborative'],
-                                        self._recommender_map['similarity'],
-                                        self._recommender_map['locale'])
+        self._recommender_map['ensemble'] = EnsembleRecommender(self.linear_recommenders)
 
     def recommend(self, client_id, limit, extra_data={}):
         """Return recommendations for the given client.
