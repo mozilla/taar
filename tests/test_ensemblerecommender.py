@@ -1,3 +1,7 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
 import boto3
 import json
 import pytest
@@ -5,19 +9,7 @@ from moto import mock_s3
 from taar.recommenders.ensemble_recommender import S3_BUCKET
 from taar.recommenders.ensemble_recommender import ENSEMBLE_WEIGHTS
 from taar.recommenders.ensemble_recommender import EnsembleRecommender
-
-
-class MockRecommender:
-    """The MockRecommender takes in a map of GUID->weight."""
-
-    def __init__(self, guid_map):
-        self._guid_map = guid_map
-
-    def can_recommend(self, *args, **kwargs):
-        return True
-
-    def recommend(self, *args, **kwargs):
-        return sorted(self._guid_map.items(), key=lambda item: -item[1])
+from .mocks import MockRecommenderFactory
 
 
 @pytest.fixture
@@ -45,15 +37,13 @@ def test_recommendations(mock_s3_ensemble_weights):
                         ('lmn', 420.0),
                         ('klm', 409.99999999999994),
                         ('jkl', 400.0)]
-    mock_legacy = MockRecommender({'abc': 1.0, 'bcd': 1.1, 'cde': 1.2})
-    mock_locale = MockRecommender({'def': 2.0, 'efg': 2.1, 'fgh': 2.2, 'abc': 2.3})
-    mock_collaborative = MockRecommender({'ghi': 3.0, 'hij': 3.1, 'ijk': 3.2, 'def': 3.3})
-    mock_similarity = MockRecommender({'jkl': 4.0,  'klm': 4.1, 'lmn': 4.2, 'ghi': 4.3})
-    mock_recommenders = {'legacy': mock_legacy,
-                         'collaborative': mock_collaborative,
-                         'similarity': mock_similarity,
-                         'locale': mock_locale}
-    r = EnsembleRecommender(mock_recommenders)
+
+    factory = MockRecommenderFactory()
+    mock_recommender_map = {'legacy': factory.create('legacy'),
+                            'collaborative': factory.create('collaborative'),
+                            'similarity': factory.create('similarity'),
+                            'locale': factory.create('locale')}
+    r = EnsembleRecommender(mock_recommender_map)
     client = {}  # Anything will work here
     recommendation_list = r.recommend(client, 10)
     assert isinstance(recommendation_list, list)
