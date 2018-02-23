@@ -1,7 +1,7 @@
 from setuptools import find_packages, setup
 
 setup(
-    name='mozilla-taar2',
+    name='mozilla-taar3',
     use_scm_version=False,
     version='0.0.22',
     setup_requires=['setuptools_scm', 'pytest-runner'],
