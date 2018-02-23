@@ -3,7 +3,7 @@ all:
 	python setup.py bdist_egg
 
 upload:
-	twine upload dist/*
+	twine upload --repository-url https://upload.pypi.org/legacy/ dist/*
 
 test:
 	python setup.py test
