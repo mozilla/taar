@@ -69,7 +69,7 @@ def test_recommendations_via_manager(mock_s3_ensemble_weights):  # noqa
 
     class MockProfileFetcher:
         def get(self, client_id):
-            return {}
+            return {'client_id': client_id}
 
     manager = RecommendationManager(factory, MockProfileFetcher())
     recommendation_list = manager.recommend('some_ignored_id', 10, extra_data={'branch': 'ensemble'})
