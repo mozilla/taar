@@ -4,4 +4,4 @@ flake8
 moto
 responses
 coveralls
-scipy
+scipy>=0.19.1
