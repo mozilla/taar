@@ -6,11 +6,40 @@ import logging
 import itertools
 from ..recommenders import utils
 from .base_recommender import BaseRecommender
+import threading
+import time
 
 S3_BUCKET = 'telemetry-parquet'
 ENSEMBLE_WEIGHTS = 'taar/ensemble/ensemble_weight.json'
 
 logger = logging.getLogger(__name__)
+
+
+class WeightCache:
+    def __init__(self):
+        self._lock = threading.RLock()
+
+        self._weights = None
+        self._expiry = None
+
+    def now(self):
+        return time.time()
+
+    def getWeights(self):
+        with self._lock:
+            now = self.now()
+            if self._expiry is not None:
+                if self._expiry < now:
+                    # Cache is expired.
+                    self._weights = None
+                    # Push expiry to 5 minutes from now
+                    self._expiry = now + 300
+
+            if self._weights is None:
+                tmp = utils.get_s3_json_content(S3_BUCKET, ENSEMBLE_WEIGHTS)
+                self._weights = tmp['ensemble_weights']
+
+            return self._weights
 
 
 class EnsembleRecommender(BaseRecommender):
@@ -21,15 +50,11 @@ class EnsembleRecommender(BaseRecommender):
     addons for users.
     """
     def __init__(self, recommender_map):
-        tmp = utils.get_s3_json_content(S3_BUCKET, ENSEMBLE_WEIGHTS)
-        self._ensemble_weights = tmp['ensemble_weights']
-
         # Copy the map of the recommenders
-
-        # TODO: verify that the recommender keys match what we've used
-        # in the ensemble training
         self.RECOMMENDER_KEYS = ['legacy', 'collaborative', 'similarity', 'locale']
         self._recommender_map = recommender_map
+
+        self._weight_cache = WeightCache()
 
     def can_recommend(self, client_data, extra_data={}):
         """The ensemble recommender is always going to be
@@ -53,15 +78,16 @@ class EnsembleRecommender(BaseRecommender):
         """
 
         flattened_results = []
+        ensemble_weights = self._weight_cache.getWeights()
+
         for rkey in self.RECOMMENDER_KEYS:
             recommender = self._recommender_map[rkey]
 
             if recommender.can_recommend(client_data):
                 raw_results = recommender.recommend(client_data, limit, extra_data)
-
                 reweighted_results = []
                 for guid, weight in raw_results:
-                    item = (guid, weight * self._ensemble_weights[rkey])
+                    item = (guid, weight * ensemble_weights[rkey])
                     reweighted_results.append(item)
                 flattened_results.extend(reweighted_results)
 
@@ -81,5 +107,9 @@ class EnsembleRecommender(BaseRecommender):
         # Sort in reverse order (greatest weight to least)
         ensemble_suggestions.sort(key=lambda x: -x[1])
         results = ensemble_suggestions[:limit]
-        print(results, flattened_results)
+
+        log_data = (client_data['client_id'],
+                    str(ensemble_weights),
+                    str([r[0] for r in results]))
+        logger.info("client_id: [%s], ensemble_weight: [%s], guids: [%s]" % log_data)
         return results

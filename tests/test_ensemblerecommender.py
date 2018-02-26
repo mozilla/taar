@@ -1,9 +1,18 @@
-from taar.recommenders import EnsembleRecommender
+from taar.recommenders import EnsembleRecommender, WeightCache
 from .mocks import MockRecommenderFactory    # noqa
 from .mocks import mock_s3_ensemble_weights  # noqa
 
-def test_recommendations(mock_s3_ensemble_weights):   # noqa
+def test_weight_cache(mock_s3_ensemble_weights):   # noqa
+    wc = WeightCache()
+    actual = wc.getWeights()
+    expected = {'legacy': 10000,
+                'collaborative': 1000,
+                'similarity': 100,
+                'locale': 10}
+    assert expected == actual
 
+
+def test_recommendations(mock_s3_ensemble_weights):   # noqa
     EXPECTED_RESULTS = [('cde', 12000.0),
                         ('bcd', 11000.0),
                         ('abc', 10023.0),
