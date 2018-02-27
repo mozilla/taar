@@ -1,11 +1,11 @@
 from taar.profile_fetcher import ProfileFetcher
 from taar.recommenders import RecommendationManager
-from taar.recommenders.base_recommender import BaseRecommender
+from taar.recommenders.base_recommender import AbstractRecommender
 from .mocks import MockProfileController, MockRecommenderFactory
 from .mocks import mock_s3_ensemble_weights  # noqa
 
 
-class StubRecommender(BaseRecommender):
+class StubRecommender(AbstractRecommender):
     """ A shared, stub recommender that can be used for testing.
     """
     def __init__(self, can_recommend, stub_recommendations):
