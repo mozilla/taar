@@ -22,6 +22,13 @@ class Context:
         self._local_dict = {}
         self._delegate = delegate
 
+    def __contains__(self, key):
+        try:
+            self[key]
+            return True
+        except KeyError:
+            return False
+
     def __getitem__(self, key):
         # This is a little tricky, we want to lookup items in our
         # local namespace before we hit the delegate
