@@ -3,7 +3,6 @@ import numpy as np
 import operator as op
 
 from .base_recommender import AbstractRecommender
-from .utils import fetch_json
 
 ADDON_MODEL_URL =\
     "https://s3-us-west-2.amazonaws.com/telemetry-public-analysis-2/telemetry-ml/addon_recommender/item_matrix.json"
@@ -33,13 +32,18 @@ class CollaborativeRecommender(AbstractRecommender):
         recommender = CollaborativeRecommender()
         dists = recommender.recommend(client_info)
     """
-    def __init__(self):
+    def __init__(self, ctx):
+        self._ctx = ctx
+
+        # hard requirement for utils to be loaded into the context
+        assert self._ctx['utils']
+
         # Download the addon mappings.
-        self.addon_mapping = fetch_json(ADDON_MAPPING_URL)
+        self.addon_mapping = self._ctx['utils'].fetch_json(ADDON_MAPPING_URL)
         if self.addon_mapping is None:
             logger.error("Cannot download the addon mapping file {}".format(ADDON_MAPPING_URL))
 
-        self.raw_item_matrix = fetch_json(ADDON_MODEL_URL)
+        self.raw_item_matrix = self._ctx['utils'].fetch_json(ADDON_MODEL_URL)
         if self.addon_mapping is None:
             logger.error("Cannot download the model file {}".format(ADDON_MODEL_URL))
 

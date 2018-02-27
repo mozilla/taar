@@ -33,6 +33,10 @@ class RecommendationManager:
     def __init__(self, ctx):
         """Initialize the user profile fetcher and the recommenders.
         """
+        # We need network utils
+        self._ctx = ctx
+        assert self._ctx['utils']
+
         recommender_factory = ctx['recommender_factory']
         profile_fetcher = ctx['profile_fetcher']
 
