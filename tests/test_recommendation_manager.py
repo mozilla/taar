@@ -4,7 +4,6 @@ from taar.recommenders import RecommendationManager
 from taar.recommenders.base_recommender import AbstractRecommender
 from .test_ensemblerecommender import Mocker
 from .mocks import MockProfileController, MockRecommenderFactory
-from .mocks import mock_s3_ensemble_weights  # noqa
 
 
 class StubRecommender(AbstractRecommender):
