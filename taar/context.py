@@ -13,6 +13,8 @@ configuration information as we pass the context through an object
 chain.
 """
 
+from taar.recommenders import utils
+
 
 class Context:
     def __init__(self, delegate=None):
@@ -73,4 +75,5 @@ def default_context():
                                       'similarity': lambda: SimilarityRecommender(ctx.child()),
                                       'locale': lambda: LocaleRecommender(ctx.child())}
 
+    ctx['utils'] = utils
     return ctx
