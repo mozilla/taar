@@ -1,7 +1,6 @@
 pytest
 pytest-cov
 flake8
-moto
 responses
 coveralls
 scipy>=0.19.1
