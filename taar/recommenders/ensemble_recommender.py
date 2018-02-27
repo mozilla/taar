@@ -4,7 +4,6 @@
 
 import logging
 import itertools
-from ..recommenders import utils
 from .base_recommender import AbstractRecommender
 import threading
 import time
@@ -16,7 +15,8 @@ logger = logging.getLogger(__name__)
 
 
 class WeightCache:
-    def __init__(self):
+    def __init__(self, ctx):
+        self._ctx = ctx
         self._lock = threading.RLock()
 
         self._weights = None
@@ -36,7 +36,7 @@ class WeightCache:
                     self._expiry = now + 300
 
             if self._weights is None:
-                tmp = utils.get_s3_json_content(S3_BUCKET, ENSEMBLE_WEIGHTS)
+                tmp = self._ctx['utils'].get_s3_json_content(S3_BUCKET, ENSEMBLE_WEIGHTS)
                 self._weights = tmp['ensemble_weights']
 
             return self._weights
@@ -49,12 +49,14 @@ class EnsembleRecommender(AbstractRecommender):
     factor.  The aggregate results are combines and used to recommend
     addons for users.
     """
-    def __init__(self, recommender_map):
+    def __init__(self, ctx):
         # Copy the map of the recommenders
+        self._ctx = ctx
+        recommender_map = self._ctx['recommender_map']
         self.RECOMMENDER_KEYS = ['legacy', 'collaborative', 'similarity', 'locale']
         self._recommender_map = recommender_map
 
-        self._weight_cache = WeightCache()
+        self._weight_cache = WeightCache(self._ctx.child())
 
     def can_recommend(self, client_data, extra_data={}):
         """The ensemble recommender is always going to be
