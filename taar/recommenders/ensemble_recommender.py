@@ -17,6 +17,8 @@ logger = logging.getLogger(__name__)
 class WeightCache:
     def __init__(self, ctx):
         self._ctx = ctx
+        assert 'utils' in self._ctx
+
         self._lock = threading.RLock()
 
         self._weights = None
@@ -50,12 +52,16 @@ class EnsembleRecommender(AbstractRecommender):
     addons for users.
     """
     def __init__(self, ctx):
-        # Copy the map of the recommenders
         self._ctx = ctx
-        recommender_map = self._ctx['recommender_map']
-        self.RECOMMENDER_KEYS = ['legacy', 'collaborative', 'similarity', 'locale']
-        self._recommender_map = recommender_map
 
+        assert 'recommender_map' in self._ctx
+
+        self._init_from_ctx()
+
+    def _init_from_ctx(self):
+        # Copy the map of the recommenders
+        self.RECOMMENDER_KEYS = ['legacy', 'collaborative', 'similarity', 'locale']
+        self._recommender_map = self._ctx['recommender_map']
         self._weight_cache = WeightCache(self._ctx.child())
 
     def can_recommend(self, client_data, extra_data={}):

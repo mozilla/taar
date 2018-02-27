@@ -35,9 +35,13 @@ class CollaborativeRecommender(AbstractRecommender):
     def __init__(self, ctx):
         self._ctx = ctx
 
-        # hard requirement for utils to be loaded into the context
-        assert self._ctx['utils']
+        assert 'utils' in self._ctx
 
+        self._load_json_models()
+        self.model = None
+        self._build_model()
+
+    def _load_json_models(self):
         # Download the addon mappings.
         self.addon_mapping = self._ctx['utils'].fetch_json(ADDON_MAPPING_URL)
         if self.addon_mapping is None:
@@ -46,10 +50,6 @@ class CollaborativeRecommender(AbstractRecommender):
         self.raw_item_matrix = self._ctx['utils'].fetch_json(ADDON_MODEL_URL)
         if self.addon_mapping is None:
             logger.error("Cannot download the model file {}".format(ADDON_MODEL_URL))
-
-        self.model = None
-
-        self._build_model()
 
     def _build_model(self):
         if self.raw_item_matrix is None:

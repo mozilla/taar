@@ -1,6 +1,6 @@
-import pytest
-
+from taar.context import Context
 from taar.recommenders import LocaleRecommender
+
 
 FAKE_LOCALE_DATA = {
     "te-ST": [
@@ -13,14 +13,20 @@ FAKE_LOCALE_DATA = {
 }
 
 
-@pytest.fixture
-def mock_s3_json_downloader(monkeypatch):
-    monkeypatch.setattr('taar.recommenders.utils.get_s3_json_content',
-                        lambda x, y: FAKE_LOCALE_DATA)
+class MockUtils:
+    def get_s3_json_content(self, *args, **kwargs):
+        return FAKE_LOCALE_DATA
 
 
-def test_can_recommend(mock_s3_json_downloader):
-    r = LocaleRecommender()
+def create_test_ctx():
+    ctx = Context()
+    ctx['utils'] = MockUtils()
+    return ctx.child()
+
+
+def test_can_recommend():
+    ctx = create_test_ctx()
+    r = LocaleRecommender(ctx)
 
     # Test that we can't recommend if we have not enough client info.
     assert not r.can_recommend({})
@@ -30,8 +36,9 @@ def test_can_recommend(mock_s3_json_downloader):
     assert r.can_recommend({"locale": "en"})
 
 
-def test_can_recommend_no_model(mock_s3_json_downloader):
-    r = LocaleRecommender()
+def test_can_recommend_no_model():
+    ctx = create_test_ctx()
+    r = LocaleRecommender(ctx)
 
     # We should never be able to recommend if something went
     # wrong with the model.
@@ -40,14 +47,15 @@ def test_can_recommend_no_model(mock_s3_json_downloader):
     assert not r.can_recommend({"locale": "it"})
 
 
-def test_recommendations(mock_s3_json_downloader):
+def test_recommendations():
     """Test that the locale recommender returns the correct
     locale dependent addons.
 
     The JSON output for this recommender should be a list of 2-tuples
     of (GUID, weight).
     """
-    r = LocaleRecommender()
+    ctx = create_test_ctx()
+    r = LocaleRecommender(ctx)
     recommendations = r.recommend({"locale": "en"}, 10)
 
     # Make sure the structure of the recommendations is correct and that we
@@ -61,16 +69,17 @@ def test_recommendations(mock_s3_json_downloader):
         assert addon_id in FAKE_LOCALE_DATA["en"]
 
 
-def test_recommender_str(mock_s3_json_downloader):
+def test_recommender_str():
     """Tests that the string representation of the recommender is correct
     """
     # TODO: this test is brittle and should be removed once it is safe
     # to do so
-    r = LocaleRecommender()
+    ctx = create_test_ctx()
+    r = LocaleRecommender(ctx)
     assert str(r) == "LocaleRecommender"
 
 
-def test_recommender_extra_data(mock_s3_json_downloader):
+def test_recommender_extra_data():
     # Test that the recommender uses locale data from the "extra"
     # section if available.
     def validate_recommendations(data, expected_locale):
@@ -84,7 +93,8 @@ def test_recommender_extra_data(mock_s3_json_downloader):
             assert addon_id in FAKE_LOCALE_DATA[expected_locale]
             assert 1 == weight
 
-    r = LocaleRecommender()
+    ctx = create_test_ctx()
+    r = LocaleRecommender(ctx)
     recommendations = r.recommend({}, 10, extra_data={"locale": "en"})
     validate_recommendations(recommendations, "en")
 
