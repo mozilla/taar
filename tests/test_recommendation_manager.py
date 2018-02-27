@@ -27,6 +27,10 @@ def get_test_ctx():
     ctx = Context()
     ctx['profile_fetcher'] = fetcher
     ctx['recommender_factory'] = factory
+
+    # Just populate the utils key for test when WeightCache is
+    # instantiated
+    ctx['utils'] = None
     return ctx.child()
 
 

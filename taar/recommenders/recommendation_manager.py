@@ -34,8 +34,9 @@ class RecommendationManager:
         """Initialize the user profile fetcher and the recommenders.
         """
         self._ctx = ctx
-        for dependency in ['recommender_factory', 'profile_fetcher']:
-            assert dependency in self._ctx
+
+        assert 'recommender_factory' in self._ctx
+        assert 'profile_fetcher' in self._ctx
 
         recommender_factory = ctx['recommender_factory']
         profile_fetcher = ctx['profile_fetcher']

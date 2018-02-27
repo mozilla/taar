@@ -53,6 +53,12 @@ class Context:
     def __delitem__(self, key):
         del self._local_dict[key]
 
+    def wrap(self, ctx):
+        ctx_child = ctx.child()
+        this_child = self.child()
+        this_child._delegate = ctx_child
+        return this_child
+
     def child(self):
         """ In general, you should call this immediately in any
         constructor that receives a context """

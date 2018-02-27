@@ -1,5 +1,4 @@
 import logging
-from ..recommenders import utils
 from .base_recommender import AbstractRecommender
 
 ADDON_LIST_BUCKET = 'telemetry-parquet'
@@ -19,7 +18,13 @@ class LocaleRecommender(AbstractRecommender):
     This recommender may provide useful recommendations when collaborative_recommender
     may not work.
     """
-    def __init__(self):
+    def __init__(self, ctx):
+        self._ctx = ctx
+        assert 'utils' in self._ctx
+        self._init_from_ctx()
+
+    def _init_from_ctx(self):
+        utils = self._ctx['utils']
         self.top_addons_per_locale = utils.get_s3_json_content(ADDON_LIST_BUCKET,
                                                                ADDON_LIST_KEY)
         if self.top_addons_per_locale is None:
