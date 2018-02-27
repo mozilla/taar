@@ -3,11 +3,11 @@ Test cases for the TAAR CollaborativeRecommender
 """
 
 import numpy
-import pytest
-import responses
 
 from taar.recommenders.collaborative_recommender import ADDON_MAPPING_URL
 from taar.recommenders.collaborative_recommender import ADDON_MODEL_URL
+from taar.context import Context
+
 from taar.recommenders.collaborative_recommender import CollaborativeRecommender
 from taar.recommenders.collaborative_recommender import positive_hash
 
@@ -46,30 +46,43 @@ FAKE_ADDON_MATRIX = [
 """
 
 
-@pytest.fixture
-def activate_error_responses():
+def activate_error_responses(ctx):
     """
     Overload the 'real' addon model and mapping URLs responses so that
     we always get 404 errors.
     """
-    responses.add(responses.GET, ADDON_MODEL_URL, json={"error": "not found"}, status=404)
-    responses.add(responses.GET, ADDON_MAPPING_URL, json={"error": "not found"}, status=404)
+    ctx = ctx.child()
+
+    class ErrorUtils:
+        def fetch_json(self, url):
+            return None
+    ctx['utils'] = ErrorUtils()
+    return ctx
 
 
-@pytest.fixture
-def activate_responses():
+def activate_responses(ctx):
     """
     Overload the 'real' addon model and mapping URLs responses so that
     we always the fixture data at the top of this test module.
     """
+    # responses.add(responses.GET, ADDON_MODEL_URL, json=FAKE_ADDON_MATRIX)
+    # responses.add(responses.GET, ADDON_MAPPING_URL, json=FAKE_MAPPING)
+    ctx = ctx.child()
 
-    responses.add(responses.GET, ADDON_MODEL_URL, json=FAKE_ADDON_MATRIX)
-    responses.add(responses.GET, ADDON_MAPPING_URL, json=FAKE_MAPPING)
+    class MockUtils:
+        def fetch_json(self, url):
+            if url == ADDON_MODEL_URL:
+                return FAKE_ADDON_MATRIX
+            elif url == ADDON_MAPPING_URL:
+                return FAKE_MAPPING
+
+    ctx['utils'] = MockUtils()
+    return ctx
 
 
-@responses.activate
-def test_can_recommend(activate_responses):
-    r = CollaborativeRecommender()
+def test_can_recommend():
+    ctx = get_mocked_ctx()
+    r = CollaborativeRecommender(ctx)
 
     # Test that we can't recommend if we have not enough client info.
     assert not r.can_recommend({})
@@ -79,9 +92,21 @@ def test_can_recommend(activate_responses):
     assert r.can_recommend({"installed_addons": ["uBlock0@raymondhill.net"]})
 
 
-@responses.activate
-def test_can_recommend_no_model(activate_error_responses):
-    r = CollaborativeRecommender()
+def get_error_ctx():
+    ctx = Context()
+    ctx = activate_error_responses(ctx)
+    return ctx
+
+
+def get_mocked_ctx():
+    ctx = Context()
+    ctx = activate_responses(ctx)
+    return ctx
+
+
+def test_can_recommend_no_model():
+    ctx = get_error_ctx()
+    r = CollaborativeRecommender(ctx)
 
     # We should never be able to recommend if something went wrong with the model.
     assert not r.can_recommend({})
@@ -89,23 +114,22 @@ def test_can_recommend_no_model(activate_error_responses):
     assert not r.can_recommend({"installed_addons": ["uBlock0@raymondhill.net"]})
 
 
-@responses.activate
-def test_empty_recommendations(activate_responses):
+def test_empty_recommendations():
     # Tests that the empty recommender always recommends an empty list
     # of addons if we have no addons
-    r = CollaborativeRecommender()
-
+    ctx = get_mocked_ctx()
+    r = CollaborativeRecommender(ctx)
     assert not r.can_recommend({})
 
     # Note that calling recommend() if can_recommend has failed is not
     # defined.
 
 
-@responses.activate
-def test_best_recommendation(activate_responses):
+def test_best_recommendation():
     # Make sure the structure of the recommendations is correct and that we
     # recommended the the right addon.
-    r = CollaborativeRecommender()
+    ctx = get_mocked_ctx()
+    r = CollaborativeRecommender(ctx)
 
     # An non-empty set of addons should give a list of recommendations
     fixture_client_data = {"installed_addons": ["addon4.id"]}
@@ -125,12 +149,12 @@ def test_best_recommendation(activate_responses):
     assert numpy.isclose(result[1], numpy.float64('0.3225'))
 
 
-@responses.activate
-def test_recommendation_weights(activate_responses):
+def test_recommendation_weights():
     """
     Weights should be ordered greatest to lowest
     """
-    r = CollaborativeRecommender()
+    ctx = get_mocked_ctx()
+    r = CollaborativeRecommender(ctx)
 
     # An non-empty set of addons should give a list of recommendations
     fixture_client_data = {"installed_addons": ["addon4.id"]}
@@ -158,11 +182,11 @@ def test_recommendation_weights(activate_responses):
     assert numpy.isclose(result[1], numpy.float64('0.29'))
 
 
-@responses.activate
-def test_recommender_str(activate_responses):
+def test_recommender_str():
     """Tests that the string representation of the recommender is correct
     """
     # TODO: this test is brittle and should be removed once it is safe
     # to do so
-    r = CollaborativeRecommender()
+    ctx = get_mocked_ctx()
+    r = CollaborativeRecommender(ctx)
     assert str(r) == "CollaborativeRecommender"
