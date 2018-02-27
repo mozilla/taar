@@ -5,7 +5,7 @@
 import logging
 import itertools
 from ..recommenders import utils
-from .base_recommender import BaseRecommender
+from .base_recommender import AbstractRecommender
 import threading
 import time
 
@@ -42,7 +42,7 @@ class WeightCache:
             return self._weights
 
 
-class EnsembleRecommender(BaseRecommender):
+class EnsembleRecommender(AbstractRecommender):
     """
     The EnsembleRecommender is a collection of recommenders where the
     results from each recommendation is amplified or dampened by a

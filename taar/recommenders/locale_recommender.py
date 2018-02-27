@@ -1,6 +1,6 @@
 import logging
 from ..recommenders import utils
-from .base_recommender import BaseRecommender
+from .base_recommender import AbstractRecommender
 
 ADDON_LIST_BUCKET = 'telemetry-parquet'
 ADDON_LIST_KEY = 'taar/locale/top10_dict.json'
@@ -9,7 +9,7 @@ ADDON_LIST_KEY = 'taar/locale/top10_dict.json'
 logger = logging.getLogger(__name__)
 
 
-class LocaleRecommender(BaseRecommender):
+class LocaleRecommender(AbstractRecommender):
     """ A recommender class that returns top N addons based on the client geo-locale.
 
     This will load a json file containing updated top n addons in use per geo locale
