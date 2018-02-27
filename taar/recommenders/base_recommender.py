@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
 
 
-class BaseRecommender:
+class AbstractRecommender:
     """Base class for recommenders.
 
     Subclasses must implement can_recommend and recommend.

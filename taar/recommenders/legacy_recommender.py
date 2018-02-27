@@ -1,6 +1,6 @@
 import logging
 from ..recommenders import utils
-from .base_recommender import BaseRecommender
+from .base_recommender import AbstractRecommender
 
 ADDON_LIST_BUCKET = 'telemetry-parquet'
 ADDON_LIST_KEY = 'taar/legacy/legacy_dict.json'
@@ -9,7 +9,7 @@ ADDON_LIST_KEY = 'taar/legacy/legacy_dict.json'
 logger = logging.getLogger(__name__)
 
 
-class LegacyRecommender(BaseRecommender):
+class LegacyRecommender(AbstractRecommender):
     """ A recommender class that returns potential replacements for deprecated legacy addons.
 
     This will load a json file (periodically updated) containing suggested web extension

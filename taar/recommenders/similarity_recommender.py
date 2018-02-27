@@ -1,7 +1,7 @@
 import logging
 import numpy as np
 from ..recommenders import utils
-from .base_recommender import BaseRecommender
+from .base_recommender import AbstractRecommender
 from scipy.spatial import distance
 
 FLOOR_DISTANCE_ADJUSTMENT = 0.001
@@ -16,7 +16,7 @@ LR_CURVES_SIMILARITY_TO_PROBABILITY = 'taar/similarity/lr_curves.json'
 logger = logging.getLogger(__name__)
 
 
-class SimilarityRecommender(BaseRecommender):
+class SimilarityRecommender(AbstractRecommender):
     """ A recommender class that returns top N addons based on the
     client similarity with a set of candidate addon donors.
 
