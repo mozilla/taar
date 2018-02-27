@@ -1,11 +1,9 @@
-import boto3
 import json
 import numpy as np
-import pytest
 import scipy.stats
-from moto import mock_s3
+from taar.context import Context
 from taar.recommenders.similarity_recommender import \
-    CATEGORICAL_FEATURES, CONTINUOUS_FEATURES, S3_BUCKET, DONOR_LIST_KEY, LR_CURVES_SIMILARITY_TO_PROBABILITY, \
+    CATEGORICAL_FEATURES, CONTINUOUS_FEATURES, DONOR_LIST_KEY, LR_CURVES_SIMILARITY_TO_PROBABILITY, \
     SimilarityRecommender
 from .similarity_data import CONTINUOUS_FEATURE_FIXTURE_DATA
 from .similarity_data import CATEGORICAL_FEATURE_FIXTURE_DATA
@@ -47,50 +45,61 @@ def generate_a_fake_taar_client():
     }
 
 
-@pytest.fixture
-def mock_s3_categorical_data():
-    mock_s3().start()
-
-    conn = boto3.resource('s3', region_name='us-west-2')
-    conn.create_bucket(Bucket=S3_BUCKET)
-    # Write the fake addon donor data to the mocked S3.
-    conn.Object(S3_BUCKET, key=DONOR_LIST_KEY).put(Body=json.dumps(CATEGORICAL_FEATURE_FIXTURE_DATA))
-    # Write the fake lr curves data to the mocked S3.
-    fake_lrs = generate_fake_lr_curves(1000)
-    conn.Object(S3_BUCKET, key=LR_CURVES_SIMILARITY_TO_PROBABILITY).put(Body=json.dumps(fake_lrs))
-
-    yield conn
-    mock_s3().stop()
+class MockNoDataUtils:
+    def get_s3_json_content(self, *args, **kwargs):
+        return None
 
 
-@pytest.fixture
-def mock_s3_continuous_data():
-    mock_s3().start()
+class MockCategoricalData:
 
-    conn = boto3.resource('s3', region_name='us-west-2')
-    conn.create_bucket(Bucket=S3_BUCKET)
-    # Write the fake addon donor data to the mocked S3.
-    conn.Object(S3_BUCKET, key=DONOR_LIST_KEY).put(Body=json.dumps(CONTINUOUS_FEATURE_FIXTURE_DATA))
-    # Write the fake lr curves data to the mocked S3.
-    fake_lrs = generate_fake_lr_curves(1000)
-    conn.Object(S3_BUCKET, key=LR_CURVES_SIMILARITY_TO_PROBABILITY).put(Body=json.dumps(fake_lrs))
+    cat_data = json.loads(json.dumps(CATEGORICAL_FEATURE_FIXTURE_DATA))
+    lrs_data = json.loads(json.dumps(generate_fake_lr_curves(1000)))
 
-    yield conn
-    mock_s3().stop()
+    def get_s3_json_content(self, bucket, key):
+        if key == DONOR_LIST_KEY:
+            return self.cat_data
+        if key == LR_CURVES_SIMILARITY_TO_PROBABILITY:
+            return self.lrs_data
 
 
-@mock_s3
+class MockContinuousData:
+
+    cts_data = json.loads(json.dumps(CONTINUOUS_FEATURE_FIXTURE_DATA))
+    lrs_data = json.loads(json.dumps(generate_fake_lr_curves(1000)))
+
+    def get_s3_json_content(self, bucket, key):
+        if key == DONOR_LIST_KEY:
+            return self.cts_data
+        if key == LR_CURVES_SIMILARITY_TO_PROBABILITY:
+            return self.lrs_data
+
+
+def create_cat_test_ctx():
+    ctx = Context()
+    ctx['utils'] = MockCategoricalData()
+    return ctx.child()
+
+
+def create_cts_test_ctx():
+    ctx = Context()
+    ctx['utils'] = MockContinuousData()
+    return ctx.child()
+
+
 def test_soft_fail():
     # Create a new instance of a SimilarityRecommender.
-    r = SimilarityRecommender()
+    ctx = Context()
+    ctx['utils'] = MockNoDataUtils()
+    r = SimilarityRecommender(ctx)
 
     # Don't recommend if the source files cannot be found.
     assert not r.can_recommend({})
 
 
-def test_can_recommend(mock_s3_continuous_data):
+def test_can_recommend():
     # Create a new instance of a SimilarityRecommender.
-    r = SimilarityRecommender()
+    ctx = create_cts_test_ctx()
+    r = SimilarityRecommender(ctx)
 
     # Test that we can't recommend if we have not enough client info.
     assert not r.can_recommend({})
@@ -113,9 +122,10 @@ def test_can_recommend(mock_s3_continuous_data):
         assert not r.can_recommend(profile_without_x)
 
 
-def test_recommendations(mock_s3_continuous_data):
+def test_recommendations():
     # Create a new instance of a SimilarityRecommender.
-    r = SimilarityRecommender()
+    ctx = create_cts_test_ctx()
+    r = SimilarityRecommender(ctx)
 
     # TODO: clobber the SimilarityRecommender::lr_curves
 
@@ -131,23 +141,26 @@ def test_recommendations(mock_s3_continuous_data):
     assert type(weight) == np.float64
 
 
-def test_recommender_str(mock_s3_continuous_data):
+def test_recommender_str():
     # Tests that the string representation of the recommender is correct.
-    r = SimilarityRecommender()
+    ctx = create_cts_test_ctx()
+    r = SimilarityRecommender(ctx)
     assert str(r) == "SimilarityRecommender"
 
 
-def test_get_lr(mock_s3_continuous_data):
+def test_get_lr():
     # Tests that the likelihood ratio values are not empty for extreme values and are realistic.
-    r = SimilarityRecommender()
+    ctx = create_cts_test_ctx()
+    r = SimilarityRecommender(ctx)
     assert r.get_lr(0.0001) is not None
     assert r.get_lr(10.0) is not None
     assert r.get_lr(0.001) > r.get_lr(5.0)
 
 
-def test_compute_clients_dist(mock_s3_continuous_data):
+def test_compute_clients_dist():
     # Test the distance function computation.
-    r = SimilarityRecommender()
+    ctx = create_cts_test_ctx()
+    r = SimilarityRecommender(ctx)
     test_clients = [
         {
             "client_id": "test-client-002",
@@ -198,9 +211,10 @@ def test_compute_clients_dist(mock_s3_continuous_data):
     assert per_client_test[0] >= per_client_test[1] >= per_client_test[2]
 
 
-def test_distance_functions(mock_s3_continuous_data):
+def test_distance_functions():
     # Tests the similarity functions via expected output when passing modified client data.
-    r = SimilarityRecommender()
+    ctx = create_cts_test_ctx()
+    r = SimilarityRecommender(ctx)
 
     # Generate a fake client.
     test_client = generate_a_fake_taar_client()
@@ -239,9 +253,10 @@ def test_distance_functions(mock_s3_continuous_data):
     assert abs((j_c + 0.01) * j_d) != 0.0
 
 
-def test_weights_continuous(mock_s3_continuous_data):
+def test_weights_continuous():
     # Create a new instance of a SimilarityRecommender.
-    r = SimilarityRecommender()
+    ctx = create_cts_test_ctx()
+    r = SimilarityRecommender(ctx)
 
     # In the ensemble method recommendations shoudl be a sorted list of tuples
     # containing [(guid, weight), (guid, weight)... (guid, weight)].
@@ -267,7 +282,7 @@ def test_weights_continuous(mock_s3_continuous_data):
     assert rec0_weight == rec1_weight > 0
 
 
-def test_weights_categorical(mock_s3_categorical_data):
+def test_weights_categorical():
     '''
     This should get :
         ["{test-guid-1}", "{test-guid-2}", "{test-guid-3}", "{test-guid-4}"],
@@ -277,7 +292,10 @@ def test_weights_categorical(mock_s3_categorical_data):
 
     '''
     # Create a new instance of a SimilarityRecommender.
-    r = SimilarityRecommender()
+    ctx = create_cat_test_ctx()
+    ctx2 = create_cts_test_ctx()
+    wrapped = ctx2.wrap(ctx)
+    r = SimilarityRecommender(wrapped)
 
     # In the ensemble method recommendations shoudl be a sorted list of tuples
     # containing [(guid, weight), (guid, weight)... (guid, weight)].
