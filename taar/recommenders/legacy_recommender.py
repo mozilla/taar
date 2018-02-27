@@ -1,5 +1,4 @@
 import logging
-from ..recommenders import utils
 from .base_recommender import AbstractRecommender
 
 ADDON_LIST_BUCKET = 'telemetry-parquet'
@@ -18,9 +17,12 @@ class LegacyRecommender(AbstractRecommender):
     This recommender may provide useful recommendations when collaborative_recommender
     may not work.
     """
-    def __init__(self):
-        self.legacy_replacements = utils.get_s3_json_content(ADDON_LIST_BUCKET,
-                                                             ADDON_LIST_KEY)
+    def __init__(self, ctx):
+        self._ctx = ctx
+        assert 'utils' in self._ctx
+
+        self.legacy_replacements = self._ctx['utils'].get_s3_json_content(ADDON_LIST_BUCKET,
+                                                                          ADDON_LIST_KEY)
         if self.legacy_replacements is None:
             logger.error("Cannot download the JSON resource: {}".format(ADDON_LIST_KEY))
 
