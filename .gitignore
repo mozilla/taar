@@ -98,3 +98,6 @@ ENV/
 
 # vim garbage
 *.sw?
+
+# vscode garbage
+.vscode
