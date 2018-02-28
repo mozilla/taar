@@ -1,8 +1,31 @@
-from taar.recommenders import EnsembleRecommender
-from .mocks import MockRecommenderFactory    # noqa
-from .mocks import mock_s3_ensemble_weights  # noqa
+from taar.context import Context
+from taar.recommenders.ensemble_recommender import WeightCache, EnsembleRecommender
+from .mocks import MockRecommenderFactory
 
-def test_recommendations(mock_s3_ensemble_weights):   # noqa
+EXPECTED = {'legacy': 10000,
+            'collaborative': 1000,
+            'similarity': 100,
+            'locale': 10}
+
+
+class Mocker:
+    def get_s3_json_content(self, *args, **kwargs):
+        return {'ensemble_weights': EXPECTED}
+
+def test_weight_cache():   # noqa
+
+    ctx = Context()
+    ctx['utils'] = Mocker()
+
+    wc = WeightCache(ctx.child())
+    actual = wc.getWeights()
+    assert EXPECTED == actual
+
+
+def test_recommendations():
+    ctx = Context()
+
+    ctx['utils'] = Mocker()
 
     EXPECTED_RESULTS = [('cde', 12000.0),
                         ('bcd', 11000.0),
@@ -16,12 +39,14 @@ def test_recommendations(mock_s3_ensemble_weights):   # noqa
                         ('jkl', 400.0)]
 
     factory = MockRecommenderFactory()
-    mock_recommender_map = {'legacy': factory.create('legacy'),
-                            'collaborative': factory.create('collaborative'),
-                            'similarity': factory.create('similarity'),
-                            'locale': factory.create('locale')}
-    r = EnsembleRecommender(mock_recommender_map)
-    client = {}  # Anything will work here
+    ctx['recommender_factory'] = factory
+
+    ctx['recommender_map'] = {'legacy': factory.create('legacy'),
+                              'collaborative': factory.create('collaborative'),
+                              'similarity': factory.create('similarity'),
+                              'locale': factory.create('locale')}
+    r = EnsembleRecommender(ctx.child())
+    client = {'client_id': '12345'}  # Anything will work here
     recommendation_list = r.recommend(client, 10)
     assert isinstance(recommendation_list, list)
     assert recommendation_list == EXPECTED_RESULTS

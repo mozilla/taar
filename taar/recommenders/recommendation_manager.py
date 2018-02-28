@@ -1,9 +1,5 @@
 import logging
-from .collaborative_recommender import CollaborativeRecommender
-from .legacy_recommender import LegacyRecommender
-from .locale_recommender import LocaleRecommender
-from .similarity_recommender import SimilarityRecommender
-from .ensemble_recommender import EnsembleRecommender
+from taar.recommenders.ensemble_recommender import EnsembleRecommender
 
 
 logger = logging.getLogger(__name__)
@@ -17,11 +13,9 @@ class RecommenderFactory:
     the RecommendationManager and eases the implementation of test
     harnesses.
     """
-    def __init__(self):
-        self._recommender_factory_map = {'legacy': LegacyRecommender,
-                                         'collaborative': CollaborativeRecommender,
-                                         'similarity': SimilarityRecommender,
-                                         'locale': LocaleRecommender}
+    def __init__(self, ctx):
+        self._ctx = ctx
+        self._recommender_factory_map = self._ctx['recommender_factory_map']
 
     def get_names(self):
         return self._recommender_factory_map.keys()
@@ -36,9 +30,17 @@ class RecommendationManager:
 
     LINEAR_RECOMMENDER_ORDER = ['legacy', 'collaborative', 'similarity', 'locale']
 
-    def __init__(self, recommender_factory, profile_fetcher):
+    def __init__(self, ctx):
         """Initialize the user profile fetcher and the recommenders.
         """
+        self._ctx = ctx
+
+        assert 'recommender_factory' in self._ctx
+        assert 'profile_fetcher' in self._ctx
+
+        recommender_factory = ctx['recommender_factory']
+        profile_fetcher = ctx['profile_fetcher']
+
         self.profile_fetcher = profile_fetcher
         self.linear_recommenders = []
         self._recommender_map = {}
@@ -50,7 +52,10 @@ class RecommendationManager:
             self.linear_recommenders.append(recommender)
             self._recommender_map[rkey] = recommender
 
-        self._recommender_map['ensemble'] = EnsembleRecommender(self._recommender_map)
+        # Install the recommender_map to the context and instantiate
+        # the EnsembleRecommender
+        self._ctx['recommender_map'] = self._recommender_map
+        self._recommender_map['ensemble'] = EnsembleRecommender(self._ctx.child())
 
     def recommend(self, client_id, limit, extra_data={}):
         """Return recommendations for the given client.

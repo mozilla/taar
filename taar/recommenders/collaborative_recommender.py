@@ -2,8 +2,7 @@ import logging
 import numpy as np
 import operator as op
 
-from .base_recommender import BaseRecommender
-from .utils import fetch_json
+from .base_recommender import AbstractRecommender
 
 ADDON_MODEL_URL =\
     "https://s3-us-west-2.amazonaws.com/telemetry-public-analysis-2/telemetry-ml/addon_recommender/item_matrix.json"
@@ -25,7 +24,7 @@ def positive_hash(s):
     return java_string_hashcode(s) & 0x7FFFFF
 
 
-class CollaborativeRecommender(BaseRecommender):
+class CollaborativeRecommender(AbstractRecommender):
     """ The addon recommendation interface to the collaborative filtering model.
 
     Usage example::
@@ -33,19 +32,24 @@ class CollaborativeRecommender(BaseRecommender):
         recommender = CollaborativeRecommender()
         dists = recommender.recommend(client_info)
     """
-    def __init__(self):
+    def __init__(self, ctx):
+        self._ctx = ctx
+
+        assert 'utils' in self._ctx
+
+        self._load_json_models()
+        self.model = None
+        self._build_model()
+
+    def _load_json_models(self):
         # Download the addon mappings.
-        self.addon_mapping = fetch_json(ADDON_MAPPING_URL)
+        self.addon_mapping = self._ctx['utils'].fetch_json(ADDON_MAPPING_URL)
         if self.addon_mapping is None:
             logger.error("Cannot download the addon mapping file {}".format(ADDON_MAPPING_URL))
 
-        self.raw_item_matrix = fetch_json(ADDON_MODEL_URL)
+        self.raw_item_matrix = self._ctx['utils'].fetch_json(ADDON_MODEL_URL)
         if self.addon_mapping is None:
             logger.error("Cannot download the model file {}".format(ADDON_MODEL_URL))
-
-        self.model = None
-
-        self._build_model()
 
     def _build_model(self):
         if self.raw_item_matrix is None:

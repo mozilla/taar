@@ -1,6 +1,5 @@
 import logging
-from ..recommenders import utils
-from .base_recommender import BaseRecommender
+from .base_recommender import AbstractRecommender
 
 ADDON_LIST_BUCKET = 'telemetry-parquet'
 ADDON_LIST_KEY = 'taar/legacy/legacy_dict.json'
@@ -9,7 +8,7 @@ ADDON_LIST_KEY = 'taar/legacy/legacy_dict.json'
 logger = logging.getLogger(__name__)
 
 
-class LegacyRecommender(BaseRecommender):
+class LegacyRecommender(AbstractRecommender):
     """ A recommender class that returns potential replacements for deprecated legacy addons.
 
     This will load a json file (periodically updated) containing suggested web extension
@@ -18,9 +17,14 @@ class LegacyRecommender(BaseRecommender):
     This recommender may provide useful recommendations when collaborative_recommender
     may not work.
     """
-    def __init__(self):
-        self.legacy_replacements = utils.get_s3_json_content(ADDON_LIST_BUCKET,
-                                                             ADDON_LIST_KEY)
+    def __init__(self, ctx):
+        self._ctx = ctx
+        assert 'utils' in self._ctx
+        self._init_from_ctx()
+
+    def _init_from_ctx(self):
+        self.legacy_replacements = self._ctx['utils'].get_s3_json_content(ADDON_LIST_BUCKET,
+                                                                          ADDON_LIST_KEY)
         if self.legacy_replacements is None:
             logger.error("Cannot download the JSON resource: {}".format(ADDON_LIST_KEY))
 
