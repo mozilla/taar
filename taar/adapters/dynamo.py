@@ -37,6 +37,7 @@ class ProfileController:
         except Exception:
             # Return None on error.  The caller in ProfileFetcher will
             # handle error logging
+            logger.error("Error loading client data for [%s]" % client_id)
             return None
 
     def put_client_profile(self, json_blob):
