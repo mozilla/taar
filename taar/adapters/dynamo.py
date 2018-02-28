@@ -39,23 +39,3 @@ class ProfileController:
             # handle error logging
             logger.error("Error loading client data for [%s]" % client_id)
             return None
-
-    def put_client_profile(self, json_blob):
-        """Store a single data record
-        """
-        return self._table.put_item(Item=json_blob)
-
-    def delete(self, client_id):
-        self._table.delete_item(Key={'client_id': client_id})
-
-    def batch_delete(self, *client_ids):
-        with self._table.batch_writer() as batch:
-            for client_id in client_ids:
-                batch.delete_item(Key={'client_id': client_id})
-
-    def batch_put_clients(self, records):
-        """Batch fill the DynamoDB instance with
-        """
-        with self._table.batch_writer() as batch:
-            for rec in records:
-                batch.put_item(Item=rec)
