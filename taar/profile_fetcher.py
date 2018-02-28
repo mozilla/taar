@@ -22,6 +22,7 @@ class ProfileFetcher(object):
                      if not addon.get('is_system', False)]
 
         return {
+            "client_id": client_id,
             "geo_city": profile_data.get("city", ''),
             "subsession_length": profile_data.get("subsession_length", 0),
             "locale": profile_data.get('locale', ''),
