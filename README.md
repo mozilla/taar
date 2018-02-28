@@ -9,6 +9,7 @@ Table of Contents (ToC):
 * [How does it work?](#how-does-it-work)
 * [Supported models](#supported-models)
 * [Instructions for Releasing Updates](#instructions-for-releasing-updates)
+* [Building and Running tests](#build-and-run-tests)
 
 ## How does it work?
 The recommendation strategy is implemented through the [RecommendationManager](taar/recommenders/recommendation_manager.py). Once a recommendation is requested for a specific [client id](https://firefox-source-docs.mozilla.org/toolkit/components/telemetry/telemetry/data/common-ping.html), the recommender iterates through all the registered models (e.g. [CollaborativeRecommender](taar/recommenders/collaborative_recommender.py)) linearly in their registered order. Results are returned from the first module that can perform a recommendation.
@@ -44,3 +45,14 @@ However, when you manually provide a callable to cdist, cdist can not do it's ba
 optimizations (https://github.com/scipy/scipy/blob/v1.0.0/scipy/spatial/distance.py#L2408)
 so we can just apply the function `distance.hamming` to our array manually and get the same
 performance.
+
+## Build and run tests
+You should be able to build taar using Python 2.7 or Python 3.5. To
+run the testsuite, execute ::
+
+```python
+$ python setup.py develop
+$ python setup.py test
+```
+
+Alternately, if you've got GNUMake installed, you can just run `make test` which will do all of that for you and run flake8 on the codebase.
