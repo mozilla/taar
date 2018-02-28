@@ -2,7 +2,7 @@ import boto3
 import json
 import logging
 import requests
-from botocore.exceptions import ClientError
+import requests.exceptions
 
 
 logger = logging.getLogger(__name__)
@@ -18,11 +18,13 @@ def fetch_json(uri):
         A JSON object with the response or None if the status code of the
         response is an error code.
     """
-    r = requests.get(uri)
-    if r.status_code != requests.codes.ok:
+    try:
+        r = requests.get(uri)
+        if r.status_code != requests.codes.ok:
+            return None
+        return r.json()
+    except requests.exceptions.ConnectionError as ce:
         return None
-
-    return r.json()
 
 
 def get_s3_json_content(s3_bucket, s3_key):
@@ -41,7 +43,7 @@ def get_s3_json_content(s3_bucket, s3_key):
             .read()
             .decode('utf-8')
         )
-    except ClientError:
+    except Exception as e:
         logger.exception("Failed to download from S3", extra={
             "bucket": s3_bucket,
             "key": s3_key})
