@@ -28,6 +28,7 @@ def test_profile_fetcher_returns_dict():
     # Note that active_addons in the raw JSON source is remapped to
     # 'installed_addons'
     assert fetcher.get("random-client-id") == {
+        "client_id": 'random-client-id',
         "bookmark_count": 0,
         "disabled_addons_ids": [],
         "geo_city": "Rome",
