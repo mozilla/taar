@@ -1,25 +1,47 @@
 language: python
-python:
-- '3.5'
+
+matrix:
+  include:
+  - python: "2.7"
+    env: REQUIREMENTS="latest"
+  - python: "3.5"
+    env: REQUIREMENTS="latest"
+  - python: "2.7"
+    env: REQUIREMENTS="emr"
+
 install:
+# Update Travis
 - sudo apt-get update
-- wget https://repo.continuum.io/miniconda/Miniconda2-4.3.21-Linux-x86_64.sh -O miniconda.sh
+
+# Install conda
+- wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
 - bash miniconda.sh -b -p $HOME/miniconda
 - export PATH="$HOME/miniconda/bin:$PATH"
 - hash -r
 - conda config --set always_yes yes --set changeps1 no
 - conda info -a
-- conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
-- source activate test-environment
-- pip install -e . --process-dependency-links
+
+# Setup environment
+- if [[ "$REQUIREMENTS" == "latest" ]]; then
+    conda create -n latest python=$TRAVIS_PYTHON_VERSION;
+    source activate latest
+    pip install -e . --process-dependency-links
+  elif [[ "$REQUIREMENTS" == "emr" ]]; then
+    conda env create -f environment_emr.yaml
+    source activate emr
+  else
+    exit 1
+  fi
 - pip install -r test_requirements.txt
+
 script:
-# The line below is to work around https://github.com/travis-ci/travis-ci/issues/7940
-- export BOTO_CONFIG=/dev/null
+- export BOTO_CONFIG=/dev/null  # Work around https://github.com/travis-ci/travis-ci/issues/7940
 - flake8 taar tests
 - py.test --cov taar tests
+
 after_success:
 - coveralls
+
 deploy:
   provider: pypi
   user: mdoglio

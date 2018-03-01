@@ -3,4 +3,3 @@ pytest-cov
 flake8
 responses
 coveralls
-scipy>=0.19.1
