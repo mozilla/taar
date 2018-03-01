@@ -24,13 +24,13 @@ install:
 # Setup environment
 - if [[ "$REQUIREMENTS" == "latest" ]]; then
     conda create -n latest python=$TRAVIS_PYTHON_VERSION;
-    source activate latest
-    pip install -e . --process-dependency-links
+    source activate latest;
+    pip install -e . --process-dependency-links;
   elif [[ "$REQUIREMENTS" == "emr" ]]; then
-    conda env create -f environment_emr.yaml
-    source activate emr
+    conda env create -f environment_emr.yaml;
+    source activate emr;
   else
-    exit 1
+    exit 1;
   fi
 - pip install -r test_requirements.txt
 
