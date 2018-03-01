@@ -27,3 +27,20 @@ This is the ordered list of the currently supported models:
 
 ## Instructions for releasing updates
 New releases can be shipped by using the normal [github workflow](https://help.github.com/articles/creating-releases/). Once a new release is created, it will be automatically uploaded to `pypi`.
+
+
+## A note on cdist optimization. 
+cdist can speed up distance computation by a factor of 10 for the computations we're doing.
+We can use it without problems on the canberra distance calculation.
+
+Unfortunately there are multiple problems with it accepting a string array. There are different
+problems in 0.18.1 (which is what is available on EMR), and on later versions. In both cases 
+cdist attempts to convert a string to a double, which fails. For versions of scipy later than
+0.18.1 this could be worked around with:
+
+    distance.cdist(v1, v2, lambda x, y: distance.hamming(x, y))
+
+However, when you manually provide a callable to cdist, cdist can not do it's baked in 
+optimizations (https://github.com/scipy/scipy/blob/v1.0.0/scipy/spatial/distance.py#L2408)
+so we can just apply the function `distance.hamming` to our array manually and get the same
+performance.
