@@ -2,6 +2,9 @@ all:
 	# PySpark only knows eggs, not wheels
 	python setup.py sdist
 
+clean:
+	python setup.py clean
+
 upload:
 	twine upload --repository-url https://upload.pypi.org/legacy/ dist/*
 
