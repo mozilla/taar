@@ -23,7 +23,7 @@ def fetch_json(uri):
         if r.status_code != requests.codes.ok:
             return None
         return r.json()
-    except requests.exceptions.ConnectionError as ce:
+    except requests.exceptions.ConnectionError:
         return None
 
 
@@ -43,7 +43,7 @@ def get_s3_json_content(s3_bucket, s3_key):
             .read()
             .decode('utf-8')
         )
-    except Exception as e:
+    except Exception:
         logger.exception("Failed to download from S3", extra={
             "bucket": s3_bucket,
             "key": s3_key})
