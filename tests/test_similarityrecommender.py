@@ -1,10 +1,14 @@
 import json
+import six
+
 import numpy as np
 import scipy.stats
+
 from taar.context import Context
 from taar.recommenders.similarity_recommender import \
     CATEGORICAL_FEATURES, CONTINUOUS_FEATURES, DONOR_LIST_KEY, LR_CURVES_SIMILARITY_TO_PROBABILITY, \
     SimilarityRecommender
+
 from .similarity_data import CONTINUOUS_FEATURE_FIXTURE_DATA
 from .similarity_data import CATEGORICAL_FEATURE_FIXTURE_DATA
 
@@ -269,7 +273,7 @@ def test_weights_continuous():
 
     assert len(recommendation_list) == 2
     for recommendation, weight in recommendation_list:
-        assert isinstance(recommendation, str)
+        assert isinstance(recommendation, six.string_types)
         assert isinstance(weight, float)
 
     # Test that sorting is appropriate.
@@ -304,7 +308,7 @@ def test_weights_categorical():
     assert len(recommendation_list) == 2
     # Make sure the structure of the recommendations is correct and that we recommended the the right addons.
     for recommendation, weight in recommendation_list:
-        assert isinstance(recommendation, str)
+        assert isinstance(recommendation, six.string_types)
         assert isinstance(weight, float)
 
     # Test that sorting is appropriate.
