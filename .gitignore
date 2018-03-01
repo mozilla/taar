@@ -45,6 +45,7 @@ coverage.xml
 *,cover
 .hypothesis/
 fixtures
+.pytest_cache/
 
 # Translations
 *.mo
@@ -97,3 +98,6 @@ ENV/
 
 # vim garbage
 *.sw?
+
+# vscode garbage
+.vscode
