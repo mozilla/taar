@@ -138,7 +138,7 @@ class SimilarityRecommender(AbstractRecommender):
             [[distance.hamming(x, client_categorical_feats)] for x in self.categorical_features])
 
         # See the "Note about cdist optimization" in README.md for why we only use cdist once.
-        
+
         # Take the product of similarities to attain a univariate similarity score.
         # Note that the addition of 0.001 to the continuous features
         # sets a floor value to the distance in continuous similarity
