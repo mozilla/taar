@@ -9,6 +9,10 @@ matrix:
   - python: "2.7"
     env: REQUIREMENTS="emr"
 
+before_install:
+# Work around https://github.com/travis-ci/travis-ci/issues/7940
+- export BOTO_CONFIG=/dev/null  
+
 install:
 # Update Travis
 - sudo apt-get update
@@ -35,8 +39,7 @@ install:
 - pip install -r test_requirements.txt
 
 script:
-- export BOTO_CONFIG=/dev/null  # Work around https://github.com/travis-ci/travis-ci/issues/7940
-- flake8 taar tests
+- flake8 taar tests || exit 1  # Fail if flake8 fails
 - py.test --cov taar tests
 
 after_success:
