@@ -12,6 +12,7 @@ class Mocker:
     def get_s3_json_content(self, *args, **kwargs):
         return {'ensemble_weights': EXPECTED}
 
+
 def test_weight_cache():   # noqa
 
     ctx = Context()
