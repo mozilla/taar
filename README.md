@@ -56,3 +56,8 @@ $ python setup.py test
 ```
 
 Alternately, if you've got GNUMake installed, you can just run `make test` which will do all of that for you and run flake8 on the codebase.
+
+
+There are additional integration tests and a microbenchmark available
+in `tests/test_integration.py`.  See the source code for more
+information.
