@@ -124,25 +124,22 @@ class SimilarityRecommender(AbstractRecommender):
     # # # CAUTION! # # #
     # Any changes to this function must be reflected in the corresponding ETL job.
     # https://github.com/mozilla/python_mozetl/blob/master/mozetl/taar/taar_similarity.py
+    #
     def compute_clients_dist(self, client_data):
         client_categorical_feats = [client_data.get(specified_key) for specified_key in CATEGORICAL_FEATURES]
         client_continuous_feats = [client_data.get(specified_key) for specified_key in CONTINUOUS_FEATURES]
 
-        # Compute the distances between the user and the cached continuous
-        # and categorical features.
-        cont_features = distance.cdist(self.continuous_features,
-                                       np.array([client_continuous_feats]),
-                                       'canberra')
+        # Compute the distances between the user and the cached continuous features.
+        cont_features = distance.cdist(
+            self.continuous_features, np.array([client_continuous_feats]), 'canberra')
 
-        # Compute the distance
-        # The lambda trick is needed to prevent |cdist| from force-casting the
-        # string features to double.
-        cat_features = distance.cdist(self.categorical_features,
-                                      np.array([client_categorical_feats]),
-                                      lambda x, y: distance.hamming(x, y))
+        # Compute the distances between the user and the cached categorical features.
+        cat_features = np.array(
+            [[distance.hamming(x, client_categorical_feats)] for x in self.categorical_features])
 
-        # Take the product of similarities to attain a univariate
-        # similarity score.
+        # See the "Note about cdist optimization" in README.md for why we only use cdist once.
+        
+        # Take the product of similarities to attain a univariate similarity score.
         # Note that the addition of 0.001 to the continuous features
         # sets a floor value to the distance in continuous similarity
         # scores.  There is no such floor value set for categorical
