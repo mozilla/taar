@@ -74,16 +74,16 @@ def test_recommendation_strategy():
 def test_recommendations_via_manager():  # noqa
     ctx = get_test_ctx()
 
-    EXPECTED_RESULTS = [('cde', 12000.0),
-                        ('bcd', 11000.0),
-                        ('abc', 10023.0),
-                        ('ghi', 3430.0),
+    EXPECTED_RESULTS = [('ghi', 3430.0),
                         ('def', 3320.0),
                         ('ijk', 3200.0),
                         ('hij', 3100.0),
                         ('lmn', 420.0),
                         ('klm', 409.99999999999994),
-                        ('jkl', 400.0)]
+                        ('jkl', 400.0),
+                        ('abc', 23.0),
+                        ('fgh', 22.0),
+                        ('efg', 21.0)]
 
     factory = MockRecommenderFactory()
 
