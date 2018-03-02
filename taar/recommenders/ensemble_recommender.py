@@ -60,7 +60,7 @@ class EnsembleRecommender(AbstractRecommender):
 
     def _init_from_ctx(self):
         # Copy the map of the recommenders
-        self.RECOMMENDER_KEYS = ['legacy', 'collaborative', 'similarity', 'locale']
+        self.RECOMMENDER_KEYS = ['collaborative', 'similarity', 'locale']
         self._recommender_map = self._ctx['recommender_map']
         self._weight_cache = WeightCache(self._ctx.child())
 
