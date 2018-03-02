@@ -158,7 +158,7 @@ dependencies:
 - pyparsing=2.1.4=py27_0
 - pyqt=5.6.0=py27_0
 - pytables=3.2.3.1=np111py27_0
-- pytest>3.4=py27_0
+- pytest>=3=py27_0
 - python=2.7.12=1
 - python-dateutil=2.5.3=py27_0
 - pytz=2016.6.1=py27_0
