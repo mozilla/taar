@@ -1,4 +1,6 @@
 from taar.context import Context
+from taar.cache import JSONCache, Clock
+
 from taar.recommenders import LegacyRecommender
 
 FAKE_LEGACY_DATA = {
@@ -25,6 +27,8 @@ def s3_mocker(ctx):
         def get_s3_json_content(self, *args, **kwargs):
             return FAKE_LEGACY_DATA
     ctx['utils'] = Mocker()
+    ctx['clock'] = Clock()
+    ctx['cache'] = JSONCache(ctx)
     return ctx
 
 

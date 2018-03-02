@@ -1,4 +1,6 @@
 from taar.context import Context
+from taar.cache import JSONCache, Clock
+
 from taar.recommenders import LocaleRecommender
 
 
@@ -21,6 +23,8 @@ class MockUtils:
 def create_test_ctx():
     ctx = Context()
     ctx['utils'] = MockUtils()
+    ctx['clock'] = Clock()
+    ctx['cache'] = JSONCache(ctx)
     return ctx.child()
 
 
