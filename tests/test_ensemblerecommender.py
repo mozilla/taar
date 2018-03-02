@@ -2,8 +2,7 @@ from taar.context import Context
 from taar.recommenders.ensemble_recommender import WeightCache, EnsembleRecommender
 from .mocks import MockRecommenderFactory
 
-EXPECTED = {'legacy': 10000,
-            'collaborative': 1000,
+EXPECTED = {'collaborative': 1000,
             'similarity': 100,
             'locale': 10}
 
@@ -28,22 +27,21 @@ def test_recommendations():
 
     ctx['utils'] = Mocker()
 
-    EXPECTED_RESULTS = [('cde', 12000.0),
-                        ('bcd', 11000.0),
-                        ('abc', 10023.0),
-                        ('ghi', 3430.0),
+    EXPECTED_RESULTS = [('ghi', 3430.0),
                         ('def', 3320.0),
                         ('ijk', 3200.0),
                         ('hij', 3100.0),
                         ('lmn', 420.0),
                         ('klm', 409.99999999999994),
-                        ('jkl', 400.0)]
+                        ('jkl', 400.0),
+                        ('abc', 23.0),
+                        ('fgh', 22.0),
+                        ('efg', 21.0)]
 
     factory = MockRecommenderFactory()
     ctx['recommender_factory'] = factory
 
-    ctx['recommender_map'] = {'legacy': factory.create('legacy'),
-                              'collaborative': factory.create('collaborative'),
+    ctx['recommender_map'] = {'collaborative': factory.create('collaborative'),
                               'similarity': factory.create('similarity'),
                               'locale': factory.create('locale')}
     r = EnsembleRecommender(ctx.child())
