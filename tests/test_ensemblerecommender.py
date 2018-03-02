@@ -1,4 +1,6 @@
 from taar.context import Context
+from taar.cache import JSONCache, Clock
+
 from taar.recommenders.ensemble_recommender import WeightCache, EnsembleRecommender
 from .mocks import MockRecommenderFactory
 
@@ -16,6 +18,8 @@ def test_weight_cache():   # noqa
 
     ctx = Context()
     ctx['utils'] = Mocker()
+    ctx['clock'] = Clock()
+    ctx['cache'] = JSONCache(ctx)
 
     wc = WeightCache(ctx.child())
     actual = wc.getWeights()
@@ -26,6 +30,8 @@ def test_recommendations():
     ctx = Context()
 
     ctx['utils'] = Mocker()
+    ctx['clock'] = Clock()
+    ctx['cache'] = JSONCache(ctx)
 
     EXPECTED_RESULTS = [('ghi', 3430.0),
                         ('def', 3320.0),
