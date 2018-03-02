@@ -1,4 +1,10 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this file,
+# You can obtain one at http://mozilla.org/MPL/2.0/.
+
 from taar.context import Context
+from taar.cache import JSONCache, Clock
+
 from taar.profile_fetcher import ProfileFetcher
 from taar.recommenders import RecommendationManager
 from taar.recommenders.base_recommender import AbstractRecommender
@@ -35,6 +41,8 @@ def get_test_ctx():
 
 def test_none_profile_returns_empty_list():
     ctx = get_test_ctx()
+    ctx['clock'] = Clock()
+    ctx['cache'] = JSONCache(ctx)
     rec_manager = RecommendationManager(ctx)
     assert rec_manager.recommend("random-client-id", 10) == []
 
@@ -64,6 +72,8 @@ def test_recommendation_strategy():
     ctx['recommender_factory'] = factory
     ctx['profile_fetcher'] = StubFetcher()
     ctx['utils'] = Mocker()
+    ctx['clock'] = Clock()
+    ctx['cache'] = JSONCache(ctx)
     manager = RecommendationManager(ctx.child())
     results = manager.recommend("client-id",
                                 10,
@@ -94,6 +104,8 @@ def test_recommendations_via_manager():  # noqa
     ctx['recommender_factory'] = factory
     ctx['profile_fetcher'] = MockProfileFetcher()
     ctx['utils'] = Mocker()
+    ctx['clock'] = Clock()
+    ctx['cache'] = JSONCache(ctx)
     manager = RecommendationManager(ctx.child())
     recommendation_list = manager.recommend({'client_id': 'some_ignored_id'},
                                             10,

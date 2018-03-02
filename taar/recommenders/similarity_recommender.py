@@ -35,19 +35,19 @@ class SimilarityRecommender(AbstractRecommender):
 
     def __init__(self, ctx):
         self._ctx = ctx
-        assert 'utils' in self._ctx
+        assert 'cache' in self._ctx
 
         self._init_from_ctx()
 
     def _init_from_ctx(self):
         # Download the addon donors list.
-        utils = self._ctx['utils']
-        self.donors_pool = utils.get_s3_json_content(S3_BUCKET, DONOR_LIST_KEY)
+        cache = self._ctx['cache']
+        self.donors_pool = cache.get_s3_json_content(S3_BUCKET, DONOR_LIST_KEY)
         if self.donors_pool is None:
             logger.error("Cannot download the donor list: {}".format(DONOR_LIST_KEY))
 
         # Download the probability mapping curves from similarity to likelihood of being a good donor.
-        self.lr_curves = utils.get_s3_json_content(S3_BUCKET, LR_CURVES_SIMILARITY_TO_PROBABILITY)
+        self.lr_curves = cache.get_s3_json_content(S3_BUCKET, LR_CURVES_SIMILARITY_TO_PROBABILITY)
         if self.lr_curves is None:
             logger.error("Cannot download the lr curves: {}".format(LR_CURVES_SIMILARITY_TO_PROBABILITY))
         self.build_features_caches()
