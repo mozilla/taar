@@ -4,9 +4,12 @@ Test cases for the TAAR CollaborativeRecommender
 
 import numpy
 
+from taar.context import Context
+from taar.cache import JSONCache, Clock
+
 from taar.recommenders.collaborative_recommender import ADDON_MAPPING_URL
 from taar.recommenders.collaborative_recommender import ADDON_MODEL_URL
-from taar.context import Context
+
 
 from taar.recommenders.collaborative_recommender import CollaborativeRecommender
 from taar.recommenders.collaborative_recommender import positive_hash
@@ -57,6 +60,8 @@ def activate_error_responses(ctx):
         def fetch_json(self, url):
             return None
     ctx['utils'] = ErrorUtils()
+    ctx['clock'] = Clock()
+    ctx['cache'] = JSONCache(ctx)
     return ctx
 
 
@@ -77,6 +82,8 @@ def activate_responses(ctx):
                 return FAKE_MAPPING
 
     ctx['utils'] = MockUtils()
+    ctx['clock'] = Clock()
+    ctx['cache'] = JSONCache(ctx)
     return ctx
 
 

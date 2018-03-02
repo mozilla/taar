@@ -19,11 +19,11 @@ class LegacyRecommender(AbstractRecommender):
     """
     def __init__(self, ctx):
         self._ctx = ctx
-        assert 'utils' in self._ctx
+        assert 'cache' in self._ctx
         self._init_from_ctx()
 
     def _init_from_ctx(self):
-        self.legacy_replacements = self._ctx['utils'].get_s3_json_content(ADDON_LIST_BUCKET,
+        self.legacy_replacements = self._ctx['cache'].get_s3_json_content(ADDON_LIST_BUCKET,
                                                                           ADDON_LIST_KEY)
         if self.legacy_replacements is None:
             logger.error("Cannot download the JSON resource: {}".format(ADDON_LIST_KEY))

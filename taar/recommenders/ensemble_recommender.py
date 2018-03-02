@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class WeightCache:
     def __init__(self, ctx):
         self._ctx = ctx
-        assert 'utils' in self._ctx
+        assert 'cache' in self._ctx
 
         self._lock = threading.RLock()
 
@@ -38,7 +38,7 @@ class WeightCache:
                     self._expiry = now + 300
 
             if self._weights is None:
-                tmp = self._ctx['utils'].get_s3_json_content(S3_BUCKET, ENSEMBLE_WEIGHTS)
+                tmp = self._ctx['cache'].get_s3_json_content(S3_BUCKET, ENSEMBLE_WEIGHTS)
                 self._weights = tmp['ensemble_weights']
 
             return self._weights

@@ -1,3 +1,7 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this file,
+# You can obtain one at http://mozilla.org/MPL/2.0/.
+
 import json
 import six
 
@@ -5,6 +9,8 @@ import numpy as np
 import scipy.stats
 
 from taar.context import Context
+from taar.cache import JSONCache, Clock
+
 from taar.recommenders.similarity_recommender import \
     CATEGORICAL_FEATURES, CONTINUOUS_FEATURES, DONOR_LIST_KEY, LR_CURVES_SIMILARITY_TO_PROBABILITY, \
     SimilarityRecommender
@@ -81,12 +87,16 @@ class MockContinuousData:
 def create_cat_test_ctx():
     ctx = Context()
     ctx['utils'] = MockCategoricalData()
+    ctx['clock'] = Clock()
+    ctx['cache'] = JSONCache(ctx)
     return ctx.child()
 
 
 def create_cts_test_ctx():
     ctx = Context()
     ctx['utils'] = MockContinuousData()
+    ctx['clock'] = Clock()
+    ctx['cache'] = JSONCache(ctx)
     return ctx.child()
 
 
@@ -94,6 +104,8 @@ def test_soft_fail():
     # Create a new instance of a SimilarityRecommender.
     ctx = Context()
     ctx['utils'] = MockNoDataUtils()
+    ctx['clock'] = Clock()
+    ctx['cache'] = JSONCache(ctx)
     r = SimilarityRecommender(ctx)
 
     # Don't recommend if the source files cannot be found.

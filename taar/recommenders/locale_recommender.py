@@ -20,12 +20,12 @@ class LocaleRecommender(AbstractRecommender):
     """
     def __init__(self, ctx):
         self._ctx = ctx
-        assert 'utils' in self._ctx
+        assert 'cache' in self._ctx
         self._init_from_ctx()
 
     def _init_from_ctx(self):
-        utils = self._ctx['utils']
-        self.top_addons_per_locale = utils.get_s3_json_content(ADDON_LIST_BUCKET,
+        cache = self._ctx['cache']
+        self.top_addons_per_locale = cache.get_s3_json_content(ADDON_LIST_BUCKET,
                                                                ADDON_LIST_KEY)
         if self.top_addons_per_locale is None:
             logger.error("Cannot download the top per locale file {}".format(ADDON_LIST_KEY))
