@@ -1,6 +1,5 @@
 from taar.cache import Clock, JSONCache
 import time
-import pytest
 from taar.context import Context
 
 
@@ -24,7 +23,11 @@ class MockUtils:
 
 def test_clock():
     cl = Clock()
-    assert time.time() == pytest.approx(cl.time(), 0.1)
+    actual = cl.time()
+    expected = time.time()
+
+    # The clock should be pretty accurate to now
+    assert abs(actual - expected) < 0.1
 
 
 def test_fetch_json():
