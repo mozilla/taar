@@ -85,6 +85,12 @@ class EnsembleRecommender(AbstractRecommender):
         correct.
         """
 
+        preinstalled_addon_ids = client_data.get('installed_addons', [])
+
+        # Compute an extended limit by adding the length of
+        # the list of any preinstalled addons.
+        extended_limit = limit + len(preinstalled_addon_ids)
+
         flattened_results = []
         ensemble_weights = self._weight_cache.getWeights()
 
@@ -92,7 +98,9 @@ class EnsembleRecommender(AbstractRecommender):
             recommender = self._recommender_map[rkey]
 
             if recommender.can_recommend(client_data):
-                raw_results = recommender.recommend(client_data, limit, extra_data)
+                raw_results = recommender.recommend(client_data,
+                                                    extended_limit,
+                                                    extra_data)
                 reweighted_results = []
                 for guid, weight in raw_results:
                     item = (guid, weight * ensemble_weights[rkey])
@@ -114,7 +122,12 @@ class EnsembleRecommender(AbstractRecommender):
 
         # Sort in reverse order (greatest weight to least)
         ensemble_suggestions.sort(key=lambda x: -x[1])
-        results = ensemble_suggestions[:limit]
+
+        filtered_ensemble_suggestions = [(guid, weight) for (guid, weight)
+                                         in ensemble_suggestions
+                                         if guid not in preinstalled_addon_ids]
+
+        results = filtered_ensemble_suggestions[:limit]
 
         log_data = (client_data['client_id'],
                     str(ensemble_weights),
