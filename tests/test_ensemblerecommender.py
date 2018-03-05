@@ -37,12 +37,7 @@ def test_recommendations():
                         ('def', 3320.0),
                         ('ijk', 3200.0),
                         ('hij', 3100.0),
-                        ('lmn', 420.0),
-                        ('klm', 409.99999999999994),
-                        ('jkl', 400.0),
-                        ('abc', 23.0),
-                        ('fgh', 22.0),
-                        ('efg', 21.0)]
+                        ('lmn', 420.0)]
 
     factory = MockRecommenderFactory()
     ctx['recommender_factory'] = factory
@@ -52,6 +47,40 @@ def test_recommendations():
                               'locale': factory.create('locale')}
     r = EnsembleRecommender(ctx.child())
     client = {'client_id': '12345'}  # Anything will work here
-    recommendation_list = r.recommend(client, 10)
+
+    recommendation_list = r.recommend(client, 5)
+    assert isinstance(recommendation_list, list)
+    assert recommendation_list == EXPECTED_RESULTS
+
+
+def test_preinstalled_guids():
+    ctx = Context()
+
+    ctx['utils'] = Mocker()
+    ctx['clock'] = Clock()
+    ctx['cache'] = JSONCache(ctx)
+
+    EXPECTED_RESULTS = [('ghi', 3430.0),
+                        ('ijk', 3200.0),
+                        ('lmn', 420.0),
+                        ('klm', 409.99999999999994),
+                        ('abc', 23.0)]
+
+    factory = MockRecommenderFactory()
+    ctx['recommender_factory'] = factory
+
+    ctx['recommender_map'] = {'collaborative': factory.create('collaborative'),
+                              'similarity': factory.create('similarity'),
+                              'locale': factory.create('locale')}
+    r = EnsembleRecommender(ctx.child())
+
+    # 'hij' should be excluded from the suggestions list
+    # The other two addon GUIDs 'def' and 'jkl' will never be
+    # recommended anyway and should have no impact on results
+    client = {'client_id': '12345',
+              'installed_addons': ['def', 'hij', 'jkl']}
+
+    recommendation_list = r.recommend(client, 5)
+    print(recommendation_list)
     assert isinstance(recommendation_list, list)
     assert recommendation_list == EXPECTED_RESULTS
