@@ -18,7 +18,7 @@ class ProfileFetcher(object):
             return None
 
         addon_ids = [addon['addon_id']
-                     for addon in profile_data['active_addons']
+                     for addon in profile_data.get('active_addons', [])
                      if not addon.get('is_system', False)]
 
         return {
