@@ -58,5 +58,5 @@ def test_dont_crash_without_active_addons():
     mock_profile_controller = MockProfileController(mock_data)
     fetcher = ProfileFetcher(mock_profile_controller)
     expected = MOCK_DATA['expected_result']
-    expected['installed_addons'].clear()
+    expected['installed_addons'][:] = []
     assert fetcher.get("random-client-id") == expected
