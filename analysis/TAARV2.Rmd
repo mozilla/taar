@@ -1,0 +1,644 @@
+---
+title: "TAAR V2 Experiment Analysis"
+author: "Ben Miroglio, Martin Lopatka"
+date: "4/18/2018"
+output: 
+  html_document:
+    theme: cosmo
+    toc_float: true
+    code_folding: hide
+---
+<style>
+ul.nav.nav-pills {
+    list-style:none;
+    position:relative;
+    left: 20%;
+}
+
+ul.nav.nav-pills li {
+  width: 20%;
+  text-align: center;
+}
+</style>
+
+# {.tabset}
+
+## Study Details
+
+### About
+
+This report outlines the results of the **2nd** shield experiment that exposes the Telemetry Aware Addon Recommendations (TAAR) service, which serves personalized recommendations to Firefox users via the discovery pane (about:addons). The experiment launched on March 12th, 2018 and ended on April 17th, 2018. 
+
+### Links
+* [Dashboard of TAAR Experiment V1](https://sql.telemetry.mozilla.org/dashboard/taar-experiment_1)
+*  [TAAR Experiment V1 Results](https://docs.google.com/presentation/d/1B6CcyGfLvIiweBgGchWEZU_7QsF0M8w07_2UG1oZW1g/edit#slide=id.g2830b63ec5_0_45)
+*  [TAAR Medium Post](https://medium.com/firefox-context-graph/add-on-recommendations-for-firefox-users-7774cc5a5117)
+
+
+### Experiment Design
+
+The Experiment has three cohorts:
+
+* `control` (no change to about:addons)
+* `linear-taar` (previous iteration of TAAR)
+* `ensemble-taar` (current iteration of TAAR)
+
+
+Users in all cohorts are exposed to a pop-up that "nudges" them to about:addons. When a user lands on the page, we can track the add-ons they install/uninstall/enable/disable, and how long they stayed on the page.
+
+### Questions?
+Questions or requests for these data can be directed to Ben Miroglio (:bmiroglio).
+
+
+
+
+## Results {.tabset .tabset-pills .tabset-fade}
+
+```{r, setup, include=T, warning=F}
+library(data.table)
+library(DT)
+library(gridExtra)
+library(ggplot2)
+
+options(DT.options = list(
+  searching=F,
+  paging=F,
+  info=F)
+)
+
+
+# util functions
+
+
+# Performs a two-sided proportion test 
+# on a dataframe d, containing the 
+# number of successes as a column <c1>
+# and the number of trials as a column <c2>
+prop.test.by.branch <- function(d, c1, c2) {
+  ensem_linear <- d[branch!='control']
+  ensem_control <- d[branch!='linear-taar']
+  
+  tovec <- function(dt) as.matrix(dt)[,1]
+  
+
+  v1 <- tovec(ensem_linear[,c1, with=F])
+  v2 <- tovec(ensem_linear[,c2, with=F])
+  v3 <- tovec(ensem_control[,c1, with=F])
+  v4 <- tovec(ensem_control[,c2, with=F])
+  
+  tel <- prop.test(v1, v2)
+  tec <- prop.test(v3, v4)
+  
+  tel.low <- tel$conf.int[1]
+  tel.upper <- tel$conf.int[2]
+  
+  tec.low <- tec$conf.int[1]
+  tec.upper <- tec$conf.int[2]
+  
+  return(list(el.low=tel.low,
+              el.high=tel.upper,
+              ec.low=tec.low,
+              ec.high=tec.upper,
+              el.p=tel$p.val,
+              ec.p=tec$p.val,
+              el.true=(v1/v2)[1] - (v1/v2)[2],
+              ec.true=(v3/v4)[1] - (v3/v4)[2]))
+  
+  
+}
+
+# unpacks the results of a proportion test
+# and arranges the effect, CIs, and p-value
+# into a formatted table.
+spec_results <- function(spec, group, p) {
+  r <- data.table(names(p), unlist(p))
+  s <- data.table(t(r[grepl(spec, V1)]))
+  colnames(s) <- as.character(s[1,])
+  s <- s[-1,]
+  r <- function(x, n=6) round(as.numeric(x), n)
+  s$Test <- group
+  colnames(s) <- c('lower95', 'upper95', 'Pvalue', 'Effect', 'Test')
+  return(s[,.(Test, Effect=r(Effect), 
+              lower95=r(lower95),
+              upper95=r(upper95),
+              Pvalue=r(Pvalue))])
+}
+
+# Performs a proportion test
+# for ensemble vs. linear 
+# and ensemble vs. control
+# and organizes results into a table
+get_results_table <- function(p) {
+  funion(spec_results('ec', "Ensemble vs. Control", p),
+      spec_results('el', "Ensemble vs. Linear", p))
+}
+
+format_results <- function(d, cap, extra=c()) {
+  # Round floating point numbers
+  d$prob_at_least_one_install <- round(d$prob_at_least_one_install, 4)
+  d$n_installs_per_client <- round(d$n_installs_per_client, 4)
+  
+  # prettify column names
+  dis <- d[order(src, branch)]
+  if (length(extra) > 0) {
+    if (extra[1] == 'is_en_US') {
+      extra <- c("en-US")
+    }
+  }
+  cols <- c('Branch', extra, 'Clients that Installed', 'Total Installs', 
+            'Total Clients', 'Probability of Install', 
+            'Installs per Client', "Install Source")
+  colnames(dis) <- cols
+  dis
+}
+
+
+
+
+# pull files living in s3 
+# and load into R
+PULL <- T
+files <- c('ctr', 'ctr-en-us',  "taar-installs", 'taar-baseline-installs', 'taar-en-us-installs',
+          'taar-locale-installs', 'taar-visits', 'taar-en-us-visits', 'taar-locale-visits',
+          'daily_installs', 'enrollment', 'addon-retention', 'addon-en-us-retention',
+          'addon-locale-retention')
+head_cmd <- 'aws s3 cp s3://telemetry-test-bucket/bmiroglio/'
+
+for (x in files) {
+  csv <- paste(x, '.csv', sep='')
+  cmd <- paste(paste(head_cmd, csv, sep=''), '.')
+  if(PULL) system(cmd)
+  assign(gsub('-', '_', x),  fread(csv))
+}
+
+
+```
+
+### Overall
+
+
+---
+
+#### Installs
+
+```{r, warning=F}
+datatable(format_results(taar_installs),
+               cap="Installation Statistics per Branch, Install Source")
+```
+
+
+
+
+
+```{R}
+disco = taar_installs[src == 'about:addons']
+disco_results <- get_results_table(p = prop.test.by.branch(disco, 
+                                    'distinct_clients_that_installed',
+                                    'total_distinct_clients'))[,c("Install Source"):=("about:addons")]
+
+amo = taar_installs[src == 'AMO']
+amo_results <- get_results_table(p = prop.test.by.branch(amo, 
+                                  'distinct_clients_that_installed',
+                                  'total_distinct_clients'))[,c("Install Source"):=("AMO")]
+
+comb_results <- funion(disco_results, amo_results)
+
+setcolorder(comb_results, c("Test", "Install Source",
+                            "Effect", "lower95", "upper95", 
+                            "Pvalue"))
+
+
+
+datatable(comb_results, 
+          caption='Signifiance Test Results for Probability of Install per Branch, Install Source')
+
+```
+
+-----
+
+
+
+<center>
+```{R, fig.width=6, fig.height=4}
+
+
+ggplot(taar_installs) + 
+    geom_col(aes(x=branch,y=prob_at_least_one_install, fill=src),
+             position = 'dodge') +
+    theme_bw() + 
+    labs(title="Probability of Install per Branch, Install Source",
+         y="Probility of Install")
+```
+
+</center>
+
+
+
+
+
+
+```{r, fig.width=10, fig.height=6}
+ggplot(daily_installs[src != 'other']) + 
+  geom_density(aes(count, fill=branch), alpha=.6) + 
+  facet_grid(src ~ .) + 
+  theme_bw() + 
+  labs(title='Installs per Day Distribution',
+       x='Installs per Day')
+
+
+```
+
+
+
+```{R, fig.width=10, fig.height=6}
+daily_installs$submission_date_s3 <- as.Date(as.character(daily_installs$submission_date_s3), 
+                                             '%Y%m%d')
+
+ggplot(daily_installs[src != 'other']) +
+  geom_line(aes(x=submission_date_s3, y=count, color=branch)) +
+  facet_grid(src ~ .) + theme_bw() + 
+  labs(title="Installs over Time", x='Date', y='Count')
+
+daily_cumsum <- (daily_installs[src != 'other']
+                              [order(submission_date_s3)]
+                              [,cumcount:=cumsum(count), 
+                                by=.(branch, src)])
+ggplot(daily_cumsum) +
+  geom_line(aes(x=submission_date_s3, y=cumcount, color=branch)) +
+  facet_grid(src ~ .) + theme_bw() + 
+  labs(title="Cumulative Installs over Time", 
+       x="Date", 
+       y='Cumulative Count')
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+------
+
+#### Disopane Visits (exposure to treatment)
+
+```{r}
+taar_visits$prob_visit <- round(as.numeric(taar_visits$prob_visit), 6)
+taar_visits$visits_per_client <- round(as.numeric(taar_visits$visits_per_client), 6)
+dis <- taar_visits[,.(branch, total_visits, total_distinct_clients, visits_per_client)]
+colnames(dis) <- c("Branch", "Total Visits", "Total Clients", "Vistits per Client")
+datatable(dis[order(Branch)], caption="Discopane Visit Statistics per Branch")
+
+
+```
+
+
+------
+
+
+#### Pop-up Click Through Rate
+
+
+```{r}
+
+ctr$prob_click <- round(ctr$prob_click, 4)
+cols <- c("UI", "Clients that clicked", "Total Clients", "Click Through Rate")
+dis <- ctr[,.(branch, n_clicked, n_total, prob_click)]
+colnames(dis) <- cols
+dis$UI <- c("Old UI", "New UI")
+datatable(dis, caption='Popup Click Through Rates by Branch')
+
+```
+
+
+---
+
+#### Add-on Retention
+
+
+
+```{R}
+setcolorder(addon_retention, c('branch', 'n_installed', 'n_total', 
+                               'n_retained', 'addon_retention_rate'))
+dis <- addon_retention[,.(branch, n_retained, n_total, addon_retention_rate)]
+cols <- c("Branch", "Retained", "Total", "Retention Rate")
+colnames(dis) <- cols
+
+datatable(dis, caption = "Add-on Retention Rate by Branch")
+
+datatable(get_results_table(p = prop.test.by.branch(addon_retention, 
+                                  'n_retained',
+                                  'n_total')),
+           caption='Significance Test Results For Add-on Retention Rate')
+
+
+```
+
+<br><br><br>
+<br><br><br>
+<br><br><br>
+
+
+
+### en-US vs. non en-US
+
+----
+
+#### Installs
+
+```{r, warning=F}
+
+format_results(taar_en_us_installs, extra=c("is_en_US"))
+
+disco = taar_en_us_installs[src == 'about:addons']
+amo = taar_en_us_installs[src == 'AMO']
+
+result <- NULL
+for (i in c(T, F)) {
+  disco_results <- get_results_table(p = prop.test.by.branch(disco[is_en_US == i], 
+                      'distinct_clients_that_installed',
+                      'total_distinct_clients'))[,c("Install Source", "en-US"):=list("about:addons", i)]
+  amo_results <- get_results_table(p = prop.test.by.branch(amo[is_en_US == i], 
+                      'distinct_clients_that_installed',
+                      'total_distinct_clients'))[,c("Install Source", "en-US"):=list("AMO", i)]
+  comb_results <- funion(disco_results, amo_results)
+
+  setcolorder(comb_results, c("Test", "Install Source","en-US",
+                             "Effect", "lower95", "upper95", 
+                             "Pvalue"))
+  
+  if (is.null(result)) {
+    result <- comb_results
+  } else {
+    result <- funion(result, comb_results)
+  } 
+}
+
+datatable(result,
+          caption='Signifiance Test Results for Probability of Install per Branch, Install Source, en-US')
+```
+
+
+
+<center>
+
+```{R, fig.width=10, fig.height=6}
+
+taar_en_us_installs$locale <- ifelse(taar_en_us_installs$is_en_US, 'en-US', 'not en-US')
+ggplot(taar_en_us_installs) + 
+    geom_col(aes(x=locale,y=prob_at_least_one_install, fill=branch),
+             position = 'dodge', alpha=.8) +
+    facet_grid(src ~ .) +
+    theme_bw() + 
+    labs(title="Probability of Install per Branch, Locale",
+         y="Probility of Install")
+```
+
+</center>
+
+
+
+
+
+------
+
+#### Disopane Visits (exposure to treatment)
+
+```{r}
+
+taar_en_us_visits$prob_visit <- round(
+  as.numeric(taar_en_us_visits$prob_visit), 6)
+taar_en_us_visits$visits_per_client <- round(
+  as.numeric(taar_en_us_visits$visits_per_client), 6)
+dis <- taar_en_us_visits[,.(branch, is_en_US, total_visits, total_distinct_clients, visits_per_client)]
+colnames(dis) <- c("Branch", "is en-US", "Total Visits", "Total Clients", "Vistits per Client")
+datatable(dis[order(Branch)], caption="Discopane Visit Statistics per Branch")
+
+
+```
+
+
+------
+
+
+#### Pop-up Click Through Rate
+
+
+```{r}
+
+ctr_en_us$prob_click <- round(ctr$prob_click, 4)
+cols <- c("UI", 'is en-US', "Clients that clicked", "Total Clients", "Click Through Rate")
+dis <- ctr_en_us[,.(branch, is_en_US, n_clicked, n_total, prob_click)]
+colnames(dis) <- cols
+dis$UI <- ifelse(dis$UI == 'old', 'Old UI', 'New UI')
+datatable(dis, caption='Popup Click Through Rates by Branch')
+
+```
+
+
+---
+
+#### Add-on Retention
+
+
+
+```{R}
+setcolorder(addon_en_us_retention, c('branch', 'is_en_US', 'n_installed', 'n_total', 
+                               'n_retained', 'addon_retention_rate'))
+dis <- addon_en_us_retention[,.(branch, is_en_US, n_retained, n_total, addon_retention_rate)]
+cols <- c("Branch", "is en-US", "Retained", "Total", "Retention Rate")
+colnames(dis) <- cols
+
+datatable(dis, caption = "Add-on Retention Rate by Branch, en-US locale")
+
+
+result <- NULL
+for (i in c(T, F)) {
+  
+  r <- get_results_table(p = prop.test.by.branch(addon_en_us_retention[is_en_US == i], 
+                                    'n_retained',
+                                    'n_total'))[,c('is en-US'):=(i)]
+  if (is.null(result)) {
+    result <- r
+  } else {
+    result <- funion(result, r)
+  }
+}
+
+setcolorder(result, c("Test", "is en-US", "Effect", "lower95", "upper95", "Pvalue"))
+datatable(result, caption='Significance Test Results For Add-on Retention Rate')
+
+
+```
+
+
+<br><br><br>
+<br><br><br>
+<br><br><br>
+
+
+
+### By Locale
+
+
+----
+
+#### Installs
+
+```{r, warning=F}
+options(DT.options = list(
+  searching=T,
+  paging=T,
+  info=F)
+)
+
+
+format_results(taar_locale_installs[order(total_installs)], 
+               cap="Installation Statistics per Branch, Install Source, Locale",
+               extra=c("locale"))
+
+disco = taar_locale_installs[src == 'about:addons']
+amo = taar_locale_installs[src == 'AMO']
+
+taar_locale_installs <- taar_locale_installs[total_distinct_clients > 500]
+result <- NULL
+for (i in unique(taar_locale_installs$locale)) {
+  cat(i)
+  disco_results <- get_results_table(p = prop.test.by.branch(disco[locale == i], 
+                      'distinct_clients_that_installed',
+                      'total_distinct_clients'))[,c("Install Source", "Locale"):=list("about:addons", i)]
+  amo_results <- get_results_table(p = prop.test.by.branch(amo[locale == i], 
+                      'distinct_clients_that_installed',
+                      'total_distinct_clients'))[,c("Install Source", "Locale"):=list("AMO", i)]
+  comb_results <- funion(disco_results, amo_results)
+
+  setcolorder(comb_results, c("Test", "Install Source","Locale",
+                             "Effect", "lower95", "upper95", 
+                             "Pvalue"))
+  
+  if (is.null(result)) {
+    result <- comb_results
+  } else {
+    result <- funion(result, comb_results)
+  } 
+}
+
+datatable(result[order(Locale)],
+          caption='Signifiance Test Results for Probability of Install per Branch, Install Source, en-US')
+```
+
+
+
+<center>
+
+```{R, fig.width=10, fig.height=6}
+
+ggplot(taar_locale_installs[total_distinct_clients > 500]) + 
+    geom_col(aes(x=locale,y=prob_at_least_one_install, fill=branch),
+             position = 'dodge', alpha=.8) +
+    facet_grid(src ~ .) +
+    theme_bw() + 
+    labs(title="Probability of Install per Branch, Locale (n distinct clients > 500)",
+         y="Probility of Install")
+```
+
+</center>
+
+
+
+
+
+------
+
+#### Disopane Visits (exposure to treatment)
+
+```{r}
+
+taar_locale_visits$prob_visit <- round(
+  as.numeric(taar_locale_visits$prob_visit), 6)
+taar_locale_visits$visits_per_client <- round(
+  as.numeric(taar_locale_visits$visits_per_client), 6)
+dis <- taar_locale_visits[,.(branch, locale, total_visits, total_distinct_clients, visits_per_client)]
+colnames(dis) <- c("Branch", "Locale", "Total Visits", "Total Clients", "Vistits per Client")
+datatable(dis[order(Locale)], caption="Discopane Visit Statistics per Branch, Locale")
+
+
+```
+
+
+------
+
+
+#### Pop-up Click Through Rate
+
+
+```{r}
+
+ctr_en_us$prob_click <- round(ctr$prob_click, 4)
+cols <- c("UI", 'is en-US', "Clients that clicked", "Total Clients", "Click Through Rate")
+dis <- ctr_en_us[,.(branch, is_en_US, n_clicked, n_total, prob_click)]
+colnames(dis) <- cols
+dis$UI <- ifelse(dis$UI == 'old', 'Old UI', 'New UI')
+datatable(dis, caption='Popup Click Through Rates by Branch')
+
+```
+
+
+---
+
+#### Add-on Retention
+
+
+
+```{R}
+setcolorder(addon_locale_retention, c('branch', 'locale', 'n_installed', 'n_total', 
+                               'n_retained', 'addon_retention_rate'))
+dis <- addon_locale_retention[,.(branch, locale, n_retained, n_total, addon_retention_rate)]
+cols <- c("Branch", "Locale", "Retained", "Total", "Retention Rate")
+colnames(dis) <- cols
+
+datatable(dis, caption = "Add-on Retention Rate by Branch, en-US locale")
+
+
+result <- NULL
+for (i in unique(addon_locale_retention$locale)) {
+  cat(i, '\n')
+  
+  r <- tryCatch({
+    get_results_table(p = prop.test.by.branch(addon_locale_retention[locale == i], 
+                                    'n_retained',
+                                    'n_total'))[,c('Locale'):=(i)]
+
+    }, error = function(e) {
+        NULL
+    })
+  
+  
+
+  if(is.null(r)) next
+  
+  if (is.null(result)) {
+    result <- r
+  } else {
+    result <- funion(result, r)
+  }
+}
+
+setcolorder(result, c("Test", "Locale", "Effect", "lower95", "upper95", "Pvalue"))
+datatable(result, caption='Significance Test Results For Add-on Retention Rate')
+
+
+```
+
+
+<br><br><br>
+<br><br><br>
+<br><br><br>
+
