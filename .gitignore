@@ -1,5 +1,8 @@
 # intermediate csvs for analysis
 *.csv
+TAARV2_cache/
+TAARV2_files/
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
