@@ -54,7 +54,7 @@ Questions or requests for these data can be directed to Ben Miroglio (:bmiroglio
 
 ## Results {.tabset .tabset-pills .tabset-fade}
 
-```{r, setup, include=T, warning=F}
+```{r, setup, include=T, cache=T, warning=F}
 library(data.table)
 library(DT)
 library(gridExtra)
@@ -157,11 +157,12 @@ format_results <- function(d, cap, extra=c()) {
 
 # pull files living in s3 
 # and load into R
-PULL <- T
-files <- c('ctr', 'ctr-en-us',  "taar-installs", 'taar-baseline-installs', 'taar-en-us-installs',
+PULL <- F
+files <- c('ctr', 'ctr-en-us',  "taar-installs", 'taar-en-us-installs',
           'taar-locale-installs', 'taar-visits', 'taar-en-us-visits', 'taar-locale-visits',
           'daily_installs', 'enrollment', 'addon-retention', 'addon-en-us-retention',
-          'addon-locale-retention')
+          'addon-locale-retention', 'daily_installs_en_us', 'daily_installs_locale',
+          'ctr-locale')
 head_cmd <- 'aws s3 cp s3://telemetry-test-bucket/bmiroglio/'
 
 for (x in files) {
@@ -217,16 +218,16 @@ datatable(comb_results,
 -----
 
 
-
 <center>
-```{R, fig.width=6, fig.height=4}
 
+```{R, fig.width=10, fig.height=6}
 
 ggplot(taar_installs) + 
-    geom_col(aes(x=branch,y=prob_at_least_one_install, fill=src),
-             position = 'dodge') +
+    geom_col(aes(x=branch,y=prob_at_least_one_install, fill=branch),
+             position = 'dodge', alpha=.8) +
+    facet_grid(src ~ .) +
     theme_bw() + 
-    labs(title="Probability of Install per Branch, Install Source",
+    labs(title="Probability of Install per Branch, Locale",
          y="Probility of Install")
 ```
 
@@ -235,41 +236,28 @@ ggplot(taar_installs) +
 
 
 
-
-
 ```{r, fig.width=10, fig.height=6}
-ggplot(daily_installs[src != 'other']) + 
-  geom_density(aes(count, fill=branch), alpha=.6) + 
+ggplot(daily_installs) + 
+  geom_density(aes(prob_at_least_one_install, fill=branch), alpha=.6) + 
   facet_grid(src ~ .) + 
   theme_bw() + 
   labs(title='Installs per Day Distribution',
-       x='Installs per Day')
+       x='Density Plot of Number of Installs per Day by Branch, Source')
 
 
 ```
 
 
 
-```{R, fig.width=10, fig.height=6}
+```{R, fig.width=10, fig.height=6, message=F}
 daily_installs$submission_date_s3 <- as.Date(as.character(daily_installs$submission_date_s3), 
                                              '%Y%m%d')
 
-ggplot(daily_installs[src != 'other']) +
-  geom_line(aes(x=submission_date_s3, y=count, color=branch)) +
+ggplot(daily_installs) +
+  geom_smooth(aes(x=submission_date_s3, y=prob_at_least_one_install, color=branch), 
+              se=F, method='loess') +
   facet_grid(src ~ .) + theme_bw() + 
-  labs(title="Installs over Time", x='Date', y='Count')
-
-daily_cumsum <- (daily_installs[src != 'other']
-                              [order(submission_date_s3)]
-                              [,cumcount:=cumsum(count), 
-                                by=.(branch, src)])
-ggplot(daily_cumsum) +
-  geom_line(aes(x=submission_date_s3, y=cumcount, color=branch)) +
-  facet_grid(src ~ .) + theme_bw() + 
-  labs(title="Cumulative Installs over Time", 
-       x="Date", 
-       y='Cumulative Count')
-
+  labs(title="Proportion of clients that Installed 1+ Add-ons by Day", x='Date', y='Count')
 
 ```
 
@@ -355,7 +343,7 @@ datatable(get_results_table(p = prop.test.by.branch(addon_retention,
 
 ```{r, warning=F}
 
-format_results(taar_en_us_installs, extra=c("is_en_US"))
+datatable(format_results(taar_en_us_installs, extra=c("is_en_US")))
 
 disco = taar_en_us_installs[src == 'about:addons']
 amo = taar_en_us_installs[src == 'AMO']
@@ -404,7 +392,31 @@ ggplot(taar_en_us_installs) +
 </center>
 
 
+```{r, fig.width=10, fig.height=6}
+daily_installs_en_us$Locale <- ifelse(daily_installs_en_us$is_en_US, 'en-US', 'non en-US')
 
+ggplot(daily_installs_en_us) + 
+  geom_density(aes(prob_at_least_one_install, fill=branch), alpha=.6) + 
+  facet_grid(src ~ Locale) + 
+  theme_bw() + 
+  labs(title='Installs per Day Distribution',
+       x='Installs per Day')
+
+```
+
+
+
+```{R, fig.width=10, fig.height=6}
+daily_installs_en_us$submission_date_s3 <- as.Date(as.character(daily_installs_en_us$submission_date_s3), 
+                                             '%Y%m%d')
+
+ggplot(daily_installs_en_us) +
+  geom_smooth(aes(x=submission_date_s3, y=prob_at_least_one_install, color=branch), 
+              se=F, method='loess') +
+  facet_grid(src ~ Locale) + theme_bw() + 
+  labs(title="Proportion of clients that Installed 1+ Add-ons by Day", x='Date', y='Count')
+
+```
 
 
 ------
@@ -433,7 +445,7 @@ datatable(dis[order(Branch)], caption="Discopane Visit Statistics per Branch")
 
 ```{r}
 
-ctr_en_us$prob_click <- round(ctr$prob_click, 4)
+ctr_en_us$prob_click <- round(ctr_en_us$prob_click, 4)
 cols <- c("UI", 'is en-US', "Clients that clicked", "Total Clients", "Click Through Rate")
 dis <- ctr_en_us[,.(branch, is_en_US, n_clicked, n_total, prob_click)]
 colnames(dis) <- cols
@@ -500,9 +512,9 @@ options(DT.options = list(
 )
 
 
-format_results(taar_locale_installs[order(total_installs)], 
+datatable(format_results(taar_locale_installs[order(total_installs)], 
                cap="Installation Statistics per Branch, Install Source, Locale",
-               extra=c("locale"))
+               extra=c("locale")))
 
 disco = taar_locale_installs[src == 'about:addons']
 amo = taar_locale_installs[src == 'AMO']
@@ -510,7 +522,6 @@ amo = taar_locale_installs[src == 'AMO']
 taar_locale_installs <- taar_locale_installs[total_distinct_clients > 500]
 result <- NULL
 for (i in unique(taar_locale_installs$locale)) {
-  cat(i)
   disco_results <- get_results_table(p = prop.test.by.branch(disco[locale == i], 
                       'distinct_clients_that_installed',
                       'total_distinct_clients'))[,c("Install Source", "Locale"):=list("about:addons", i)]
@@ -555,6 +566,7 @@ ggplot(taar_locale_installs[total_distinct_clients > 500]) +
 
 
 
+
 ------
 
 #### Disopane Visits (exposure to treatment)
@@ -581,9 +593,9 @@ datatable(dis[order(Locale)], caption="Discopane Visit Statistics per Branch, Lo
 
 ```{r}
 
-ctr_en_us$prob_click <- round(ctr$prob_click, 4)
-cols <- c("UI", 'is en-US', "Clients that clicked", "Total Clients", "Click Through Rate")
-dis <- ctr_en_us[,.(branch, is_en_US, n_clicked, n_total, prob_click)]
+ctr_locale$prob_click <- round(ctr_locale$prob_click, 4)
+cols <- c("UI", 'locale', "Clients that clicked", "Total Clients", "Click Through Rate")
+dis <- ctr_locale[,.(branch, locale, n_clicked, n_total, prob_click)]
 colnames(dis) <- cols
 dis$UI <- ifelse(dis$UI == 'old', 'Old UI', 'New UI')
 datatable(dis, caption='Popup Click Through Rates by Branch')
@@ -597,7 +609,7 @@ datatable(dis, caption='Popup Click Through Rates by Branch')
 
 
 
-```{R}
+```{R, warning=F}
 setcolorder(addon_locale_retention, c('branch', 'locale', 'n_installed', 'n_total', 
                                'n_retained', 'addon_retention_rate'))
 dis <- addon_locale_retention[,.(branch, locale, n_retained, n_total, addon_retention_rate)]
