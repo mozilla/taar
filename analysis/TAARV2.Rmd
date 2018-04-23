@@ -136,7 +136,10 @@ get_results_table <- function(p) {
 format_results <- function(d, cap, extra=c()) {
   # Round floating point numbers
   d$prob_at_least_one_install <- round(d$prob_at_least_one_install, 4)
-  d$n_installs_per_client <- round(d$n_installs_per_client, 4)
+  d$avg_num_installs_per_client <- round(d$avg_num_installs_per_client, 4)
+  
+  setcolorder(d, c("branch", extra,  "distinct_clients_that_installed", "total_distinct_clients", "avg_num_installs_per_client",
+                    "prob_at_least_one_install", "src"))
   
   # prettify column names
   dis <- d[order(src, branch)]
@@ -145,13 +148,11 @@ format_results <- function(d, cap, extra=c()) {
       extra <- c("en-US")
     }
   }
-  cols <- c('Branch', extra, 'Clients that Installed', 'Total Installs', 
-            'Total Clients', 'Probability of Install', 
-            'Installs per Client', "Install Source")
+  cols <- c('Branch', extra, 'Clients that Installed', 'Total Clients', 
+            'Avg Installs Per Client', 'Probability of Install', "Install Source")
   colnames(dis) <- cols
   dis
 }
-
 
 
 
@@ -163,7 +164,7 @@ files <- c('ctr', 'ctr-en-us',  "taar-installs", 'taar-en-us-installs',
           'daily_installs', 'enrollment', 'addon-retention', 'addon-en-us-retention',
           'addon-locale-retention', 'daily_installs_en_us', 'daily_installs_locale',
           'ctr-locale')
-head_cmd <- 'aws s3 cp s3://telemetry-test-bucket/bmiroglio/'
+head_cmd <- 'aws s3 cp s3://net-mozaws-prod-us-west-2-pipeline-analysis/taarv2/data/'
 
 for (x in files) {
   csv <- paste(x, '.csv', sep='')
@@ -183,6 +184,7 @@ for (x in files) {
 #### Installs
 
 ```{r, warning=F}
+
 datatable(format_results(taar_installs),
                cap="Installation Statistics per Branch, Install Source")
 ```
@@ -512,7 +514,7 @@ options(DT.options = list(
 )
 
 
-datatable(format_results(taar_locale_installs[order(total_installs)], 
+datatable(format_results(taar_locale_installs[order(total_distinct_clients)], 
                cap="Installation Statistics per Branch, Install Source, Locale",
                extra=c("locale")))
 
@@ -621,8 +623,7 @@ datatable(dis, caption = "Add-on Retention Rate by Branch, en-US locale")
 
 result <- NULL
 for (i in unique(addon_locale_retention$locale)) {
-  cat(i, '\n')
-  
+
   r <- tryCatch({
     get_results_table(p = prop.test.by.branch(addon_locale_retention[locale == i], 
                                     'n_retained',
