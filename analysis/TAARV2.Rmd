@@ -167,7 +167,12 @@ head_cmd <- 'aws s3 cp s3://telemetry-test-bucket/bmiroglio/'
 for (x in files) {
   csv <- paste(x, '.csv', sep='')
   cmd <- paste(paste(head_cmd, csv, sep=''), '.')
+<<<<<<< HEAD
   if(PULL) system(cmd)
+=======
+  cat(cmd)
+  #if(PULL) system(cmd)
+>>>>>>> dc6cdbce9b067cd96db5225d1ddc90e153070eed
   assign(gsub('-', '_', x),  fread(csv))
 }
 
