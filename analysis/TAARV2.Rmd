@@ -1,7 +1,7 @@
 ---
 title: "TAAR V2 Experiment Analysis"
 author: "Ben Miroglio, Martin Lopatka"
-date: "4/18/2018"
+date: "4/24/2018"
 output: 
   html_document:
     theme: cosmo
@@ -158,13 +158,13 @@ format_results <- function(d, cap, extra=c()) {
 
 # pull files living in s3 
 # and load into R
-PULL <- F
+PULL <- T
 files <- c('ctr', 'ctr-en-us',  "taar-installs", 'taar-en-us-installs',
           'taar-locale-installs', 'taar-visits', 'taar-en-us-visits', 'taar-locale-visits',
           'daily_installs', 'enrollment', 'addon-retention', 'addon-en-us-retention',
           'addon-locale-retention', 'daily_installs_en_us', 'daily_installs_locale',
           'ctr-locale')
-head_cmd <- 'aws s3 cp s3://net-mozaws-prod-us-west-2-pipeline-analysis/taarv2/data/'
+head_cmd <- 'aws s3 cp s3://net-mozaws-prod-us-west-2-pipeline-analysis/taarv2/'
 
 for (x in files) {
   csv <- paste(x, '.csv', sep='')
@@ -222,7 +222,7 @@ datatable(comb_results,
 
 <center>
 
-```{R, fig.width=10, fig.height=6}
+```{R, fig.width=10, fig.height=6, warning=F}
 
 ggplot(taar_installs) + 
     geom_col(aes(x=branch,y=prob_at_least_one_install, fill=branch),
@@ -238,7 +238,7 @@ ggplot(taar_installs) +
 
 
 
-```{r, fig.width=10, fig.height=6}
+```{r, fig.width=10, fig.height=6, warning=F}
 ggplot(daily_installs) + 
   geom_density(aes(prob_at_least_one_install, fill=branch), alpha=.6) + 
   facet_grid(src ~ .) + 
@@ -251,7 +251,7 @@ ggplot(daily_installs) +
 
 
 
-```{R, fig.width=10, fig.height=6, message=F}
+```{R, fig.width=10, fig.height=6, message=F, warning=F}
 daily_installs$submission_date_s3 <- as.Date(as.character(daily_installs$submission_date_s3), 
                                              '%Y%m%d')
 
