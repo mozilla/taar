@@ -63,4 +63,8 @@ class LegacyRecommender(AbstractRecommender):
             for idx in remove_list:
                 del replacements[idx]
 
+        log_data = (client_data['client_id'])
+        logger.info("legacy_recommender_triggered, "
+                    "client_id: [%s]" % log_data)
+
         return recommendations
