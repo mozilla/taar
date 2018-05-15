@@ -63,6 +63,7 @@ class SimilarityRecommender(AbstractRecommender):
 
         self.num_donors = len(self.donors_pool)
 
+
         # Build a numpy matrix cache for the continuous features.
         self.continuous_features = np.zeros((self.num_donors, len(CONTINUOUS_FEATURES)))
         for idx, d in enumerate(self.donors_pool):
@@ -194,4 +195,10 @@ class SimilarityRecommender(AbstractRecommender):
                 recommendations.append(candidate)
             if len(recommendations) > limit:
                 break
+
+        log_data = (client_data['client_id'],
+                    str([r[1] for r in recommendations]))
+        logger.info("similarity_recommender_triggered, "
+                    "client_id: [%s], guids: [%s]" % log_data)
+
         return recommendations[:limit]
