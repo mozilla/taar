@@ -63,7 +63,6 @@ class SimilarityRecommender(AbstractRecommender):
 
         self.num_donors = len(self.donors_pool)
 
-
         # Build a numpy matrix cache for the continuous features.
         self.continuous_features = np.zeros((self.num_donors, len(CONTINUOUS_FEATURES)))
         for idx, d in enumerate(self.donors_pool):
