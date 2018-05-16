@@ -33,6 +33,7 @@ install:
   elif [[ "$REQUIREMENTS" == "emr" ]]; then
     conda env create -f environment_emr.yaml;
     source activate emr;
+    pip install -e . --process-dependency-links;
   else
     exit 1;
   fi
