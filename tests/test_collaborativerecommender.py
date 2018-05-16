@@ -96,7 +96,8 @@ def test_can_recommend():
     assert not r.can_recommend({"installed_addons": []})
 
     # Check that we can recommend if we the user has at least an addon.
-    assert r.can_recommend({"installed_addons": ["uBlock0@raymondhill.net"]})
+    assert r.can_recommend({"installed_addons": ["uBlock0@raymondhill.net"],
+                            "client_id": "test-client"})
 
 
 def get_error_ctx():
@@ -139,7 +140,8 @@ def test_best_recommendation():
     r = CollaborativeRecommender(ctx)
 
     # An non-empty set of addons should give a list of recommendations
-    fixture_client_data = {"installed_addons": ["addon4.id"]}
+    fixture_client_data = {"installed_addons": ["addon4.id"],
+                           "client_id": "test_client"}
     assert r.can_recommend(fixture_client_data)
     recommendations = r.recommend(fixture_client_data, 1)
 
@@ -164,7 +166,8 @@ def test_recommendation_weights():
     r = CollaborativeRecommender(ctx)
 
     # An non-empty set of addons should give a list of recommendations
-    fixture_client_data = {"installed_addons": ["addon4.id"]}
+    fixture_client_data = {"installed_addons": ["addon4.id"],
+                           "client_id": "test_client"}
     assert r.can_recommend(fixture_client_data)
     recommendations = r.recommend(fixture_client_data, 2)
     assert isinstance(recommendations, list)
