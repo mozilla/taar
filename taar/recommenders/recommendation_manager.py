@@ -1,5 +1,12 @@
-import logging
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
 from taar.recommenders.ensemble_recommender import EnsembleRecommender
+from taar.schema import RecommendationManagerQuery
+
+import colander
+import logging
 
 
 logger = logging.getLogger(__name__)
@@ -67,7 +74,16 @@ class RecommendationManager:
         :param limit: the maximum number of recommendations to return.
         :param extra_data: a dictionary with extra client data.
         """
-        # Get the info for the requested client id.
+        json_args = {'client_id': client_id,
+                     'limit': limit,
+                     'extra_data': extra_data}
+
+        schema = RecommendationManagerQuery()
+        try:
+            schema.deserialize(json_args)
+        except colander.Invalid as e:
+            return []
+
         client_info = self.profile_fetcher.get(client_id)
         if client_info is None:
             return []
