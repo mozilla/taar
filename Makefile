@@ -10,4 +10,6 @@ test:
 	python setup.py test
 	flake8 taar tests
 
-
+# Updating pip hashes is awful
+freeze:
+	bin/hashfreeze
