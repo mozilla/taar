@@ -64,3 +64,12 @@ Alternately, if you've got GNUMake installed, you can just run `make test` which
 There are additional integration tests and a microbenchmark available
 in `tests/test_integration.py`.  See the source code for more
 information.
+
+
+## Pinning dependencies
+
+TAAR uses hashin (https://pypi.org/project/hashin/) to pin SHA256
+hashes for each dependency.  To update the hashes, you will need to
+remove the run `make freeze` which forces all packages in the current
+virtualenv to be written out to requirement.txt with versions and SHA
+hashes.
