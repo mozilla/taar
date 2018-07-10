@@ -274,7 +274,7 @@ def test_weights_continuous():
     ctx = create_cts_test_ctx()
     r = SimilarityRecommender(ctx)
 
-    # In the ensemble method recommendations shoudl be a sorted list of tuples
+    # In the ensemble method recommendations should be a sorted list of tuples
     # containing [(guid, weight), (guid, weight)... (guid, weight)].
     recommendation_list = r.recommend(generate_a_fake_taar_client(), 2)
     with open('/tmp/similarity_recommender.json', 'w') as fout:
@@ -295,7 +295,10 @@ def test_weights_continuous():
     rec0_weight = rec0[1]
     rec1_weight = rec1[1]
 
-    assert rec0_weight == rec1_weight > 0
+    # Duplicate presence of test-guid-1 should mean rec0_weight is double
+    # rec1_weight, and both should be greater than 1.0
+
+    assert rec0_weight > rec1_weight > 1.0
 
 
 def test_weights_categorical():
@@ -313,7 +316,7 @@ def test_weights_categorical():
     wrapped = ctx2.wrap(ctx)
     r = SimilarityRecommender(wrapped)
 
-    # In the ensemble method recommendations shoudl be a sorted list of tuples
+    # In the ensemble method recommendations should be a sorted list of tuples
     # containing [(guid, weight), (guid, weight)... (guid, weight)].
     recommendation_list = r.recommend(generate_a_fake_taar_client(), 2)
 
@@ -330,4 +333,4 @@ def test_weights_categorical():
     rec0_weight = rec0[1]
     rec1_weight = rec1[1]
 
-    assert rec0_weight == rec1_weight > 0
+    assert rec0_weight > rec1_weight > 0

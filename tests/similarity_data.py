@@ -18,7 +18,7 @@ CONTINUOUS_FEATURE_FIXTURE_DATA = [
         "unique_tlds": 21
     },
     {
-        "active_addons": ["{test-guid-5}", "{test-guid-6}", "{test-guid-7}", "{test-guid-8}"],
+        "active_addons": ["{test-guid-5}", "{test-guid-6}", "{test-guid-1}", "{test-guid-8}"],
         "geo_city": "brasilia-br",
         "subsession_length": 4911,
         "locale": "br-PT",
@@ -55,6 +55,9 @@ CONTINUOUS_FEATURE_FIXTURE_DATA = [
 # Match the fixture taar client, but vary the geo_city to test only
 # the categorical feature matching.
 
+# Additionally the second donor contains the only duplicate recommendation
+# of "{test-guid-1}"
+
 CATEGORICAL_FEATURE_FIXTURE_DATA = [
     {
         "active_addons": ["{test-guid-1}", "{test-guid-2}", "{test-guid-3}", "{test-guid-4}"],
@@ -68,7 +71,8 @@ CATEGORICAL_FEATURE_FIXTURE_DATA = [
         "unique_tlds": 21
     },
     {
-        "active_addons": ["{test-guid-5}", "{test-guid-6}", "{test-guid-7}", "{test-guid-8}"],
+        # "{test-guid-1}" appears in duplicate here.
+        "active_addons": ["{test-guid-5}", "{test-guid-6}", "{test-guid-1}", "{test-guid-8}"],
         "geo_city": "toronto-ca",
         "subsession_length": 4911,
         "locale": "br-PT",
@@ -90,7 +94,7 @@ CATEGORICAL_FEATURE_FIXTURE_DATA = [
         "unique_tlds": 21
     },
     {
-        "active_addons": ["{test-guid-13}", "{test-guid-14}"],
+        "active_addons": ["{test-guid-13}", "{test-guid-1}"],
         "geo_city": "toronto-ca",
         "subsession_length": 4911,
         "locale": "br-PT",

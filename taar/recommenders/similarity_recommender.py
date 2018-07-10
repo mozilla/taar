@@ -1,6 +1,7 @@
 import logging
 import numpy as np
 from .base_recommender import AbstractRecommender
+from itertools import groupby
 from scipy.spatial import distance
 
 FLOOR_DISTANCE_ADJUSTMENT = 0.001
@@ -192,6 +193,18 @@ class SimilarityRecommender(AbstractRecommender):
             for term in self.donors_pool[index]['active_addons']:
                 candidate = (term, lrs)
                 recommendations.append(candidate)
-            if len(recommendations) > limit:
-                break
-        return recommendations[:limit]
+        # Sort recommendations on key (guid name)
+        recommendations = sorted(recommendations, key=lambda x: x[0])
+        recommendations_out = []
+        # recommendations must be sorted for this to work.
+        for guid_key, group in groupby(recommendations, key=lambda x: x[0]):
+            recommendations_out.append((guid_key, sum(j for i, j in group)))
+        # now re-sort on the basis of LLR.
+        recommendations_out = sorted(recommendations_out, key=lambda x: -x[1])
+
+        log_data = (client_data['client_id'],
+                    str([r[0] for r in recommendations_out[:limit]]))
+        logger.info("similarity_recommender_triggered, "
+                    "client_id: [%s], guids: [%s]" % log_data)
+
+        return recommendations_out[:limit]

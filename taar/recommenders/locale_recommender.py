@@ -54,4 +54,16 @@ class LocaleRecommender(AbstractRecommender):
         # from 'client_data'.
         client_locale = client_data.get('locale') or extra_data.get('locale', None)
         result_list = self.top_addons_per_locale.get(client_locale, [])[:limit]
+
+        if 'locale' not in client_data:
+            try:
+                client_data['locale'] = extra_data["locale"]
+            except KeyError:
+                client_data['locale'] = None
+
+        log_data = (client_data['locale'],
+                    str([r for r in result_list]))
+        logger.info("locale_recommender_triggered, "
+                    "client_locale: [%s], guids: [%s]" % log_data)
+        # Need to have the actual prevalence here in order to improve this.
         return [(x, 1.0) for x in result_list]
