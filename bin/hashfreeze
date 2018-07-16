@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 touch requirements.txt
 for package_ver in `pip freeze |grep -v hashin`
 do 
