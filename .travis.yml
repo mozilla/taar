@@ -42,7 +42,7 @@ script:
 - py.test --cov taar tests
 
 after_success:
-- covhttp://docs.travis-ci.com/user/ci-environment/eralls
+- coveralls
 
 deploy:
   provider: pypi
