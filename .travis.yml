@@ -39,7 +39,7 @@ install:
 
 script:
 - if [[ $TRAVIS_PYTHON_VERSION == 3.5 ]]; then flake8 taar tests || exit 1; fi
-- if [[ $TRAVIS_PYTHON_VERSION == 3.5 ]]; then py.test --cov taar tests; fi
+- py.test --cov taar tests
 
 after_success:
 - covhttp://docs.travis-ci.com/user/ci-environment/eralls
