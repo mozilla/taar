@@ -5,7 +5,14 @@
 import colander
 
 
-class RecommendationManagerQuery(colander.MappingSchema):
+class ExtraDataSchema(colander.MappingSchema):
+    branch = colander.SchemaNode(colander.String(),
+                                 validator=colander.OneOf(['linear',
+                                                           'control',
+                                                           'ensemble']))
+
+
+class RecommendationManagerQuerySchema(colander.MappingSchema):
     """
     This schema validates that arguments passed into
     `RecommendationManager::recommend` are of the correct type.
@@ -13,5 +20,7 @@ class RecommendationManagerQuery(colander.MappingSchema):
     Mostly useful for evoloving unittests and APIs in a stable way.
     """
     client_id = colander.SchemaNode(colander.String())
-    limit = colander.SchemaNode(colander.Int())
-    extra_data = colander.SchemaNode(colander.Mapping())
+    limit = colander.SchemaNode(colander.Int(),
+                                missing=10,
+                                validator=colander.Range(min=1, max=100))
+    extra_data = ExtraDataSchema()
