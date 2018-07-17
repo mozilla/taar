@@ -19,7 +19,8 @@ class RecommendationManagerQuerySchema(colander.MappingSchema):
 
     Mostly useful for evoloving unittests and APIs in a stable way.
     """
-    client_id = colander.SchemaNode(colander.String())
+    client_id = colander.SchemaNode(colander.String(),
+                                    validator=colander.Length(max=200))
     limit = colander.SchemaNode(colander.Int(),
                                 missing=10,
                                 validator=colander.Range(min=1, max=100))
