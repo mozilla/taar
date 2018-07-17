@@ -115,4 +115,12 @@ class CollaborativeRecommender(AbstractRecommender):
         sorted_dists = sorted(distances.items(),
                               key=op.itemgetter(1),
                               reverse=True)
-        return [(s[0], s[1]) for s in sorted_dists[:limit]]
+        recommendations = [(s[0], s[1]) for s in sorted_dists[:limit]]
+
+        log_data = (client_data['client_id'],
+                    str([r[0] for r in recommendations]))
+        logger.info("collaborative_recommender_triggered, "
+                    "client_id: [%s], "
+                    "guids: [%s]" % log_data)
+
+        return recommendations
