@@ -8,7 +8,8 @@ from taar.schema import RecommendationManagerQuerySchema
 import colander
 import logging
 
-import inspect
+from funcsigs import signature as inspect_sig
+import funcsigs
 
 
 logger = logging.getLogger(__name__)
@@ -20,7 +21,7 @@ def schema_validate(colandar_schema):
     function.
     """
     def real_decorator(func):
-        func_sig = inspect.signature(func)
+        func_sig = inspect_sig(func)
 
         json_args = {}
         json_arg_names = []
@@ -30,7 +31,7 @@ def schema_validate(colandar_schema):
                 continue
 
             default_val = func_sig.parameters[key].default
-            if default_val is inspect._empty:
+            if default_val is funcsigs._empty:
                 json_args[key] = None
             else:
                 json_args[key] = default_val
