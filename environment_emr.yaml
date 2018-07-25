@@ -53,6 +53,7 @@ dependencies:
 - expat=2.1.0=0
 - fastcache=1.0.2=py27_1
 - filelock=2.0.6=py27_0
+- flake8==3.5.0=py27_0
 - flask=0.11.1=py27_0
 - flask-cors=2.1.2=py27_0
 - fontconfig=2.11.1=6
