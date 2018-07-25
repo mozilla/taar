@@ -107,7 +107,7 @@ def test_recommendations_via_manager():  # noqa
     ctx['clock'] = Clock()
     ctx['cache'] = JSONCache(ctx)
     manager = RecommendationManager(ctx.child())
-    recommendation_list = manager.recommend({'client_id': 'some_ignored_id'},
+    recommendation_list = manager.recommend('some_ignored_id',
                                             10,
                                             extra_data={'branch': 'ensemble'})
     assert isinstance(recommendation_list, list)
