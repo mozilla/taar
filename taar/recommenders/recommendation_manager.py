@@ -11,6 +11,9 @@ import logging
 from funcsigs import signature as inspect_sig
 import funcsigs
 
+from taar.schema import INTERVENTION_A
+from taar.schema import INTERVENTION_B
+from taar.schema import INTERVENTION_CONTROL
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +61,8 @@ def schema_validate(colandar_schema):
             try:
                 schema.deserialize(json_args)
             except colander.Invalid as e:
-                logger.warn("Error deserializing input arguments.")
+                msg = "Error deserializing input arguments: " + str(e.asdict().values())
+                logger.warn(msg)
                 # Invalid data means TAAR safely returns an empty list
                 return []
             return func(*w_args, **w_kwargs)
@@ -77,6 +81,8 @@ class RecommenderFactory:
     """
     def __init__(self, ctx):
         self._ctx = ctx
+
+        # This map is set in the default context
         self._recommender_factory_map = self._ctx['recommender_factory_map']
 
     def get_names(self):
@@ -90,7 +96,7 @@ class RecommendationManager:
     """This class determines which of the set of recommendation
     engines will actually be used to generate recommendations."""
 
-    LINEAR_RECOMMENDER_ORDER = ['legacy', 'collaborative', 'similarity', 'locale']
+    RECOMMENDER_ORDER = ['legacy', 'collaborative', 'similarity', 'locale']
 
     def __init__(self, ctx):
         """Initialize the user profile fetcher and the recommenders.
@@ -104,20 +110,20 @@ class RecommendationManager:
         profile_fetcher = ctx['profile_fetcher']
 
         self.profile_fetcher = profile_fetcher
-        self.linear_recommenders = []
         self._recommender_map = {}
 
         logger.info("Initializing recommenders")
-        for rkey in self.LINEAR_RECOMMENDER_ORDER:
+        for rkey in self.RECOMMENDER_ORDER:
             recommender = recommender_factory.create(rkey)
-
-            self.linear_recommenders.append(recommender)
             self._recommender_map[rkey] = recommender
 
         # Install the recommender_map to the context and instantiate
         # the EnsembleRecommender
         self._ctx['recommender_map'] = self._recommender_map
-        self._recommender_map['ensemble'] = EnsembleRecommender(self._ctx.child())
+
+        # This is ugly - the ensemble/intervention-a recommender is
+        # manually injected
+        self._recommender_map[INTERVENTION_A] = EnsembleRecommender(self._ctx.child())
 
     @schema_validate(RecommendationManagerQuerySchema)
     def recommend(self, client_id, limit, extra_data={}):
@@ -137,39 +143,25 @@ class RecommendationManager:
         # Compute the recommendation.
 
         # Select recommendation output based on extra_data['branch']
-        branch_selector = extra_data.get('branch', 'control')
-        if branch_selector not in ('control', 'linear', 'ensemble'):
+        branch_selector = extra_data.get('branch', INTERVENTION_CONTROL)
+        branch_selector = branch_selector.replace('-', '_')
+
+        if branch_selector not in (INTERVENTION_CONTROL, INTERVENTION_A, INTERVENTION_B):
             return []
         branch_method = getattr(self, 'recommend_%s' % branch_selector)
         return branch_method(client_info, client_id, limit, extra_data)
 
-    def recommend_control(self, client_info, client_id, limit, extra_data):
-        """Run the control recommender - that is nothing"""
-        return []
-
-    def recommend_ensemble(self, client_info, client_id, limit, extra_data):
-        """Run the ensemble recommender """
-        recommender = self._recommender_map['ensemble']
+    def recommend_intervention_a(self, client_info, client_id, limit, extra_data):
+        """ Intervention A is the ensemble method """
+        recommender = self._recommender_map[INTERVENTION_A]
         return recommender.recommend(client_info, limit, extra_data)
 
-    def recommend_linear(self, client_info, client_id, limit, extra_data):
-        """Run the linear recommender"""
-        for r in self.linear_recommenders:
-            if r.can_recommend(client_info, extra_data):
-                logger.info("Recommender selected", extra={
-                    "client_id": client_id, "recommender": str(r)
-                })
-                recommendations = r.recommend(client_info, limit, extra_data)
-                if not recommendations:
-                    logger.info("No recommendations", extra={
-                        "client_id": client_id, "recommender": str(r)
-                    })
-                else:
-                    logger.info("Recommendations served", extra={
-                        "client_id": client_id, "recommended_addons": str(recommendations)
-                    })
-                return recommendations
-        logger.info("No recommender can recommend addons", extra={
-            "client_id": client_id
-        })
+    def recommend_intervention_b(self, client_info, client_id, limit, extra_data):
+        """ Intervention A is the ensemble method hybridized with a
+        curated list of addons """
+        recommender = self._recommender_map[INTERVENTION_B]
+        return recommender.recommend(client_info, limit, extra_data)
+
+    def recommend_intervention_control(self, client_info, client_id, limit, extra_data):
+        """Run the control recommender - that is nothing"""
         return []
