@@ -5,11 +5,16 @@
 import colander
 
 
+INTERVENTION_A = 'intervention_a'
+INTERVENTION_B = 'intervention_b'
+INTERVENTION_CONTROL = 'control'
+
+
 class ExtraDataSchema(colander.MappingSchema):
     branch = colander.SchemaNode(colander.String(),
-                                 validator=colander.OneOf(['linear',
-                                                           'control',
-                                                           'ensemble']))
+                                 validator=colander.OneOf([INTERVENTION_A,
+                                                           INTERVENTION_B,
+                                                           INTERVENTION_CONTROL]))
 
 
 class RecommendationManagerQuerySchema(colander.MappingSchema):
