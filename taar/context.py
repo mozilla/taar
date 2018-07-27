@@ -68,7 +68,6 @@ class Context:
 
 def default_context():
     ctx = Context()
-    from taar.recommenders import LegacyRecommender
     from taar.recommenders import CollaborativeRecommender
     from taar.recommenders import SimilarityRecommender
     from taar.recommenders import LocaleRecommender
@@ -78,8 +77,7 @@ def default_context():
     # Note that the EnsembleRecommender is *not* in this map as it
     # needs to ensure that the recommender_map key is installed in the
     # context
-    ctx['recommender_factory_map'] = {'legacy': lambda: LegacyRecommender(ctx.child()),
-                                      'collaborative': lambda: CollaborativeRecommender(ctx.child()),
+    ctx['recommender_factory_map'] = {'collaborative': lambda: CollaborativeRecommender(ctx.child()),
                                       'similarity': lambda: SimilarityRecommender(ctx.child()),
                                       'locale': lambda: LocaleRecommender(ctx.child())}
 
