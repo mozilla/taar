@@ -132,9 +132,9 @@ class RecommendationManager:
 
         # Select recommendation output based on extra_data['branch']
         branch_selector = extra_data.get('branch', INTERVENTION_CONTROL)
-        branch_selector = branch_selector.replace('-', '_')
 
-        branch_method = getattr(self, 'recommend_%s' % branch_selector)
+        method_selector = branch_selector.replace('-', '_')
+        branch_method = getattr(self, 'recommend_%s' % method_selector)
         return branch_method(client_info, client_id, limit, extra_data)
 
     def recommend_intervention_a(self, client_info, client_id, limit, extra_data):
