@@ -96,7 +96,6 @@ class RecommendationManager:
     """This class determines which of the set of recommendation
     engines will actually be used to generate recommendations."""
 
-    RECOMMENDER_ORDER = ['legacy', 'collaborative', 'similarity', 'locale']
 
     def __init__(self, ctx):
         """Initialize the user profile fetcher and the recommenders.
@@ -113,16 +112,6 @@ class RecommendationManager:
         self._recommender_map = {}
 
         logger.info("Initializing recommenders")
-        for rkey in self.RECOMMENDER_ORDER:
-            recommender = recommender_factory.create(rkey)
-            self._recommender_map[rkey] = recommender
-
-        # Install the recommender_map to the context and instantiate
-        # the EnsembleRecommender
-        self._ctx['recommender_map'] = self._recommender_map
-
-        # This is ugly - the ensemble/intervention-a recommender is
-        # manually injected
         self._recommender_map[INTERVENTION_A] = EnsembleRecommender(self._ctx.child())
         # TODO: instantiate the INTERVENTION_B recommender
 

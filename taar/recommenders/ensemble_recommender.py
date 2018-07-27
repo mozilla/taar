@@ -52,6 +52,7 @@ class EnsembleRecommender(AbstractRecommender):
     addons for users.
     """
     def __init__(self, ctx):
+        self.RECOMMENDER_KEYS = ['collaborative', 'similarity', 'locale']
         self._ctx = ctx
 
         assert 'recommender_map' in self._ctx
@@ -60,8 +61,12 @@ class EnsembleRecommender(AbstractRecommender):
 
     def _init_from_ctx(self):
         # Copy the map of the recommenders
-        self.RECOMMENDER_KEYS = ['collaborative', 'similarity', 'locale']
-        self._recommender_map = self._ctx['recommender_map']
+        self._recommender_map = {}
+
+        recommender_factory = self._ctx['recommender_factory']
+        for rkey in self.RECOMMENDER_KEYS:
+            self._recommender_map[rkey] = recommender_factory.create(rkey)
+
         self._weight_cache = WeightCache(self._ctx.child())
 
     def can_recommend(self, client_data, extra_data={}):
