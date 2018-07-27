@@ -124,6 +124,7 @@ class RecommendationManager:
         # This is ugly - the ensemble/intervention-a recommender is
         # manually injected
         self._recommender_map[INTERVENTION_A] = EnsembleRecommender(self._ctx.child())
+        # TODO: instantiate the INTERVENTION_B recommender
 
     @schema_validate(RecommendationManagerQuerySchema)
     def recommend(self, client_id, limit, extra_data={}):
@@ -139,8 +140,6 @@ class RecommendationManager:
         client_info = self.profile_fetcher.get(client_id)
         if client_info is None:
             return []
-
-        # Compute the recommendation.
 
         # Select recommendation output based on extra_data['branch']
         branch_selector = extra_data.get('branch', INTERVENTION_CONTROL)
