@@ -55,7 +55,7 @@ class EnsembleRecommender(AbstractRecommender):
         self.RECOMMENDER_KEYS = ['collaborative', 'similarity', 'locale']
         self._ctx = ctx
 
-        assert 'recommender_map' in self._ctx
+        assert 'recommender_factory' in self._ctx
 
         self._init_from_ctx()
 

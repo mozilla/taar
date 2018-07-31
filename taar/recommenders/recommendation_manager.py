@@ -3,6 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from taar.recommenders.ensemble_recommender import EnsembleRecommender
+from taar.recommenders.hybrid_recommender import HybridRecommender
 from taar.schema import RecommendationManagerQuerySchema
 
 import colander
@@ -96,16 +97,13 @@ class RecommendationManager:
     """This class determines which of the set of recommendation
     engines will actually be used to generate recommendations."""
 
-
     def __init__(self, ctx):
         """Initialize the user profile fetcher and the recommenders.
         """
         self._ctx = ctx
 
-        assert 'recommender_factory' in self._ctx
         assert 'profile_fetcher' in self._ctx
 
-        recommender_factory = ctx['recommender_factory']
         profile_fetcher = ctx['profile_fetcher']
 
         self.profile_fetcher = profile_fetcher
@@ -113,7 +111,10 @@ class RecommendationManager:
 
         logger.info("Initializing recommenders")
         self._recommender_map[INTERVENTION_A] = EnsembleRecommender(self._ctx.child())
-        # TODO: instantiate the INTERVENTION_B recommender
+
+        hybrid_ctx = self._ctx.child()
+        hybrid_ctx['ensemble_recommender'] = self._recommender_map[INTERVENTION_A]
+        self._recommender_map[INTERVENTION_B] = HybridRecommender(hybrid_ctx)
 
     @schema_validate(RecommendationManagerQuerySchema)
     def recommend(self, client_id, limit, extra_data={}):
