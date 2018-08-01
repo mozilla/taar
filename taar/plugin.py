@@ -90,11 +90,9 @@ def configure_plugin(app):
         # with TAAR 1.0
         jdata = {"results": [x[0] for x in recommendations]}
 
-        response = app.response_class(
-                response=json.dumps(jdata),
-                status=200,
-                mimetype='application/json'
-                )
+        response = app.response_class(response=json.dumps(jdata),
+                                      status=200,
+                                      mimetype='application/json')
         return response
 
     class MyPlugin:
@@ -111,4 +109,3 @@ def configure_plugin(app):
                 PROXY_MANAGER._resource = config_options['PROXY_RESOURCE']
 
     return MyPlugin()
-

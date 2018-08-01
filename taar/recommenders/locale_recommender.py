@@ -1,11 +1,8 @@
-import logging
+from srgutil.interfaces import IMozLogging
 from .base_recommender import AbstractRecommender
 
 ADDON_LIST_BUCKET = 'telemetry-parquet'
 ADDON_LIST_KEY = 'taar/locale/top10_dict.json'
-
-
-logger = logging.getLogger(__name__)
 
 
 class LocaleRecommender(AbstractRecommender):
@@ -22,13 +19,14 @@ class LocaleRecommender(AbstractRecommender):
         self._ctx = ctx
         assert 'cache' in self._ctx
         self._init_from_ctx()
+        self.logger = self._ctx[IMozLogging].get_logger('taar')
 
     def _init_from_ctx(self):
         cache = self._ctx['cache']
         self.top_addons_per_locale = cache.get_s3_json_content(ADDON_LIST_BUCKET,
                                                                ADDON_LIST_KEY)
         if self.top_addons_per_locale is None:
-            logger.error("Cannot download the top per locale file {}".format(ADDON_LIST_KEY))
+            self.logger.error("Cannot download the top per locale file {}".format(ADDON_LIST_KEY))
 
     def can_recommend(self, client_data, extra_data={}):
         # We can't recommend if we don't have our data files.
@@ -63,7 +61,7 @@ class LocaleRecommender(AbstractRecommender):
 
         log_data = (client_data['locale'],
                     str([r for r in result_list]))
-        logger.info("locale_recommender_triggered, "
-                    "client_locale: [%s], guids: [%s]" % log_data)
+        self.logger.info("locale_recommender_triggered, "
+                         "client_locale: [%s], guids: [%s]" % log_data)
         # Need to have the actual prevalence here in order to improve this.
         return [(x, 1.0) for x in result_list]
