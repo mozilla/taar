@@ -2,7 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import logging
+from srgutil.interfaces import IMozLogging
 import itertools
 from .base_recommender import AbstractRecommender
 import threading
@@ -10,8 +10,6 @@ import time
 
 S3_BUCKET = 'telemetry-parquet'
 ENSEMBLE_WEIGHTS = 'taar/ensemble/ensemble_weight.json'
-
-logger = logging.getLogger(__name__)
 
 
 class WeightCache:
@@ -54,6 +52,7 @@ class EnsembleRecommender(AbstractRecommender):
     def __init__(self, ctx):
         self.RECOMMENDER_KEYS = ['collaborative', 'similarity', 'locale']
         self._ctx = ctx
+        self.logger = self._ctx[IMozLogging].get_logger('taar')
 
         assert 'recommender_factory' in self._ctx
 
@@ -137,5 +136,5 @@ class EnsembleRecommender(AbstractRecommender):
         log_data = (client_data['client_id'],
                     str(ensemble_weights),
                     str([r[0] for r in results]))
-        logger.info("client_id: [%s], ensemble_weight: [%s], guids: [%s]" % log_data)
+        self.logger.info("client_id: [%s], ensemble_weight: [%s], guids: [%s]" % log_data)
         return results

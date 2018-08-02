@@ -1,4 +1,8 @@
-import logging
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+from srgutil.interfaces import IMozLogging
 import numpy as np
 import operator as op
 
@@ -8,8 +12,6 @@ ADDON_MODEL_URL =\
     "https://s3-us-west-2.amazonaws.com/telemetry-public-analysis-2/telemetry-ml/addon_recommender/item_matrix.json"
 ADDON_MAPPING_URL =\
     "https://s3-us-west-2.amazonaws.com/telemetry-public-analysis-2/telemetry-ml/addon_recommender/addon_mapping.json"
-
-logger = logging.getLogger(__name__)
 
 
 # http://garage.pimentech.net/libcommonPython_src_python_libcommon_javastringhashcode/
@@ -34,6 +36,7 @@ class CollaborativeRecommender(AbstractRecommender):
     """
     def __init__(self, ctx):
         self._ctx = ctx
+        self.logger = self._ctx[IMozLogging].get_logger('taar')
 
         assert 'cache' in self._ctx
 
@@ -45,11 +48,11 @@ class CollaborativeRecommender(AbstractRecommender):
         # Download the addon mappings.
         self.addon_mapping = self._ctx['cache'].fetch_json(ADDON_MAPPING_URL)
         if self.addon_mapping is None:
-            logger.error("Cannot download the addon mapping file {}".format(ADDON_MAPPING_URL))
+            self.logger.error("Cannot download the addon mapping file {}".format(ADDON_MAPPING_URL))
 
         self.raw_item_matrix = self._ctx['cache'].fetch_json(ADDON_MODEL_URL)
         if self.addon_mapping is None:
-            logger.error("Cannot download the model file {}".format(ADDON_MODEL_URL))
+            self.logger.error("Cannot download the model file {}".format(ADDON_MODEL_URL))
 
     def _build_model(self):
         if self.raw_item_matrix is None:
@@ -119,8 +122,8 @@ class CollaborativeRecommender(AbstractRecommender):
 
         log_data = (client_data['client_id'],
                     str([r[0] for r in recommendations]))
-        logger.info("collaborative_recommender_triggered, "
-                    "client_id: [%s], "
-                    "guids: [%s]" % log_data)
+        self.logger.info("collaborative_recommender_triggered, "
+                         "client_id: [%s], "
+                         "guids: [%s]" % log_data)
 
         return recommendations
