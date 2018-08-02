@@ -1,4 +1,7 @@
-from taar.context import Context
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
 from taar.cache import JSONCache, Clock
 
 from taar.recommenders.ensemble_recommender import WeightCache, EnsembleRecommender
@@ -14,9 +17,8 @@ class Mocker:
         return {'ensemble_weights': EXPECTED}
 
 
-def test_weight_cache():   # noqa
-
-    ctx = Context()
+def test_weight_cache(test_ctx):   # noqa
+    ctx = test_ctx
     ctx['utils'] = Mocker()
     ctx['clock'] = Clock()
     ctx['cache'] = JSONCache(ctx)
@@ -26,8 +28,8 @@ def test_weight_cache():   # noqa
     assert EXPECTED == actual
 
 
-def test_recommendations():
-    ctx = Context()
+def test_recommendations(test_ctx):
+    ctx = test_ctx
 
     ctx['utils'] = Mocker()
     ctx['clock'] = Clock()
@@ -53,8 +55,8 @@ def test_recommendations():
     assert recommendation_list == EXPECTED_RESULTS
 
 
-def test_preinstalled_guids():
-    ctx = Context()
+def test_preinstalled_guids(test_ctx):
+    ctx = test_ctx
 
     ctx['utils'] = Mocker()
     ctx['clock'] = Clock()

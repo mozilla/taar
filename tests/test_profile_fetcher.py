@@ -1,5 +1,13 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
 from taar import ProfileFetcher
+from taar.profile_fetcher import ProfileController
+import boto3
 import copy
+import json
+import zlib
 
 
 class MockProfileController:
@@ -66,3 +74,53 @@ def test_dont_crash_without_active_addons(test_ctx):
     expected = copy.deepcopy(MOCK_DATA['expected_result'])
     expected['installed_addons'][:] = []
     assert fetcher.get("random-client-id") == expected
+
+
+def test_crashy_profile_controller(test_ctx, monkeypatch):
+    def mock_boto3_resource(*args, **kwargs):
+        class ExceptionRaisingMockTable:
+            def __init__(self, tbl_name):
+                pass
+
+            def get_item(self, *args, **kwargs):
+                raise Exception
+
+        class MockDDB:
+            pass
+        mock_ddb = MockDDB()
+        mock_ddb.Table = ExceptionRaisingMockTable
+        return mock_ddb
+
+    monkeypatch.setattr(boto3, 'resource', mock_boto3_resource)
+
+    pc = ProfileController(test_ctx, 'us-west-2', 'taar_addon_data_20180206')
+    assert pc.get_client_profile("exception_raising_client_id") is None
+
+
+def test_profile_controller(test_ctx, monkeypatch):
+    def mock_boto3_resource(*args, **kwargs):
+        some_bytes = zlib.compress(json.dumps({'key': "with_some_data"}).encode('utf8'))
+
+        class ValueObj:
+            value = some_bytes
+
+        class MockTable:
+            def __init__(self, tbl_name):
+                pass
+
+            def get_item(self, *args, **kwargs):
+                value_obj = ValueObj()
+                response = {'Item': {'json_payload': value_obj}}
+                return response
+
+        class MockDDB:
+            pass
+        mock_ddb = MockDDB()
+        mock_ddb.Table = MockTable
+        return mock_ddb
+
+    monkeypatch.setattr(boto3, 'resource', mock_boto3_resource)
+
+    pc = ProfileController(test_ctx, 'us-west-2', 'taar_addon_data_20180206')
+    jdata = pc.get_client_profile("exception_raising_client_id")
+    assert jdata == {'key': 'with_some_data'}

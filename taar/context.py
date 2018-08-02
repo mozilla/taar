@@ -14,11 +14,12 @@ chain.
 """
 
 from taar.recommenders import utils
-from srgutil.context import Context
+# Clobber the Context name to prevent messy name collisions
+from srgutil.context import Context as _Context
 
 
 def default_context():
-    ctx = Context()
+    ctx = _Context()
     from taar.recommenders import CollaborativeRecommender
     from taar.recommenders import SimilarityRecommender
     from taar.recommenders import LocaleRecommender

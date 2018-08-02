@@ -2,7 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from taar.context import Context
 from taar.cache import JSONCache, Clock
 
 from taar.profile_fetcher import ProfileFetcher
@@ -29,10 +28,13 @@ class StubRecommender(AbstractRecommender):
         return self._recommendations
 
 
-def get_test_ctx():
-    fetcher = ProfileFetcher(MockProfileController(None))
+@pytest.fixture
+def my_context(test_ctx):
+    ctx = test_ctx
+
+    fetcher = ProfileFetcher(ctx)
+    fetcher.set_client(MockProfileController(None))
     factory = MockRecommenderFactory()
-    ctx = Context()
     ctx['profile_fetcher'] = fetcher
     ctx['recommender_factory'] = factory
 
@@ -42,8 +44,8 @@ def get_test_ctx():
     return ctx.child()
 
 
-def test_none_profile_returns_empty_list():
-    ctx = get_test_ctx()
+def test_none_profile_returns_empty_list(my_context):
+    ctx = my_context
     ctx['clock'] = Clock()
     ctx['cache'] = JSONCache(ctx)
     rec_manager = RecommendationManager(ctx)
@@ -58,8 +60,8 @@ def test_intervention_b():
 
 
 
-def test_recommendations_via_manager():  # noqa
-    ctx = get_test_ctx()
+def test_recommendations_via_manager(my_context):  # noqa
+    ctx = my_context
 
     EXPECTED_RESULTS = [('ghi', 3430.0),
                         ('def', 3320.0),

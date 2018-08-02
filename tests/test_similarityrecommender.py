@@ -5,10 +5,10 @@
 import json
 import six
 
+import pytest
 import numpy as np
 import scipy.stats
 
-from taar.context import Context
 from taar.cache import JSONCache, Clock
 
 from taar.recommenders.similarity_recommender import \
@@ -84,25 +84,27 @@ class MockContinuousData:
             return self.lrs_data
 
 
-def create_cat_test_ctx():
-    ctx = Context()
+@pytest.fixture
+def cat_test_ctx(test_ctx):
+    ctx = test_ctx
     ctx['utils'] = MockCategoricalData()
     ctx['clock'] = Clock()
     ctx['cache'] = JSONCache(ctx)
     return ctx.child()
 
 
-def create_cts_test_ctx():
-    ctx = Context()
+@pytest.fixture
+def cts_test_ctx(test_ctx):
+    ctx = test_ctx
     ctx['utils'] = MockContinuousData()
     ctx['clock'] = Clock()
     ctx['cache'] = JSONCache(ctx)
     return ctx.child()
 
 
-def test_soft_fail():
+def test_soft_fail(test_ctx):
     # Create a new instance of a SimilarityRecommender.
-    ctx = Context()
+    ctx = test_ctx
     ctx['utils'] = MockNoDataUtils()
     ctx['clock'] = Clock()
     ctx['cache'] = JSONCache(ctx)
@@ -112,9 +114,9 @@ def test_soft_fail():
     assert not r.can_recommend({})
 
 
-def test_can_recommend():
+def test_can_recommend(cts_test_ctx):
     # Create a new instance of a SimilarityRecommender.
-    ctx = create_cts_test_ctx()
+    ctx = cts_test_ctx
     r = SimilarityRecommender(ctx)
 
     # Test that we can't recommend if we have not enough client info.
@@ -138,9 +140,9 @@ def test_can_recommend():
         assert not r.can_recommend(profile_without_x)
 
 
-def test_recommendations():
+def test_recommendations(cts_test_ctx):
     # Create a new instance of a SimilarityRecommender.
-    ctx = create_cts_test_ctx()
+    ctx = cts_test_ctx
     r = SimilarityRecommender(ctx)
 
     # TODO: clobber the SimilarityRecommender::lr_curves
@@ -157,25 +159,25 @@ def test_recommendations():
     assert type(weight) == np.float64
 
 
-def test_recommender_str():
+def test_recommender_str(cts_test_ctx):
     # Tests that the string representation of the recommender is correct.
-    ctx = create_cts_test_ctx()
+    ctx = cts_test_ctx
     r = SimilarityRecommender(ctx)
     assert str(r) == "SimilarityRecommender"
 
 
-def test_get_lr():
+def test_get_lr(cts_test_ctx):
     # Tests that the likelihood ratio values are not empty for extreme values and are realistic.
-    ctx = create_cts_test_ctx()
+    ctx = cts_test_ctx
     r = SimilarityRecommender(ctx)
     assert r.get_lr(0.0001) is not None
     assert r.get_lr(10.0) is not None
     assert r.get_lr(0.001) > r.get_lr(5.0)
 
 
-def test_compute_clients_dist():
+def test_compute_clients_dist(cts_test_ctx):
     # Test the distance function computation.
-    ctx = create_cts_test_ctx()
+    ctx = cts_test_ctx
     r = SimilarityRecommender(ctx)
     test_clients = [
         {
@@ -227,9 +229,9 @@ def test_compute_clients_dist():
     assert per_client_test[0] >= per_client_test[1] >= per_client_test[2]
 
 
-def test_distance_functions():
+def test_distance_functions(cts_test_ctx):
     # Tests the similarity functions via expected output when passing modified client data.
-    ctx = create_cts_test_ctx()
+    ctx = cts_test_ctx
     r = SimilarityRecommender(ctx)
 
     # Generate a fake client.
@@ -269,9 +271,9 @@ def test_distance_functions():
     assert abs((j_c + 0.01) * j_d) != 0.0
 
 
-def test_weights_continuous():
+def test_weights_continuous(cts_test_ctx):
     # Create a new instance of a SimilarityRecommender.
-    ctx = create_cts_test_ctx()
+    ctx = cts_test_ctx
     r = SimilarityRecommender(ctx)
 
     # In the ensemble method recommendations should be a sorted list of tuples
@@ -301,7 +303,7 @@ def test_weights_continuous():
     assert rec0_weight > rec1_weight > 1.0
 
 
-def test_weights_categorical():
+def test_weights_categorical(cat_test_ctx, cts_test_ctx):
     '''
     This should get :
         ["{test-guid-1}", "{test-guid-2}", "{test-guid-3}", "{test-guid-4}"],
@@ -311,8 +313,8 @@ def test_weights_categorical():
 
     '''
     # Create a new instance of a SimilarityRecommender.
-    ctx = create_cat_test_ctx()
-    ctx2 = create_cts_test_ctx()
+    ctx = cat_test_ctx
+    ctx2 = cts_test_ctx
     wrapped = ctx2.wrap(ctx)
     r = SimilarityRecommender(wrapped)
 
