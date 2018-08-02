@@ -1,4 +1,5 @@
 from taar import ProfileFetcher
+import copy
 
 
 class MockProfileController:
@@ -9,8 +10,9 @@ class MockProfileController:
         return self._profile
 
 
-def test_profile_fetcher_returns_none():
-    fetcher = ProfileFetcher(MockProfileController(None))
+def test_profile_fetcher_returns_none(test_ctx):
+    fetcher = ProfileFetcher(test_ctx)
+    fetcher.set_client(MockProfileController(None))
     assert fetcher.get("random-client-id") is None
 
 
@@ -41,22 +43,26 @@ MOCK_DATA = {'profile': {u'scalar_parent_browser_engagement_total_uri_count': 79
              }
 
 
-def test_profile_fetcher_returns_dict():
+def test_profile_fetcher_returns_dict(test_ctx):
+    fetcher = ProfileFetcher(test_ctx)
+
     mock_data = MOCK_DATA['profile']
     mock_profile_controller = MockProfileController(mock_data)
-    fetcher = ProfileFetcher(mock_profile_controller)
+    fetcher.set_client(mock_profile_controller)
 
     # Note that active_addons in the raw JSON source is remapped to
     # 'installed_addons'
     assert fetcher.get("random-client-id") == MOCK_DATA['expected_result']
 
 
-def test_dont_crash_without_active_addons():
-    mock_data = MOCK_DATA['profile']
+def test_dont_crash_without_active_addons(test_ctx):
+    mock_data = copy.deepcopy(MOCK_DATA['profile'])
     del mock_data['active_addons']
-
     mock_profile_controller = MockProfileController(mock_data)
-    fetcher = ProfileFetcher(mock_profile_controller)
-    expected = MOCK_DATA['expected_result']
+
+    fetcher = ProfileFetcher(test_ctx)
+    fetcher.set_client(mock_profile_controller)
+
+    expected = copy.deepcopy(MOCK_DATA['expected_result'])
     expected['installed_addons'][:] = []
     assert fetcher.get("random-client-id") == expected

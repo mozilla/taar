@@ -10,12 +10,9 @@ import json
 from taar.context import default_context
 from taar.profile_fetcher import ProfileFetcher
 from taar import recommenders
-from taar import ProfileController
 
 # These are configurations that are specific to the TAAR library
 VALID_BRANCHES = set(['linear', 'ensemble', 'control'])
-DYNAMO_REGION = config('DYNAMO_REGION', default='us-west-2')
-DYNAMO_TABLE_NAME = config('DYNAMO_TABLE_NAME', default='taar_addon_data_20180206')
 TAAR_MAX_RESULTS = config('TAAR_MAX_RESULTS', default=10, cast=int)
 
 
@@ -69,9 +66,7 @@ def configure_plugin(app):
 
         if PROXY_MANAGER.getResource() is None:
             ctx = default_context()
-            dynamo_client = ProfileController(region_name=DYNAMO_REGION,
-                                              table_name=DYNAMO_TABLE_NAME)
-            profile_fetcher = ProfileFetcher(dynamo_client)
+            profile_fetcher = ProfileFetcher(ctx)
 
             ctx['profile_fetcher'] = profile_fetcher
 
