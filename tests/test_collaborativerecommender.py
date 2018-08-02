@@ -4,15 +4,14 @@ Test cases for the TAAR CollaborativeRecommender
 
 import numpy
 
-from taar.context import Context
 from taar.cache import JSONCache, Clock
 
 from taar.recommenders.collaborative_recommender import ADDON_MAPPING_URL
 from taar.recommenders.collaborative_recommender import ADDON_MODEL_URL
-
-
 from taar.recommenders.collaborative_recommender import CollaborativeRecommender
 from taar.recommenders.collaborative_recommender import positive_hash
+
+import pytest
 
 """
 We need to generate a synthetic list of addons and relative weights
@@ -87,8 +86,8 @@ def activate_responses(ctx):
     return ctx
 
 
-def test_can_recommend():
-    ctx = get_mocked_ctx()
+def test_can_recommend(mocked_ctx):
+    ctx = mocked_ctx
     r = CollaborativeRecommender(ctx)
 
     # Test that we can't recommend if we have not enough client info.
@@ -100,20 +99,20 @@ def test_can_recommend():
                             "client_id": "test-client"})
 
 
-def get_error_ctx():
-    ctx = Context()
-    ctx = activate_error_responses(ctx)
+@pytest.fixture
+def error_ctx(test_ctx):
+    ctx = activate_error_responses(test_ctx)
     return ctx
 
 
-def get_mocked_ctx():
-    ctx = Context()
-    ctx = activate_responses(ctx)
+@pytest.fixture
+def mocked_ctx(test_ctx):
+    ctx = activate_responses(test_ctx)
     return ctx
 
 
-def test_can_recommend_no_model():
-    ctx = get_error_ctx()
+def test_can_recommend_no_model(error_ctx):
+    ctx = error_ctx
     r = CollaborativeRecommender(ctx)
 
     # We should never be able to recommend if something went wrong with the model.
@@ -122,10 +121,10 @@ def test_can_recommend_no_model():
     assert not r.can_recommend({"installed_addons": ["uBlock0@raymondhill.net"]})
 
 
-def test_empty_recommendations():
+def test_empty_recommendations(mocked_ctx):
     # Tests that the empty recommender always recommends an empty list
     # of addons if we have no addons
-    ctx = get_mocked_ctx()
+    ctx = mocked_ctx
     r = CollaborativeRecommender(ctx)
     assert not r.can_recommend({})
 
@@ -133,10 +132,10 @@ def test_empty_recommendations():
     # defined.
 
 
-def test_best_recommendation():
+def test_best_recommendation(mocked_ctx):
     # Make sure the structure of the recommendations is correct and that we
     # recommended the the right addon.
-    ctx = get_mocked_ctx()
+    ctx = mocked_ctx
     r = CollaborativeRecommender(ctx)
 
     # An non-empty set of addons should give a list of recommendations
@@ -158,11 +157,11 @@ def test_best_recommendation():
     assert numpy.isclose(result[1], numpy.float64('0.3225'))
 
 
-def test_recommendation_weights():
+def test_recommendation_weights(mocked_ctx):
     """
     Weights should be ordered greatest to lowest
     """
-    ctx = get_mocked_ctx()
+    ctx = mocked_ctx
     r = CollaborativeRecommender(ctx)
 
     # An non-empty set of addons should give a list of recommendations
@@ -192,11 +191,11 @@ def test_recommendation_weights():
     assert numpy.isclose(result[1], numpy.float64('0.29'))
 
 
-def test_recommender_str():
+def test_recommender_str(mocked_ctx):
     """Tests that the string representation of the recommender is correct
     """
     # TODO: this test is brittle and should be removed once it is safe
     # to do so
-    ctx = get_mocked_ctx()
+    ctx = mocked_ctx
     r = CollaborativeRecommender(ctx)
     assert str(r) == "CollaborativeRecommender"

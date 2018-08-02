@@ -1,4 +1,8 @@
-from taar.context import Context
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+import pytest
 from taar.cache import JSONCache, Clock
 
 from taar.recommenders import LocaleRecommender
@@ -20,16 +24,17 @@ class MockUtils:
         return FAKE_LOCALE_DATA
 
 
-def create_test_ctx():
-    ctx = Context()
+@pytest.fixture
+def my_context(test_ctx):
+    ctx = test_ctx
     ctx['utils'] = MockUtils()
     ctx['clock'] = Clock()
     ctx['cache'] = JSONCache(ctx)
     return ctx.child()
 
 
-def test_can_recommend():
-    ctx = create_test_ctx()
+def test_can_recommend(my_context):
+    ctx = my_context
     r = LocaleRecommender(ctx)
 
     # Test that we can't recommend if we have not enough client info.
@@ -40,8 +45,8 @@ def test_can_recommend():
     assert r.can_recommend({"locale": "en"})
 
 
-def test_can_recommend_no_model():
-    ctx = create_test_ctx()
+def test_can_recommend_no_model(my_context):
+    ctx = my_context
     r = LocaleRecommender(ctx)
 
     # We should never be able to recommend if something went
@@ -51,14 +56,14 @@ def test_can_recommend_no_model():
     assert not r.can_recommend({"locale": "it"})
 
 
-def test_recommendations():
+def test_recommendations(my_context):
     """Test that the locale recommender returns the correct
     locale dependent addons.
 
     The JSON output for this recommender should be a list of 2-tuples
     of (GUID, weight).
     """
-    ctx = create_test_ctx()
+    ctx = my_context
     r = LocaleRecommender(ctx)
     recommendations = r.recommend({"locale": "en"}, 10)
 
@@ -73,17 +78,17 @@ def test_recommendations():
         assert addon_id in FAKE_LOCALE_DATA["en"]
 
 
-def test_recommender_str():
+def test_recommender_str(my_context):
     """Tests that the string representation of the recommender is correct
     """
     # TODO: this test is brittle and should be removed once it is safe
     # to do so
-    ctx = create_test_ctx()
+    ctx = my_context
     r = LocaleRecommender(ctx)
     assert str(r) == "LocaleRecommender"
 
 
-def test_recommender_extra_data():
+def test_recommender_extra_data(my_context):
     # Test that the recommender uses locale data from the "extra"
     # section if available.
     def validate_recommendations(data, expected_locale):
@@ -97,7 +102,7 @@ def test_recommender_extra_data():
             assert addon_id in FAKE_LOCALE_DATA[expected_locale]
             assert 1 == weight
 
-    ctx = create_test_ctx()
+    ctx = my_context
     r = LocaleRecommender(ctx)
     recommendations = r.recommend({}, 10, extra_data={"locale": "en"})
     validate_recommendations(recommendations, "en")

@@ -1,14 +1,15 @@
 import pytest
 from taar.context import default_context
-from taar import ProfileController, ProfileFetcher
+from taar import ProfileFetcher
+from taar.profile_fetcher import ProfileController
 from taar import recommenders
 import time
 
 
 def create_recommendation_manager():
     root_ctx = default_context()
-    client = ProfileController('us-west-2', 'taar_addon_data_20180206')
-    pf = ProfileFetcher(client)
+    pf = ProfileFetcher(root_ctx)
+    pf.set_client(ProfileController(root_ctx, 'us-west-2', 'taar_addon_data_20180206'))
     root_ctx['profile_fetcher'] = pf
     r_factory = recommenders.RecommenderFactory(root_ctx.child())
     root_ctx['recommender_factory'] = r_factory

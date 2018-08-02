@@ -1,6 +1,5 @@
 from taar.cache import Clock, JSONCache
 import time
-from taar.context import Context
 
 
 EXPECTED_JSON = {"foo": 42}
@@ -30,9 +29,9 @@ def test_clock():
     assert abs(actual - expected) < 0.1
 
 
-def test_fetch_json():
+def test_fetch_json(test_ctx):
     """ Just test a URL that we know will fail """
-    ctx = Context()
+    ctx = test_ctx
     ctx['utils'] = utils = MockUtils()
     ctx['clock'] = Clock()
     cache = JSONCache(ctx)
@@ -45,9 +44,9 @@ def test_fetch_json():
     assert utils._fetch_count == 1
 
 
-def test_get_s3_json_content():
+def test_get_s3_json_content(test_ctx):
     """ Just test an S3 bucket and key that doesn't exist """
-    ctx = Context()
+    ctx = test_ctx
     ctx['utils'] = utils = MockUtils()
     ctx['clock'] = Clock()
     cache = JSONCache(ctx)
@@ -60,7 +59,7 @@ def test_get_s3_json_content():
     assert utils._get_count == 1
 
 
-def test_expiry():
+def test_expiry(test_ctx):
     """ Just test a URL that we know will fail """
     class MockClock:
         def __init__(self):
@@ -69,7 +68,7 @@ def test_expiry():
         def time(self):
             return self._now
 
-    ctx = Context()
+    ctx = test_ctx
     utils = MockUtils()
     ctx['utils'] = utils
     ctx['clock'] = MockClock()
