@@ -5,6 +5,7 @@
 from taar.recommenders.ensemble_recommender import EnsembleRecommender
 from taar.recommenders.hybrid_recommender import HybridRecommender
 from taar.schema import RecommendationManagerQuerySchema
+from srgutil.interfaces import IMozLogging
 
 import colander
 import logging
@@ -63,6 +64,9 @@ def schema_validate(colandar_schema):
                 schema.deserialize(json_args)
             except colander.Invalid as e:
                 msg = "Error deserializing input arguments: " + str(e.asdict().values())
+
+                # This logger can't use the context logger as the code
+                # is running in a method decorator
                 logger.warn(msg)
                 # Invalid data means TAAR safely returns an empty list
                 return []
@@ -82,7 +86,6 @@ class RecommenderFactory:
     """
     def __init__(self, ctx):
         self._ctx = ctx
-
         # This map is set in the default context
         self._recommender_factory_map = self._ctx['recommender_factory_map']
 
@@ -101,6 +104,7 @@ class RecommendationManager:
         """Initialize the user profile fetcher and the recommenders.
         """
         self._ctx = ctx
+        self.logger = self._ctx[IMozLogging].get_logger('taar')
 
         assert 'profile_fetcher' in self._ctx
 
@@ -109,7 +113,7 @@ class RecommendationManager:
         self.profile_fetcher = profile_fetcher
         self._recommender_map = {}
 
-        logger.info("Initializing recommenders")
+        self.logger.info("Initializing recommenders")
         self._recommender_map[INTERVENTION_A] = EnsembleRecommender(self._ctx.child())
 
         hybrid_ctx = self._ctx.child()

@@ -1,8 +1,12 @@
-import logging
-import numpy as np
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
 from .base_recommender import AbstractRecommender
 from itertools import groupby
 from scipy.spatial import distance
+from srgutil.interfaces import IMozLogging
+import numpy as np
 
 FLOOR_DISTANCE_ADJUSTMENT = 0.001
 
@@ -12,8 +16,6 @@ CONTINUOUS_FEATURES = ["subsession_length", "bookmark_count", "tab_open_count", 
 S3_BUCKET = 'telemetry-parquet'
 DONOR_LIST_KEY = 'taar/similarity/donors.json'
 LR_CURVES_SIMILARITY_TO_PROBABILITY = 'taar/similarity/lr_curves.json'
-
-logger = logging.getLogger(__name__)
 
 
 class SimilarityRecommender(AbstractRecommender):
@@ -36,6 +38,8 @@ class SimilarityRecommender(AbstractRecommender):
 
     def __init__(self, ctx):
         self._ctx = ctx
+        self.logger = self._ctx[IMozLogging].get_logger('taar')
+
         assert 'cache' in self._ctx
 
         self._init_from_ctx()
@@ -45,12 +49,12 @@ class SimilarityRecommender(AbstractRecommender):
         cache = self._ctx['cache']
         self.donors_pool = cache.get_s3_json_content(S3_BUCKET, DONOR_LIST_KEY)
         if self.donors_pool is None:
-            logger.error("Cannot download the donor list: {}".format(DONOR_LIST_KEY))
+            self.logger.error("Cannot download the donor list: {}".format(DONOR_LIST_KEY))
 
         # Download the probability mapping curves from similarity to likelihood of being a good donor.
         self.lr_curves = cache.get_s3_json_content(S3_BUCKET, LR_CURVES_SIMILARITY_TO_PROBABILITY)
         if self.lr_curves is None:
-            logger.error("Cannot download the lr curves: {}".format(LR_CURVES_SIMILARITY_TO_PROBABILITY))
+            self.logger.error("Cannot download the lr curves: {}".format(LR_CURVES_SIMILARITY_TO_PROBABILITY))
         self.build_features_caches()
 
     def build_features_caches(self):
@@ -89,7 +93,7 @@ class SimilarityRecommender(AbstractRecommender):
         has_fields = all([client_data.get(f, None) is not None for f in REQUIRED_FIELDS])
         if not has_fields:
             # Can not add extra info because client_id may not be available.
-            logger.error("Unusable client data encountered")
+            self.logger.error("Unusable client data encountered")
         return has_fields
 
     def get_lr(self, score):
@@ -182,8 +186,8 @@ class SimilarityRecommender(AbstractRecommender):
         # 1.0 corresponds to a log likelihood ratio of 0 meaning that donors are equally
         # likely to be 'good'. A value > 0.0 is sufficient, but we like this to be high.
         if donor_log_lrs[0] < 0.1:
-            logger.warning("Addons recommended with very low similarity score, perhaps donor set is unrepresentative",
-                           extra={"maximum_similarity": donor_set_ranking[0]})
+            self.logger.warning("Addons recommended with very low similarity score, perhaps donor set is unrepresentative",
+                                extra={"maximum_similarity": donor_set_ranking[0]})
 
         # Retrieve the indices of the highest ranked donors and then append their
         # installed addons.
@@ -204,7 +208,7 @@ class SimilarityRecommender(AbstractRecommender):
 
         log_data = (client_data['client_id'],
                     str([r[0] for r in recommendations_out[:limit]]))
-        logger.info("similarity_recommender_triggered, "
-                    "client_id: [%s], guids: [%s]" % log_data)
+        self.logger.info("similarity_recommender_triggered, "
+                         "client_id: [%s], guids: [%s]" % log_data)
 
         return recommendations_out[:limit]

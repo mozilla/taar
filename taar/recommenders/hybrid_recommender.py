@@ -2,14 +2,12 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import logging
+from srgutil.interfaces import IMozLogging
 from .base_recommender import AbstractRecommender
 from .s3_data import CuratedWhitelistCache
 
 S3_BUCKET = 'telemetry-parquet'
 ENSEMBLE_WEIGHTS = 'taar/ensemble/ensemble_weight.json'
-
-logger = logging.getLogger(__name__)
 
 
 class CuratedRecommender(AbstractRecommender):
@@ -26,6 +24,7 @@ class CuratedRecommender(AbstractRecommender):
     def __init__(self, ctx):
         self._ctx = ctx
 
+        self.logger = self._ctx[IMozLogging].get_logger('taar')
         self._curated_wl = CuratedWhitelistCache(self._ctx)
 
     def can_recommend(self, client_data, extra_data={}):
@@ -40,7 +39,7 @@ class CuratedRecommender(AbstractRecommender):
         guids = self._curated_wl.get_randomized_guid_sample(limit)
 
         log_data = (client_data['client_id'], str(guids))
-        logger.info("client_id: [%s], guids: [%s]" % log_data)
+        self.logger.info("client_id: [%s], guids: [%s]" % log_data)
 
         results = [(guid, 1.0) for guid in guids]
         return results
@@ -55,6 +54,8 @@ class HybridRecommender(AbstractRecommender):
     """
     def __init__(self, ctx):
         self._ctx = ctx
+
+        self.logger = self._ctx[IMozLogging].get_logger('taar')
 
         self._ensemble_recommender = self._ctx['ensemble_recommender']
         self._curated_recommender = CuratedRecommender(self._ctx.child())
@@ -107,11 +108,11 @@ class HybridRecommender(AbstractRecommender):
 
         if len(merged_results) < limit:
             msg = "Insufficient recommendations found for client: %s" % client_data['client_id']
-            logger.info(msg)
+            self.logger.info(msg)
             return []
 
         log_data = (client_data['client_id'],
                     str(ensemble_weights),
                     str([r[0] for r in merged_results]))
-        logger.info("client_id: [%s], ensemble_weight: [%s], guids: [%s]" % log_data)
+        self.logger.info("client_id: [%s], ensemble_weight: [%s], guids: [%s]" % log_data)
         return list(merged_results)
