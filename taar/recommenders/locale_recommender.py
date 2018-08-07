@@ -21,7 +21,6 @@ class LocaleRecommender(AbstractRecommender):
     """
     def __init__(self, ctx):
         self._ctx = ctx
-        assert 'cache' in self._ctx
         self._init_from_ctx()
         self.logger = self._ctx[IMozLogging].get_logger('taar')
 

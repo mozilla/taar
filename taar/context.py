@@ -13,7 +13,6 @@ configuration information as we pass the context through an object
 chain.
 """
 
-from taar.recommenders import utils
 # Clobber the Context name to prevent messy name collisions
 from srgutil.context import Context as _Context
 
@@ -24,7 +23,6 @@ def default_context():
     from taar.recommenders import SimilarityRecommender
     from taar.recommenders import LocaleRecommender
     from taar.cache import Clock
-    from taar.cache import JSONCache
 
     # Note that the EnsembleRecommender is *not* in this map as it
     # needs to ensure that the recommender_map key is installed in the
@@ -33,7 +31,5 @@ def default_context():
                                       'similarity': lambda: SimilarityRecommender(ctx.child()),
                                       'locale': lambda: LocaleRecommender(ctx.child())}
 
-    ctx['utils'] = utils
     ctx['clock'] = Clock()
-    ctx['cache'] = JSONCache(ctx)
     return ctx

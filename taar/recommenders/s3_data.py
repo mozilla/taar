@@ -24,10 +24,6 @@ class CuratedWhitelistCache:
     def __init__(self, ctx):
         self._ctx = ctx
         self._lock = threading.RLock()
-
-        # Enable this check when we start using srgutils
-        # assert 'cache' in self._ctx
-
         self._json_data = None
 
     def get_whitelist(self):
