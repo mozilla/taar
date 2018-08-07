@@ -3,15 +3,14 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from srgutil.interfaces import IMozLogging
+from .lazys3 import LazyJSONLoader
 import numpy as np
 import operator as op
 
 from .base_recommender import AbstractRecommender
 
-ADDON_MODEL_URL =\
-    "https://s3-us-west-2.amazonaws.com/telemetry-public-analysis-2/telemetry-ml/addon_recommender/item_matrix.json"
-ADDON_MAPPING_URL =\
-    "https://s3-us-west-2.amazonaws.com/telemetry-public-analysis-2/telemetry-ml/addon_recommender/addon_mapping.json"
+ITEM_MATRIX_CONFIG = ('telemetry-public-analysis-2' 'telemetry-ml/addon_recommender/item_matrix.json')
+ADDON_MAPPING_CONFIG = ('telemetry-ml', 'addon_recommender/addon_mapping.json')
 
 
 # http://garage.pimentech.net/libcommonPython_src_python_libcommon_javastringhashcode/
@@ -36,21 +35,41 @@ class CollaborativeRecommender(AbstractRecommender):
     """
     def __init__(self, ctx):
         self._ctx = ctx
+
+        if 'collaborative_addon_mapping' in self._ctx:
+            self._addon_mapping = self._ctx['collaborative_addon_mapping']
+        else:
+            self._addon_mapping = LazyJSONLoader(self._ctx,
+                                                 ADDON_MAPPING_CONFIG[0],
+                                                 ADDON_MAPPING_CONFIG[1])
+
+        if 'collaborative_item_matrix' in self._ctx:
+            self._raw_item_matrix = self._ctx['collaborative_item_matrix']
+        else:
+            self._raw_item_matrix = LazyJSONLoader(self._ctx,
+                                                   ITEM_MATRIX_CONFIG[0],
+                                                   ITEM_MATRIX_CONFIG[1])
+
         self.logger = self._ctx[IMozLogging].get_logger('taar')
 
-        self._load_json_models()
         self.model = None
         self._build_model()
 
+    @property
+    def addon_mapping(self):
+        return self._addon_mapping.get()[0]
+
+    @property
+    def raw_item_matrix(self):
+        return self._raw_item_matrix.get()[0]
+
     def _load_json_models(self):
         # Download the addon mappings.
-        self.addon_mapping = self._ctx['cache'].fetch_json(ADDON_MAPPING_URL)
         if self.addon_mapping is None:
-            self.logger.error("Cannot download the addon mapping file {}".format(ADDON_MAPPING_URL))
+            self.logger.error("Cannot download the addon mapping file {} {}".format(*ADDON_MAPPING_CONFIG))
 
-        self.raw_item_matrix = self._ctx['cache'].fetch_json(ADDON_MODEL_URL)
         if self.addon_mapping is None:
-            self.logger.error("Cannot download the model file {}".format(ADDON_MODEL_URL))
+            self.logger.error("Cannot download the model file {} {}".format(*ITEM_MATRIX_CONFIG))
 
     def _build_model(self):
         if self.raw_item_matrix is None:

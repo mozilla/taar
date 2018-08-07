@@ -5,7 +5,6 @@ These are global fixtures automagically loaded by pytest
 import pytest
 from srgutil.context import default_context
 from srgutil.interfaces import IClock
-from taar.cache import JSONCache, Clock
 
 FAKE_LOCALE_DATA = {
     "te-ST": [
@@ -18,19 +17,8 @@ FAKE_LOCALE_DATA = {
 }
 
 
-class MockUtils:
-    def get_s3_json_content(self, *args, **kwargs):
-        return FAKE_LOCALE_DATA
-
-
 @pytest.fixture
 def test_ctx():
     ctx = default_context()
-    ctx['utils'] = MockUtils()
-
-    ctx[IClock] = Clock()
-    ctx['clock'] = Clock()
-
-    # TODO: replace this with the IS3Data interface
-    ctx['cache'] = JSONCache(ctx)
-    return ctx.child()
+    ctx['clock'] = ctx[IClock]
+    return ctx
