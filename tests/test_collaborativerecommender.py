@@ -16,7 +16,7 @@ from taar.recommenders.collaborative_recommender import CollaborativeRecommender
 from taar.recommenders.collaborative_recommender import positive_hash
 from taar.recommenders.lazys3 import LazyJSONLoader
 import json
-import pytest
+
 
 """
 We need to generate a synthetic list of addons and relative weights
@@ -39,6 +39,9 @@ def install_none_mock_data(ctx):
                                                       ITEM_MATRIX_CONFIG[0],
                                                       ITEM_MATRIX_CONFIG[1])
 
+
+    # Don't reuse connections with moto.  badness happens
+    conn = boto3.resource('s3', region_name='us-west-2')
     conn.create_bucket(Bucket=ADDON_MAPPING_CONFIG[0])
     conn.Object(ADDON_MAPPING_CONFIG[0], ADDON_MAPPING_CONFIG[1]).put(Body="")
     ctx['collaborative_addon_mapping'] = LazyJSONLoader(ctx,
