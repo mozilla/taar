@@ -7,7 +7,7 @@ import threading
 class LazyJSONLoader:
     def __init__(self, ctx, s3_bucket, s3_key, ttl=14400):
         self._ctx = ctx
-        self.logger = self._ctx[IMozLogging].get_logger('srgutil')
+        self.logger = self._ctx[IMozLogging].get_logger('taar')
         self._clock = self._ctx[IClock]
 
         self._s3_bucket = s3_bucket
