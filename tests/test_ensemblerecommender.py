@@ -2,9 +2,11 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from taar.cache import JSONCache, Clock
-
 from taar.recommenders.ensemble_recommender import WeightCache, EnsembleRecommender
+from moto import mock_s3
+import boto3
+import json
+from taar.recommenders.lazys3 import LazyJSONLoader
 from .mocks import MockRecommenderFactory
 
 EXPECTED = {'collaborative': 1000,
@@ -12,28 +14,34 @@ EXPECTED = {'collaborative': 1000,
             'locale': 10}
 
 
-class Mocker:
-    def get_s3_json_content(self, *args, **kwargs):
-        return {'ensemble_weights': EXPECTED}
+def install_mock_data(ctx):
+    DATA = {'ensemble_weights': EXPECTED}
+
+    S3_BUCKET = 'telemetry-parquet'
+    ENSEMBLE_WEIGHTS = 'taar/ensemble/ensemble_weight.json'
+
+    conn = boto3.resource('s3', region_name='us-west-2')
+    conn.create_bucket(Bucket=S3_BUCKET)
+    conn.Object(S3_BUCKET, ENSEMBLE_WEIGHTS).put(Body=json.dumps(DATA))
+
+    ctx['ensemble_weights'] = LazyJSONLoader(ctx,
+                                             S3_BUCKET,
+                                             ENSEMBLE_WEIGHTS)
+
+    return ctx
 
 
-def test_weight_cache(test_ctx):   # noqa
-    ctx = test_ctx
-    ctx['utils'] = Mocker()
-    ctx['clock'] = Clock()
-    ctx['cache'] = JSONCache(ctx)
-
-    wc = WeightCache(ctx.child())
+@mock_s3
+def test_weight_cache(test_ctx):
+    ctx = install_mock_data(test_ctx)
+    wc = WeightCache(ctx)
     actual = wc.getWeights()
     assert EXPECTED == actual
 
 
+@mock_s3
 def test_recommendations(test_ctx):
-    ctx = test_ctx
-
-    ctx['utils'] = Mocker()
-    ctx['clock'] = Clock()
-    ctx['cache'] = JSONCache(ctx)
+    ctx = install_mock_data(test_ctx)
 
     EXPECTED_RESULTS = [('ghi', 3430.0),
                         ('def', 3320.0),
@@ -55,12 +63,9 @@ def test_recommendations(test_ctx):
     assert recommendation_list == EXPECTED_RESULTS
 
 
+@mock_s3
 def test_preinstalled_guids(test_ctx):
-    ctx = test_ctx
-
-    ctx['utils'] = Mocker()
-    ctx['clock'] = Clock()
-    ctx['cache'] = JSONCache(ctx)
+    ctx = install_mock_data(test_ctx)
 
     EXPECTED_RESULTS = [('ghi', 3430.0),
                         ('ijk', 3200.0),

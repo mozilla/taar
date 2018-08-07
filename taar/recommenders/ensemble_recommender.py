@@ -5,8 +5,8 @@
 from srgutil.interfaces import IMozLogging
 import itertools
 from .base_recommender import AbstractRecommender
-import threading
-import time
+from .lazys3 import LazyJSONLoader
+
 
 S3_BUCKET = 'telemetry-parquet'
 ENSEMBLE_WEIGHTS = 'taar/ensemble/ensemble_weight.json'
@@ -16,29 +16,15 @@ class WeightCache:
     def __init__(self, ctx):
         self._ctx = ctx
 
-        self._lock = threading.RLock()
-
-        self._weights = None
-        self._expiry = None
-
-    def now(self):
-        return time.time()
+        if 'ensemble_weights' in self._ctx:
+            self._weights = self._ctx['ensemble_weights']
+        else:
+            self._weights = LazyJSONLoader(ctx,
+                                           S3_BUCKET,
+                                           ENSEMBLE_WEIGHTS)
 
     def getWeights(self):
-        with self._lock:
-            now = self.now()
-            if self._expiry is not None:
-                if self._expiry < now:
-                    # Cache is expired.
-                    self._weights = None
-                    # Push expiry to 5 minutes from now
-                    self._expiry = now + 300
-
-            if self._weights is None:
-                tmp = self._ctx['cache'].get_s3_json_content(S3_BUCKET, ENSEMBLE_WEIGHTS)
-                self._weights = tmp['ensemble_weights']
-
-            return self._weights
+        return self._weights.get()[0]['ensemble_weights']
 
 
 class EnsembleRecommender(AbstractRecommender):
