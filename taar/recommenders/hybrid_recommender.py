@@ -63,9 +63,9 @@ class HybridRecommender(AbstractRecommender):
     def can_recommend(self, client_data, extra_data={}):
         """The ensemble recommender is always going to be
         available if at least one recommender is available"""
-        e_recommend = self._ensemble_recommender.can_recommend(client_data, extra_data)
-        c_recommend = self._curated_recommender.can_recommend(client_data, extra_data)
-        return e_recommend and c_recommend
+        ensemble_recommend = self._ensemble_recommender.can_recommend(client_data, extra_data)
+        curated_recommend = self._curated_recommender.can_recommend(client_data, extra_data)
+        return ensemble_recommend and curated_recommend
 
     def recommend(self, client_data, limit, extra_data={}):
         """
