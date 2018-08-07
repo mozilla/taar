@@ -15,7 +15,6 @@ ENSEMBLE_WEIGHTS = 'taar/ensemble/ensemble_weight.json'
 class WeightCache:
     def __init__(self, ctx):
         self._ctx = ctx
-        assert 'cache' in self._ctx
 
         self._lock = threading.RLock()
 

@@ -38,8 +38,6 @@ class CollaborativeRecommender(AbstractRecommender):
         self._ctx = ctx
         self.logger = self._ctx[IMozLogging].get_logger('taar')
 
-        assert 'cache' in self._ctx
-
         self._load_json_models()
         self.model = None
         self._build_model()

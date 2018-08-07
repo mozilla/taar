@@ -40,8 +40,6 @@ class SimilarityRecommender(AbstractRecommender):
         self._ctx = ctx
         self.logger = self._ctx[IMozLogging].get_logger('taar')
 
-        assert 'cache' in self._ctx
-
         self._init_from_ctx()
 
     def _init_from_ctx(self):
