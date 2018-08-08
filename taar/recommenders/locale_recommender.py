@@ -4,6 +4,8 @@
 
 from srgutil.interfaces import IMozLogging
 from .base_recommender import AbstractRecommender
+from .lazys3 import LazyJSONLoader
+
 
 ADDON_LIST_BUCKET = 'telemetry-parquet'
 ADDON_LIST_KEY = 'taar/locale/top10_dict.json'
@@ -21,13 +23,20 @@ class LocaleRecommender(AbstractRecommender):
     """
     def __init__(self, ctx):
         self._ctx = ctx
+
+        if 'locale_mock_data' in self._ctx:
+            self._top_addons_per_locale = self._ctx['locale_mock_data']
+        else:
+            self._top_addons_per_locale = LazyJSONLoader(ADDON_LIST_BUCKET, ADDON_LIST_KEY)
+
         self._init_from_ctx()
         self.logger = self._ctx[IMozLogging].get_logger('taar')
 
+    @property
+    def top_addons_per_locale(self):
+        return self._top_addons_per_locale.get()[0]
+
     def _init_from_ctx(self):
-        cache = self._ctx['cache']
-        self.top_addons_per_locale = cache.get_s3_json_content(ADDON_LIST_BUCKET,
-                                                               ADDON_LIST_KEY)
         if self.top_addons_per_locale is None:
             self.logger.error("Cannot download the top per locale file {}".format(ADDON_LIST_KEY))
 
