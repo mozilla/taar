@@ -14,7 +14,7 @@ EXPECTED = {'collaborative': 1000,
             'locale': 10}
 
 
-def install_mock_data(ctx):
+def install_mock_ensemble_data(ctx):
     DATA = {'ensemble_weights': EXPECTED}
 
     S3_BUCKET = 'telemetry-parquet'
@@ -33,7 +33,7 @@ def install_mock_data(ctx):
 
 @mock_s3
 def test_weight_cache(test_ctx):
-    ctx = install_mock_data(test_ctx)
+    ctx = install_mock_ensemble_data(test_ctx)
     wc = WeightCache(ctx)
     actual = wc.getWeights()
     assert EXPECTED == actual
@@ -41,7 +41,7 @@ def test_weight_cache(test_ctx):
 
 @mock_s3
 def test_recommendations(test_ctx):
-    ctx = install_mock_data(test_ctx)
+    ctx = install_mock_ensemble_data(test_ctx)
 
     EXPECTED_RESULTS = [('ghi', 3430.0),
                         ('def', 3320.0),
@@ -65,7 +65,7 @@ def test_recommendations(test_ctx):
 
 @mock_s3
 def test_preinstalled_guids(test_ctx):
-    ctx = install_mock_data(test_ctx)
+    ctx = install_mock_ensemble_data(test_ctx)
 
     EXPECTED_RESULTS = [('ghi', 3430.0),
                         ('ijk', 3200.0),

@@ -9,10 +9,10 @@ from taar.profile_fetcher import ProfileFetcher
 from taar.recommenders import RecommendationManager
 from taar.recommenders.lazys3 import LazyJSONLoader
 from taar.schema import INTERVENTION_A
+from taar.schema import INTERVENTION_B
 from taar.recommenders.base_recommender import AbstractRecommender
 from .mocks import MockProfileController, MockRecommenderFactory
-
-import pytest
+from .test_hybrid_recommender import install_mock_curated_data
 
 
 class StubRecommender(AbstractRecommender):
@@ -62,12 +62,30 @@ def test_none_profile_returns_empty_list(test_ctx):
     assert rec_manager.recommend("random-client-id", 10) == []
 
 
-@pytest.mark.skip("InterventionB isn't implemented yet")
 @mock_s3
-def test_intervention_b():
+def test_intervention_b(test_ctx):
     """The recommendation manager is currently very naive and just
     selects the first recommender which returns 'True' to
     can_recommend()."""
+
+    ctx = install_mocks(test_ctx)
+    ctx = install_mock_curated_data(ctx)
+
+    factory = MockRecommenderFactory()
+
+    class MockProfileFetcher:
+        def get(self, client_id):
+            return {'client_id': client_id}
+
+    ctx['recommender_factory'] = factory
+    ctx['profile_fetcher'] = MockProfileFetcher()
+    manager = RecommendationManager(ctx.child())
+    recommendation_list = manager.recommend('some_ignored_id',
+                                            4,
+                                            extra_data={'branch': INTERVENTION_B})
+
+    assert isinstance(recommendation_list, list)
+    assert len(recommendation_list) == 4
 
 
 @mock_s3

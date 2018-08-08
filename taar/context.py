@@ -14,15 +14,14 @@ chain.
 """
 
 # Clobber the Context name to prevent messy name collisions
-from srgutil.context import Context as _Context
+from srgutil.context import default_context as _default_context
 
 
 def default_context():
-    ctx = _Context()
+    ctx = _default_context()
     from taar.recommenders import CollaborativeRecommender
     from taar.recommenders import SimilarityRecommender
     from taar.recommenders import LocaleRecommender
-    from taar.cache import Clock
 
     # Note that the EnsembleRecommender is *not* in this map as it
     # needs to ensure that the recommender_map key is installed in the
@@ -31,5 +30,4 @@ def default_context():
                                       'similarity': lambda: SimilarityRecommender(ctx.child()),
                                       'locale': lambda: LocaleRecommender(ctx.child())}
 
-    ctx['clock'] = Clock()
     return ctx
