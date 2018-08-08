@@ -27,7 +27,9 @@ class LocaleRecommender(AbstractRecommender):
         if 'locale_mock_data' in self._ctx:
             self._top_addons_per_locale = self._ctx['locale_mock_data']
         else:
-            self._top_addons_per_locale = LazyJSONLoader(ADDON_LIST_BUCKET, ADDON_LIST_KEY)
+            self._top_addons_per_locale = LazyJSONLoader(self._ctx,
+                                                         ADDON_LIST_BUCKET,
+                                                         ADDON_LIST_KEY)
 
         self._init_from_ctx()
         self.logger = self._ctx[IMozLogging].get_logger('taar')

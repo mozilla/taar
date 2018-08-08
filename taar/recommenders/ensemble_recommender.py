@@ -19,7 +19,7 @@ class WeightCache:
         if 'ensemble_weights' in self._ctx:
             self._weights = self._ctx['ensemble_weights']
         else:
-            self._weights = LazyJSONLoader(ctx,
+            self._weights = LazyJSONLoader(self._ctx,
                                            S3_BUCKET,
                                            ENSEMBLE_WEIGHTS)
 
