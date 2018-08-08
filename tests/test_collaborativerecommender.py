@@ -39,7 +39,6 @@ def install_none_mock_data(ctx):
                                                       ITEM_MATRIX_CONFIG[0],
                                                       ITEM_MATRIX_CONFIG[1])
 
-
     # Don't reuse connections with moto.  badness happens
     conn = boto3.resource('s3', region_name='us-west-2')
     conn.create_bucket(Bucket=ADDON_MAPPING_CONFIG[0])
@@ -55,16 +54,12 @@ def install_mock_data(ctx):
     Overload the 'real' addon model and mapping URLs responses so that
     we always the fixture data at the top of this test module.
     """
-    conn = boto3.resource('s3', region_name='us-west-2')
 
     addon_space = [{"id": "addon1.id", "name": "addon1.name", "isWebextension": True},
                    {"id": "addon2.id", "name": "addon2.name", "isWebextension": True},
                    {"id": "addon3.id", "name": "addon3.name", "isWebextension": True},
                    {"id": "addon4.id", "name": "addon4.name", "isWebextension": True},
                    {"id": "addon5.id", "name": "addon5.name", "isWebextension": True}]
-
-    conn.create_bucket(Bucket=ITEM_MATRIX_CONFIG[0])
-    conn.create_bucket(Bucket=ADDON_MAPPING_CONFIG[0])
 
     fake_addon_matrix = []
     for i, addon in enumerate(addon_space):
@@ -77,7 +72,12 @@ def install_mock_data(ctx):
         java_hash = positive_hash(addon['id'])
         fake_mapping[str(java_hash)] = addon
 
+    conn = boto3.resource('s3', region_name='us-west-2')
+    conn.create_bucket(Bucket=ITEM_MATRIX_CONFIG[0])
     conn.Object(ITEM_MATRIX_CONFIG[0], ITEM_MATRIX_CONFIG[1]).put(Body=json.dumps(fake_addon_matrix))
+
+    conn = boto3.resource('s3', region_name='us-west-2')
+    conn.create_bucket(Bucket=ADDON_MAPPING_CONFIG[0])
     conn.Object(ADDON_MAPPING_CONFIG[0], ADDON_MAPPING_CONFIG[1]).put(Body=json.dumps(fake_mapping))
 
     ctx['collaborative_addon_mapping'] = LazyJSONLoader(ctx,
