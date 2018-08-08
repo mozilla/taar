@@ -2,10 +2,15 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import pytest
-from taar.cache import JSONCache, Clock
+from moto import mock_s3
+import boto3
+
+import json
+
 
 from taar.recommenders import LocaleRecommender
+from taar.recommenders.lazys3 import LazyJSONLoader
+from taar.recommenders.locale_recommender import ADDON_LIST_BUCKET, ADDON_LIST_KEY
 
 
 FAKE_LOCALE_DATA = {
@@ -19,22 +24,22 @@ FAKE_LOCALE_DATA = {
 }
 
 
-class MockUtils:
-    def get_s3_json_content(self, *args, **kwargs):
-        return FAKE_LOCALE_DATA
+def install_mock_data(ctx):
+    ctx = ctx.child()
+    conn = boto3.resource('s3', region_name='us-west-2')
+
+    conn.create_bucket(Bucket=ADDON_LIST_BUCKET)
+    conn.Object(ADDON_LIST_BUCKET, ADDON_LIST_KEY).put(Body=json.dumps(FAKE_LOCALE_DATA))
+    ctx['locale_mock_data'] = LazyJSONLoader(ctx,
+                                             ADDON_LIST_BUCKET,
+                                             ADDON_LIST_KEY)
+
+    return ctx
 
 
-@pytest.fixture
-def my_context(test_ctx):
-    ctx = test_ctx
-    ctx['utils'] = MockUtils()
-    ctx['clock'] = Clock()
-    ctx['cache'] = JSONCache(ctx)
-    return ctx.child()
-
-
-def test_can_recommend(my_context):
-    ctx = my_context
+@mock_s3
+def test_can_recommend(test_ctx):
+    ctx = install_mock_data(test_ctx)
     r = LocaleRecommender(ctx)
 
     # Test that we can't recommend if we have not enough client info.
@@ -45,8 +50,9 @@ def test_can_recommend(my_context):
     assert r.can_recommend({"locale": "en"})
 
 
-def test_can_recommend_no_model(my_context):
-    ctx = my_context
+@mock_s3
+def test_can_recommend_no_model(test_ctx):
+    ctx = install_mock_data(test_ctx)
     r = LocaleRecommender(ctx)
 
     # We should never be able to recommend if something went
@@ -56,14 +62,15 @@ def test_can_recommend_no_model(my_context):
     assert not r.can_recommend({"locale": "it"})
 
 
-def test_recommendations(my_context):
+@mock_s3
+def test_recommendations(test_ctx):
     """Test that the locale recommender returns the correct
     locale dependent addons.
 
     The JSON output for this recommender should be a list of 2-tuples
     of (GUID, weight).
     """
-    ctx = my_context
+    ctx = install_mock_data(test_ctx)
     r = LocaleRecommender(ctx)
     recommendations = r.recommend({"locale": "en"}, 10)
 
@@ -78,17 +85,8 @@ def test_recommendations(my_context):
         assert addon_id in FAKE_LOCALE_DATA["en"]
 
 
-def test_recommender_str(my_context):
-    """Tests that the string representation of the recommender is correct
-    """
-    # TODO: this test is brittle and should be removed once it is safe
-    # to do so
-    ctx = my_context
-    r = LocaleRecommender(ctx)
-    assert str(r) == "LocaleRecommender"
-
-
-def test_recommender_extra_data(my_context):
+@mock_s3
+def test_recommender_extra_data(test_ctx):
     # Test that the recommender uses locale data from the "extra"
     # section if available.
     def validate_recommendations(data, expected_locale):
@@ -102,7 +100,7 @@ def test_recommender_extra_data(my_context):
             assert addon_id in FAKE_LOCALE_DATA[expected_locale]
             assert 1 == weight
 
-    ctx = my_context
+    ctx = install_mock_data(test_ctx)
     r = LocaleRecommender(ctx)
     recommendations = r.recommend({}, 10, extra_data={"locale": "en"})
     validate_recommendations(recommendations, "en")
