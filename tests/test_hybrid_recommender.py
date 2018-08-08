@@ -7,27 +7,54 @@ Test cases for the TAAR Hybrid recommender
 """
 
 from taar.recommenders.hybrid_recommender import CuratedRecommender
-from taar.recommenders.hybrid_recommender import HybridRecommender
+
+from taar.recommenders.hybrid_recommender import S3_BUCKET
+from taar.recommenders.hybrid_recommender import CURATED_WHITELIST
+# from taar.recommenders.hybrid_recommender import ENSEMBLE_WEIGHTS
+from taar.recommenders.lazys3 import LazyJSONLoader
+
+import json
+from moto import mock_s3
+import boto3
 
 import pytest
 
 
-def activate_error_responses(ctx):
-    """
-    Overload the 'real' addon model and mapping URLs responses so that
-    we always get 404 errors.
-    """
+def install_no_curated_data(ctx):
     ctx = ctx.child()
+    conn = boto3.resource('s3', region_name='us-west-2')
 
-    class ErrorUtils:
-        def fetch_json(self, url):
-            return None
-    ctx['utils'] = ErrorUtils()
+    conn.create_bucket(Bucket=S3_BUCKET)
+    conn.Object(S3_BUCKET, CURATED_WHITELIST).put(Body="")
+    ctx['curated_whitelist_data'] = LazyJSONLoader(ctx,
+                                                   S3_BUCKET,
+                                                   CURATED_WHITELIST)
+
     return ctx
 
 
+def install_mock_curated_data(ctx):
+    mock_data = []
+    for i in range(20):
+        mock_data.append({'GUID': str(i) * 16,
+                          'Extension': 'WebExt %d' % i,
+                          'Copy (final)': 'Copy for %d' % i})
+
+    ctx = ctx.child()
+    conn = boto3.resource('s3', region_name='us-west-2')
+
+    conn.create_bucket(Bucket=S3_BUCKET)
+    conn.Object(S3_BUCKET, CURATED_WHITELIST).put(Body=json.dumps(mock_data))
+    ctx['curated_whitelist_data'] = LazyJSONLoader(ctx,
+                                                   S3_BUCKET,
+                                                   CURATED_WHITELIST)
+
+    return ctx
+
+
+@mock_s3
 def test_curated_can_recommend(test_ctx):
-    ctx = test_ctx
+    ctx = install_no_curated_data(test_ctx)
     r = CuratedRecommender(ctx)
 
     # CuratedRecommender will always recommend something no matter
@@ -36,25 +63,9 @@ def test_curated_can_recommend(test_ctx):
     assert r.can_recommend({"installed_addons": []})
 
 
-# These should fail because of s3 data loaders
-@pytest.mark.xfail
+@mock_s3
 def test_curated_recommendations(test_ctx):
-    ctx = test_ctx
-    r = CuratedRecommender(ctx)
-
-    # CuratedRecommender will always recommend something no matter
-    # what
-
-    for LIMIT in range(1, 5):
-        guid_list = r.recommend({'client_id': '000000'}, limit = LIMIT)
-        # The curated recommendations should always return with some kind
-        # of recommendations
-        assert len(guid_list) == LIMIT
-
-# These should fail because of s3 data loaders
-@pytest.mark.xfail
-def test_curated_recommendations(test_ctx):
-    ctx = test_ctx
+    ctx = install_mock_curated_data(test_ctx)
     r = CuratedRecommender(ctx)
 
     # CuratedRecommender will always recommend something no matter
@@ -67,7 +78,6 @@ def test_curated_recommendations(test_ctx):
         assert len(guid_list) == LIMIT
 
 
-
-@pytest.mark.skip("Waiting for better S3 data loader code")
+@pytest.mark.skip("TODO")
 def test_hybrid_recommendations(test_ctx):
-    apss
+    pass
