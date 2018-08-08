@@ -6,6 +6,7 @@ from .base_recommender import AbstractRecommender
 from .lazys3 import LazyJSONLoader
 from srgutil.interfaces import IMozLogging
 import random
+import operator as op
 
 S3_BUCKET = 'telemetry-parquet'
 
@@ -114,8 +115,6 @@ class HybridRecommender(AbstractRecommender):
         # the list of any preinstalled addons.
         extended_limit = limit + len(preinstalled_addon_ids)
 
-        ensemble_weights = self._weight_cache.getWeights()
-
         ensemble_suggestions = self._ensemble_recommender.recommend(client_data,
                                                                     extended_limit,
                                                                     extra_data)
@@ -128,23 +127,34 @@ class HybridRecommender(AbstractRecommender):
         # sequentially so that we do not bias one recommender over the
         # other.
         merged_results = set()
+
         while len(merged_results) < limit and len(ensemble_suggestions) > 0 and len(curated_suggestions) > 0:
 
             r1 = ensemble_suggestions.pop()
             if r1[0] not in [temp[0] for temp in merged_results]:
                 merged_results.add(r1)
 
+            # Terminate early if we have an odd number for the limit
+            if not (len(merged_results) < limit and
+                    len(ensemble_suggestions) > 0 and
+                    len(curated_suggestions) > 0):
+                break
+
             r2 = curated_suggestions.pop()
             if r2[0] not in [temp[0] for temp in merged_results]:
-                merged_results.add(r1)
+                merged_results.add(r2)
 
         if len(merged_results) < limit:
             msg = "Insufficient recommendations found for client: %s" % client_data['client_id']
             self.logger.info(msg)
             return []
 
+        sorted_results = sorted(list(merged_results),
+                                key=op.itemgetter(1),
+                                reverse=True)
+
         log_data = (client_data['client_id'],
-                    str(ensemble_weights),
-                    str([r[0] for r in merged_results]))
-        self.logger.info("client_id: [%s], ensemble_weight: [%s], guids: [%s]" % log_data)
-        return list(merged_results)
+                    str([r[0] for r in sorted_results]))
+
+        self.logger.info("client_id: [%s], guids: [%s]" % log_data)
+        return sorted_results
