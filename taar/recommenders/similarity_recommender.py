@@ -7,6 +7,7 @@ from itertools import groupby
 from scipy.spatial import distance
 from srgutil.interfaces import IMozLogging
 import numpy as np
+from .lazys3 import LazyJSONLoader
 
 FLOOR_DISTANCE_ADJUSTMENT = 0.001
 
@@ -14,6 +15,7 @@ CATEGORICAL_FEATURES = ["geo_city", "locale", "os"]
 CONTINUOUS_FEATURES = ["subsession_length", "bookmark_count", "tab_open_count", "total_uri", "unique_tlds"]
 
 S3_BUCKET = 'telemetry-parquet'
+
 DONOR_LIST_KEY = 'taar/similarity/donors.json'
 LR_CURVES_SIMILARITY_TO_PROBABILITY = 'taar/similarity/lr_curves.json'
 
@@ -38,19 +40,35 @@ class SimilarityRecommender(AbstractRecommender):
 
     def __init__(self, ctx):
         self._ctx = ctx
+
+        if 'similarity_donors_pool' in self._ctx:
+            self._donors_pool = self._ctx['similarity_donors_pool']
+        else:
+            self._donors_pool = LazyJSONLoader(S3_BUCKET, DONOR_LIST_KEY)
+
+        if 'similarity_lr_curves' in self._ctx:
+            self._lr_curves = self._ctx['similarity_lr_curves']
+        else:
+            self._lr_curves = LazyJSONLoader(S3_BUCKET, LR_CURVES_SIMILARITY_TO_PROBABILITY)
+
         self.logger = self._ctx[IMozLogging].get_logger('taar')
 
         self._init_from_ctx()
 
+    @property
+    def donors_pool(self):
+        return self._donors_pool.get()[0]
+
+    @property
+    def lr_curves(self):
+        return self._lr_curves.get()[0]
+
     def _init_from_ctx(self):
         # Download the addon donors list.
-        cache = self._ctx['cache']
-        self.donors_pool = cache.get_s3_json_content(S3_BUCKET, DONOR_LIST_KEY)
         if self.donors_pool is None:
             self.logger.error("Cannot download the donor list: {}".format(DONOR_LIST_KEY))
 
         # Download the probability mapping curves from similarity to likelihood of being a good donor.
-        self.lr_curves = cache.get_s3_json_content(S3_BUCKET, LR_CURVES_SIMILARITY_TO_PROBABILITY)
         if self.lr_curves is None:
             self.logger.error("Cannot download the lr curves: {}".format(LR_CURVES_SIMILARITY_TO_PROBABILITY))
         self.build_features_caches()

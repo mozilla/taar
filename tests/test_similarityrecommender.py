@@ -5,12 +5,14 @@
 import json
 import six
 
-import pytest
 import numpy as np
 import scipy.stats
+from taar.recommenders.lazys3 import LazyJSONLoader
 
-from taar.cache import JSONCache, Clock
+import boto3
+from moto import mock_s3
 
+from taar.recommenders.similarity_recommender import S3_BUCKET
 from taar.recommenders.similarity_recommender import \
     CATEGORICAL_FEATURES, CONTINUOUS_FEATURES, DONOR_LIST_KEY, LR_CURVES_SIMILARITY_TO_PROBABILITY, \
     SimilarityRecommender
@@ -55,68 +57,83 @@ def generate_a_fake_taar_client():
     }
 
 
-class MockNoDataUtils:
-    def get_s3_json_content(self, *args, **kwargs):
-        return None
+def install_no_data(ctx):
+    ctx = ctx.child()
+    conn = boto3.resource('s3', region_name='us-west-2')
+
+    conn.create_bucket(Bucket=S3_BUCKET)
+    conn.Object(S3_BUCKET, DONOR_LIST_KEY).put(Body="")
+
+    conn.Object(S3_BUCKET, LR_CURVES_SIMILARITY_TO_PROBABILITY).put(Body="")
+
+    ctx['similarity_donors_pool'] = LazyJSONLoader(ctx,
+                                                   S3_BUCKET,
+                                                   DONOR_LIST_KEY)
+
+    ctx['similarity_lr_curves'] = LazyJSONLoader(ctx,
+                                                 S3_BUCKET,
+                                                 LR_CURVES_SIMILARITY_TO_PROBABILITY)
+
+    return ctx
 
 
-class MockCategoricalData:
+def install_categorical_data(ctx):
+    ctx = ctx.child()
+    conn = boto3.resource('s3', region_name='us-west-2')
 
-    cat_data = json.loads(json.dumps(CATEGORICAL_FEATURE_FIXTURE_DATA))
-    lrs_data = json.loads(json.dumps(generate_fake_lr_curves(1000)))
+    conn.create_bucket(Bucket=S3_BUCKET)
+    conn.Object(S3_BUCKET, DONOR_LIST_KEY).put(Body=json.dumps(CATEGORICAL_FEATURE_FIXTURE_DATA))
 
-    def get_s3_json_content(self, bucket, key):
-        if key == DONOR_LIST_KEY:
-            return self.cat_data
-        if key == LR_CURVES_SIMILARITY_TO_PROBABILITY:
-            return self.lrs_data
+    conn.Object(S3_BUCKET, LR_CURVES_SIMILARITY_TO_PROBABILITY).put(Body=json.dumps(generate_fake_lr_curves(1000)))
 
+    ctx['similarity_donors_pool'] = LazyJSONLoader(ctx,
+                                                   S3_BUCKET,
+                                                   DONOR_LIST_KEY)
 
-class MockContinuousData:
+    ctx['similarity_lr_curves'] = LazyJSONLoader(ctx,
+                                                 S3_BUCKET,
+                                                 LR_CURVES_SIMILARITY_TO_PROBABILITY)
 
-    cts_data = json.loads(json.dumps(CONTINUOUS_FEATURE_FIXTURE_DATA))
-    lrs_data = json.loads(json.dumps(generate_fake_lr_curves(1000)))
-
-    def get_s3_json_content(self, bucket, key):
-        if key == DONOR_LIST_KEY:
-            return self.cts_data
-        if key == LR_CURVES_SIMILARITY_TO_PROBABILITY:
-            return self.lrs_data
+    return ctx
 
 
-@pytest.fixture
-def cat_test_ctx(test_ctx):
-    ctx = test_ctx
-    ctx['utils'] = MockCategoricalData()
-    ctx['clock'] = Clock()
-    ctx['cache'] = JSONCache(ctx)
-    return ctx.child()
+def install_continuous_data(ctx):
+    ctx = ctx.child()
+    cts_data = json.dumps(CONTINUOUS_FEATURE_FIXTURE_DATA)
+    lrs_data = json.dumps(generate_fake_lr_curves(1000))
+
+    conn = boto3.resource('s3', region_name='us-west-2')
+
+    conn.create_bucket(Bucket=S3_BUCKET)
+    conn.Object(S3_BUCKET, DONOR_LIST_KEY).put(Body=cts_data)
+
+    conn.Object(S3_BUCKET, LR_CURVES_SIMILARITY_TO_PROBABILITY).put(Body=lrs_data)
+
+    ctx['similarity_donors_pool'] = LazyJSONLoader(ctx,
+                                                   S3_BUCKET,
+                                                   DONOR_LIST_KEY)
+
+    ctx['similarity_lr_curves'] = LazyJSONLoader(ctx,
+                                                 S3_BUCKET,
+                                                 LR_CURVES_SIMILARITY_TO_PROBABILITY)
+
+    return ctx
 
 
-@pytest.fixture
-def cts_test_ctx(test_ctx):
-    ctx = test_ctx
-    ctx['utils'] = MockContinuousData()
-    ctx['clock'] = Clock()
-    ctx['cache'] = JSONCache(ctx)
-    return ctx.child()
-
-
+@mock_s3
 def test_soft_fail(test_ctx):
     # Create a new instance of a SimilarityRecommender.
-    ctx = test_ctx
-    ctx['utils'] = MockNoDataUtils()
-    ctx['clock'] = Clock()
-    ctx['cache'] = JSONCache(ctx)
+    ctx = install_no_data(test_ctx)
     r = SimilarityRecommender(ctx)
 
     # Don't recommend if the source files cannot be found.
     assert not r.can_recommend({})
 
 
-def test_can_recommend(cts_test_ctx):
+@mock_s3
+def test_can_recommend(test_ctx):
     # Create a new instance of a SimilarityRecommender.
-    ctx = cts_test_ctx
+    ctx = install_continuous_data(test_ctx)
     r = SimilarityRecommender(ctx)
 
     # Test that we can't recommend if we have not enough client info.
@@ -140,12 +157,11 @@ def test_can_recommend(cts_test_ctx):
         assert not r.can_recommend(profile_without_x)
 
 
-def test_recommendations(cts_test_ctx):
+@mock_s3
+def test_recommendations(test_ctx):
     # Create a new instance of a SimilarityRecommender.
-    ctx = cts_test_ctx
+    ctx = install_continuous_data(test_ctx)
     r = SimilarityRecommender(ctx)
-
-    # TODO: clobber the SimilarityRecommender::lr_curves
 
     recommendation_list = r.recommend(generate_a_fake_taar_client(), 1)
 
@@ -159,25 +175,28 @@ def test_recommendations(cts_test_ctx):
     assert type(weight) == np.float64
 
 
-def test_recommender_str(cts_test_ctx):
+@mock_s3
+def test_recommender_str(test_ctx):
     # Tests that the string representation of the recommender is correct.
-    ctx = cts_test_ctx
+    ctx = install_continuous_data(test_ctx)
     r = SimilarityRecommender(ctx)
     assert str(r) == "SimilarityRecommender"
 
 
-def test_get_lr(cts_test_ctx):
+@mock_s3
+def test_get_lr(test_ctx):
     # Tests that the likelihood ratio values are not empty for extreme values and are realistic.
-    ctx = cts_test_ctx
+    ctx = install_continuous_data(test_ctx)
     r = SimilarityRecommender(ctx)
     assert r.get_lr(0.0001) is not None
     assert r.get_lr(10.0) is not None
     assert r.get_lr(0.001) > r.get_lr(5.0)
 
 
-def test_compute_clients_dist(cts_test_ctx):
+@mock_s3
+def test_compute_clients_dist(test_ctx):
     # Test the distance function computation.
-    ctx = cts_test_ctx
+    ctx = install_continuous_data(test_ctx)
     r = SimilarityRecommender(ctx)
     test_clients = [
         {
@@ -229,9 +248,10 @@ def test_compute_clients_dist(cts_test_ctx):
     assert per_client_test[0] >= per_client_test[1] >= per_client_test[2]
 
 
-def test_distance_functions(cts_test_ctx):
+@mock_s3
+def test_distance_functions(test_ctx):
     # Tests the similarity functions via expected output when passing modified client data.
-    ctx = cts_test_ctx
+    ctx = install_continuous_data(test_ctx)
     r = SimilarityRecommender(ctx)
 
     # Generate a fake client.
@@ -271,9 +291,10 @@ def test_distance_functions(cts_test_ctx):
     assert abs((j_c + 0.01) * j_d) != 0.0
 
 
-def test_weights_continuous(cts_test_ctx):
+@mock_s3
+def test_weights_continuous(test_ctx):
     # Create a new instance of a SimilarityRecommender.
-    ctx = cts_test_ctx
+    ctx = install_continuous_data(test_ctx)
     r = SimilarityRecommender(ctx)
 
     # In the ensemble method recommendations should be a sorted list of tuples
@@ -303,7 +324,8 @@ def test_weights_continuous(cts_test_ctx):
     assert rec0_weight > rec1_weight > 1.0
 
 
-def test_weights_categorical(cat_test_ctx, cts_test_ctx):
+@mock_s3
+def test_weights_categorical(test_ctx):
     '''
     This should get :
         ["{test-guid-1}", "{test-guid-2}", "{test-guid-3}", "{test-guid-4}"],
@@ -313,9 +335,10 @@ def test_weights_categorical(cat_test_ctx, cts_test_ctx):
 
     '''
     # Create a new instance of a SimilarityRecommender.
-    ctx = cat_test_ctx
-    ctx2 = cts_test_ctx
-    wrapped = ctx2.wrap(ctx)
+    cat_ctx = install_categorical_data(test_ctx)
+    cts_ctx = install_continuous_data(test_ctx)
+
+    wrapped = cts_ctx.wrap(cat_ctx)
     r = SimilarityRecommender(wrapped)
 
     # In the ensemble method recommendations should be a sorted list of tuples
