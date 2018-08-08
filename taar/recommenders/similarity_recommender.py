@@ -44,12 +44,12 @@ class SimilarityRecommender(AbstractRecommender):
         if 'similarity_donors_pool' in self._ctx:
             self._donors_pool = self._ctx['similarity_donors_pool']
         else:
-            self._donors_pool = LazyJSONLoader(S3_BUCKET, DONOR_LIST_KEY)
+            self._donors_pool = LazyJSONLoader(self._ctx, S3_BUCKET, DONOR_LIST_KEY)
 
         if 'similarity_lr_curves' in self._ctx:
             self._lr_curves = self._ctx['similarity_lr_curves']
         else:
-            self._lr_curves = LazyJSONLoader(S3_BUCKET, LR_CURVES_SIMILARITY_TO_PROBABILITY)
+            self._lr_curves = LazyJSONLoader(self._ctx, S3_BUCKET, LR_CURVES_SIMILARITY_TO_PROBABILITY)
 
         self.logger = self._ctx[IMozLogging].get_logger('taar')
 
