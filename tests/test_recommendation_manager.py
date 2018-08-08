@@ -2,13 +2,14 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from taar.cache import JSONCache, Clock
-
+import boto3
+import json
+from moto import mock_s3
 from taar.profile_fetcher import ProfileFetcher
 from taar.recommenders import RecommendationManager
+from taar.recommenders.lazys3 import LazyJSONLoader
 from taar.schema import INTERVENTION_A
 from taar.recommenders.base_recommender import AbstractRecommender
-from .test_ensemblerecommender import Mocker
 from .mocks import MockProfileController, MockRecommenderFactory
 
 import pytest
@@ -28,40 +29,50 @@ class StubRecommender(AbstractRecommender):
         return self._recommendations
 
 
-@pytest.fixture
-def my_context(test_ctx):
-    ctx = test_ctx
-
+def install_mocks(ctx):
+    ctx = ctx.child()
     fetcher = ProfileFetcher(ctx)
     fetcher.set_client(MockProfileController(None))
     factory = MockRecommenderFactory()
     ctx['profile_fetcher'] = fetcher
     ctx['recommender_factory'] = factory
 
-    # Just populate the utils key for test when WeightCache is
-    # instantiated
-    ctx['utils'] = None
-    return ctx.child()
+    DATA = {'ensemble_weights': {'collaborative': 1000,
+                                 'similarity': 100,
+                                 'locale': 10}}
+
+    S3_BUCKET = 'telemetry-parquet'
+    ENSEMBLE_WEIGHTS = 'taar/ensemble/ensemble_weight.json'
+
+    conn = boto3.resource('s3', region_name='us-west-2')
+    conn.create_bucket(Bucket=S3_BUCKET)
+    conn.Object(S3_BUCKET, ENSEMBLE_WEIGHTS).put(Body=json.dumps(DATA))
+
+    ctx['ensemble_weights'] = LazyJSONLoader(ctx,
+                                             S3_BUCKET,
+                                             ENSEMBLE_WEIGHTS)
+
+    return ctx
 
 
-def test_none_profile_returns_empty_list(my_context):
-    ctx = my_context
-    ctx['clock'] = Clock()
-    ctx['cache'] = JSONCache(ctx)
+@mock_s3
+def test_none_profile_returns_empty_list(test_ctx):
+    ctx = install_mocks(test_ctx)
     rec_manager = RecommendationManager(ctx)
     assert rec_manager.recommend("random-client-id", 10) == []
 
 
 @pytest.mark.skip("InterventionB isn't implemented yet")
+@mock_s3
 def test_intervention_b():
     """The recommendation manager is currently very naive and just
     selects the first recommender which returns 'True' to
     can_recommend()."""
 
 
-
-def test_recommendations_via_manager(my_context):  # noqa
-    ctx = my_context
+@mock_s3
+def test_recommendations_via_manager(test_ctx):
+    ctx = install_mocks(test_ctx)
 
     EXPECTED_RESULTS = [('ghi', 3430.0),
                         ('def', 3320.0),
@@ -82,9 +93,6 @@ def test_recommendations_via_manager(my_context):  # noqa
 
     ctx['recommender_factory'] = factory
     ctx['profile_fetcher'] = MockProfileFetcher()
-    ctx['utils'] = Mocker()
-    ctx['clock'] = Clock()
-    ctx['cache'] = JSONCache(ctx)
     manager = RecommendationManager(ctx.child())
     recommendation_list = manager.recommend('some_ignored_id',
                                             10,

@@ -90,13 +90,19 @@ def install_mock_data(ctx):
 
 
 @mock_s3
-def test_can_recommend(test_ctx):
+def test_cant_recommend(test_ctx):
     ctx = install_mock_data(test_ctx)
     r = CollaborativeRecommender(ctx)
 
     # Test that we can't recommend if we have not enough client info.
     assert not r.can_recommend({})
     assert not r.can_recommend({"installed_addons": []})
+
+
+@mock_s3
+def test_can_recommend(test_ctx):
+    ctx = install_mock_data(test_ctx)
+    r = CollaborativeRecommender(ctx)
 
     # For some reason, moto doesn't like to play nice with this call
     # Check that we can recommend if we the user has at least an addon.
