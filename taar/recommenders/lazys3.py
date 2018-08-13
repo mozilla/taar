@@ -1,7 +1,10 @@
 import boto3
-import json
+from botocore.client import Config
+
 from srgutil.interfaces import IMozLogging, IClock
+import json
 import threading
+import time
 
 
 class LazyJSONLoader:
@@ -60,15 +63,21 @@ class LazyJSONLoader:
             raw_bytes = None
             try:
                 # We need to force a data reload from S3
-                s3 = boto3.resource('s3')
+                config = Config(connect_timeout=10, retries={'max_attempts': 3})
+                s3 = boto3.resource('s3', config=config)
+
+                start_load = time.time()
                 raw_bytes = (
                     s3
                     .Object(self._s3_bucket, self._s3_key)
                     .get()['Body']
                     .read()
                 )
-                msg = "Loaded JSON from S3: {}. Byte count: {}"
-                self.logger.info(msg.format(self._key_str, len(raw_bytes)))
+                end_load = time.time()
+                load_time = (end_load-start_load)
+                msg = "Loaded JSON from S3: {}. Byte count: {:d}.  Time to Load: {:0.3f}"
+                msg_params = self._key_str, len(raw_bytes), load_time
+                self.logger.info(msg.format(*msg_params))
 
                 raw_data = (
                     raw_bytes.decode('utf-8')
