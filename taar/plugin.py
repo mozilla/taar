@@ -12,7 +12,6 @@ from taar.profile_fetcher import ProfileFetcher
 from taar import recommenders
 
 # These are configurations that are specific to the TAAR library
-VALID_BRANCHES = set(['linear', 'ensemble', 'control'])
 TAAR_MAX_RESULTS = config('TAAR_MAX_RESULTS', default=10, cast=int)
 
 
@@ -45,14 +44,6 @@ def configure_plugin(app):
         client_id = str(uuid_client_id)
 
         branch = request.args.get('branch', '')
-
-        if branch.endswith('-taar'):
-            branch = branch.replace("-taar", "")
-
-        if branch not in VALID_BRANCHES:
-            # Force branch to be a control branch if an invalid request
-            # comes in.
-            branch = 'control'
 
         extra_data = {'branch': branch}
 
