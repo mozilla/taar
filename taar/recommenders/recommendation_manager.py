@@ -17,8 +17,11 @@ from taar.schema import INTERVENTION_A
 from taar.schema import INTERVENTION_B
 from taar.schema import INTERVENTION_CONTROL
 
-logger = logging.getLogger(__name__)
+from taar.context import default_context
+from srgutil.interfaces import IMozLogging
 
+ctx = default_context()
+schema_logger = ctx[IMozLogging].get_logger('taar.schema_validate')
 
 def schema_validate(colandar_schema):
     """
@@ -63,11 +66,11 @@ def schema_validate(colandar_schema):
             try:
                 schema.deserialize(json_args)
             except colander.Invalid as e:
-                msg = "Error deserializing input arguments: " + str(e.asdict().values())
+                msg = "Defaulting to empty results. Error deserializing input arguments: " + str(e.asdict().values())
 
                 # This logger can't use the context logger as the code
                 # is running in a method decorator
-                logger.warn(msg)
+                schema_logger.warn(msg)
                 # Invalid data means TAAR safely returns an empty list
                 return []
             return func(*w_args, **w_kwargs)
@@ -133,6 +136,7 @@ class RecommendationManager:
         """
         client_info = self.profile_fetcher.get(client_id)
         if client_info is None:
+            self.logger.warn("Defaulting to empty results.  No client info fetched from dynamo.")
             return []
 
         # Select recommendation output based on extra_data['branch']
@@ -144,15 +148,18 @@ class RecommendationManager:
 
     def recommend_intervention_a(self, client_info, client_id, limit, extra_data):
         """ Intervention A is the ensemble method """
+        self.logger.info("Intervention A recommendation method invoked")
         recommender = self._recommender_map[INTERVENTION_A]
         return recommender.recommend(client_info, limit, extra_data)
 
     def recommend_intervention_b(self, client_info, client_id, limit, extra_data):
         """ Intervention A is the ensemble method hybridized with a
         curated list of addons """
+        self.logger.info("Intervention B recommendation method invoked")
         recommender = self._recommender_map[INTERVENTION_B]
         return recommender.recommend(client_info, limit, extra_data)
 
-    def recommend_intervention_control(self, client_info, client_id, limit, extra_data):
+    def recommend_control(self, client_info, client_id, limit, extra_data):
         """Run the control recommender - that is nothing"""
+        self.logger.info("Control recommendation method invoked")
         return []

@@ -37,7 +37,7 @@ class EnsembleRecommender(AbstractRecommender):
     def __init__(self, ctx):
         self.RECOMMENDER_KEYS = ['collaborative', 'similarity', 'locale']
         self._ctx = ctx
-        self.logger = self._ctx[IMozLogging].get_logger('taar')
+        self.logger = self._ctx[IMozLogging].get_logger('taar.ensemble')
 
         assert 'recommender_factory' in self._ctx
 
@@ -56,8 +56,10 @@ class EnsembleRecommender(AbstractRecommender):
     def can_recommend(self, client_data, extra_data={}):
         """The ensemble recommender is always going to be
         available if at least one recommender is available"""
-        return sum([self._recommender_map[rkey].can_recommend(client_data)
-                    for rkey in self.RECOMMENDER_KEYS])
+        result = sum([self._recommender_map[rkey].can_recommend(client_data)
+                      for rkey in self.RECOMMENDER_KEYS])
+        self.logger.info("Ensemble can_recommend: {}".format(result))
+        return result
 
     def recommend(self, client_data, limit, extra_data={}):
         """
@@ -73,7 +75,7 @@ class EnsembleRecommender(AbstractRecommender):
         weight each recommender appropriate so that the ordering is
         correct.
         """
-
+        self.logger.info("Ensemble recommend invoked")
         preinstalled_addon_ids = client_data.get('installed_addons', [])
 
         # Compute an extended limit by adding the length of
