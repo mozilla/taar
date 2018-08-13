@@ -67,8 +67,8 @@ class LazyJSONLoader:
                     .get()['Body']
                     .read()
                 )
-                msg = "Loaded JSON from S3: {}".format(self._key_str)
-                self.logger.info(msg)
+                msg = "Loaded JSON from S3: {}. Byte count: {}"
+                self.logger.info(msg.format(self._key_str, len(raw_bytes)))
 
                 raw_data = (
                     raw_bytes.decode('utf-8')

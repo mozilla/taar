@@ -57,12 +57,13 @@ class CuratedRecommender(AbstractRecommender):
     def __init__(self, ctx):
         self._ctx = ctx
 
-        self.logger = self._ctx[IMozLogging].get_logger('taar')
+        self.logger = self._ctx[IMozLogging].get_logger('taar.curated')
         self._curated_wl = CuratedWhitelistCache(self._ctx)
 
     def can_recommend(self, client_data, extra_data={}):
         """The Curated recommender will always be able to recommend
         something"""
+        self.logger.info("Curated can_recommend: {}".format(True))
         return True
 
     def recommend(self, client_data, limit, extra_data={}):
@@ -71,10 +72,10 @@ class CuratedRecommender(AbstractRecommender):
         """
         guids = self._curated_wl.get_randomized_guid_sample(limit)
 
-        log_data = (client_data['client_id'], str(guids))
-        self.logger.info("client_id: [%s], guids: [%s]" % log_data)
-
         results = [(guid, 1.0) for guid in guids]
+
+        log_data = (client_data['client_id'], str(guids))
+        self.logger.info("Curated recommendations client_id: [%s], guids: [%s]" % log_data)
         return results
 
 
@@ -98,7 +99,9 @@ class HybridRecommender(AbstractRecommender):
         available if at least one recommender is available"""
         ensemble_recommend = self._ensemble_recommender.can_recommend(client_data, extra_data)
         curated_recommend = self._curated_recommender.can_recommend(client_data, extra_data)
-        return ensemble_recommend and curated_recommend
+        result = ensemble_recommend and curated_recommend
+        self.logger.info("Hybrid can_recommend: {}".format(result))
+        return result
 
     def recommend(self, client_data, limit, extra_data={}):
         """
@@ -145,7 +148,7 @@ class HybridRecommender(AbstractRecommender):
                 merged_results.add(r2)
 
         if len(merged_results) < limit:
-            msg = "Insufficient recommendations found for client: %s" % client_data['client_id']
+            msg = "Defaulting to empty results. Insufficient recommendations found for client: %s" % client_data['client_id']
             self.logger.info(msg)
             return []
 
@@ -156,5 +159,5 @@ class HybridRecommender(AbstractRecommender):
         log_data = (client_data['client_id'],
                     str([r[0] for r in sorted_results]))
 
-        self.logger.info("client_id: [%s], guids: [%s]" % log_data)
+        self.logger.info("Hybrid recommendations client_id: [%s], guids: [%s]" % log_data)
         return sorted_results

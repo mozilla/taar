@@ -39,10 +39,11 @@ class ProfileController:
             json_byte_data = zlib.decompress(compressed_bytes)
             json_str_data = json_byte_data.decode('utf8')
             return json.loads(json_str_data)
-        except Exception:
+        except Exception as e:
             # Return None on error.  The caller in ProfileFetcher will
             # handle error logging
-            self.logger.error("Error loading client data for [%s]" % client_id)
+            msg = "Error loading client data for {}.  Error: {}"
+            self.logger.error(msg.format(client_id, str(e)))
             return None
 
 

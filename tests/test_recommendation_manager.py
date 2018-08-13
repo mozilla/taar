@@ -10,6 +10,7 @@ from taar.recommenders import RecommendationManager
 from taar.recommenders.lazys3 import LazyJSONLoader
 from taar.schema import INTERVENTION_A
 from taar.schema import INTERVENTION_B
+from taar.schema import INTERVENTION_CONTROL
 from taar.recommenders.base_recommender import AbstractRecommender
 from .mocks import MockProfileController, MockRecommenderFactory
 from .test_hybrid_recommender import install_mock_curated_data
@@ -63,33 +64,7 @@ def test_none_profile_returns_empty_list(test_ctx):
 
 
 @mock_s3
-def test_intervention_b(test_ctx):
-    """The recommendation manager is currently very naive and just
-    selects the first recommender which returns 'True' to
-    can_recommend()."""
-
-    ctx = install_mocks(test_ctx)
-    ctx = install_mock_curated_data(ctx)
-
-    factory = MockRecommenderFactory()
-
-    class MockProfileFetcher:
-        def get(self, client_id):
-            return {'client_id': client_id}
-
-    ctx['recommender_factory'] = factory
-    ctx['profile_fetcher'] = MockProfileFetcher()
-    manager = RecommendationManager(ctx.child())
-    recommendation_list = manager.recommend('some_ignored_id',
-                                            4,
-                                            extra_data={'branch': INTERVENTION_B})
-
-    assert isinstance(recommendation_list, list)
-    assert len(recommendation_list) == 4
-
-
-@mock_s3
-def test_recommendations_via_manager(test_ctx):
+def test_intervention_a(test_ctx):
     ctx = install_mocks(test_ctx)
 
     EXPECTED_RESULTS = [('ghi', 3430.0),
@@ -118,3 +93,60 @@ def test_recommendations_via_manager(test_ctx):
 
     assert isinstance(recommendation_list, list)
     assert recommendation_list == EXPECTED_RESULTS
+
+
+@mock_s3
+def test_intervention_b(test_ctx):
+    """The recommendation manager is currently very naive and just
+    selects the first recommender which returns 'True' to
+    can_recommend()."""
+
+    ctx = install_mocks(test_ctx)
+    ctx = install_mock_curated_data(ctx)
+
+    factory = MockRecommenderFactory()
+
+    class MockProfileFetcher:
+        def get(self, client_id):
+            return {'client_id': client_id}
+
+    ctx['recommender_factory'] = factory
+    ctx['profile_fetcher'] = MockProfileFetcher()
+    manager = RecommendationManager(ctx.child())
+    recommendation_list = manager.recommend('some_ignored_id',
+                                            4,
+                                            extra_data={'branch': INTERVENTION_B})
+
+    assert isinstance(recommendation_list, list)
+    assert len(recommendation_list) == 4
+
+
+@mock_s3
+def test_intervention_control(test_ctx):
+    ctx = install_mocks(test_ctx)
+    ctx = install_mock_curated_data(ctx)
+
+    factory = MockRecommenderFactory()
+
+    class MockProfileFetcher:
+        def get(self, client_id):
+            return {'client_id': client_id}
+
+    ctx['recommender_factory'] = factory
+    ctx['profile_fetcher'] = MockProfileFetcher()
+    manager = RecommendationManager(ctx.child())
+    recommendation_list = manager.recommend('some_ignored_id',
+                                            10,
+                                            extra_data={'branch': INTERVENTION_CONTROL})
+
+    assert len(recommendation_list) == 0
+
+
+def test_fixed_client_id_valid():
+    # return 4 arbitrary GUIDs from the shortlist
+    pass
+
+def test_fixed_client_id_empty_list():
+    # return an empty list
+    pass
+
