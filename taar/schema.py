@@ -14,6 +14,8 @@ class ExtraDataSchema(colander.MappingSchema):
     branch = colander.SchemaNode(colander.String(),
                                  validator=colander.OneOf([INTERVENTION_A,
                                                            INTERVENTION_B,
+                                                           INTERVENTION_A.replace("_", '-'),
+                                                           INTERVENTION_B.replace("_", '-'),
                                                            INTERVENTION_CONTROL]))
 
 

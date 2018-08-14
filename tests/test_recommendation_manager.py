@@ -141,6 +141,27 @@ def test_fixed_client_id_valid(test_ctx):
 
 
 @mock_s3
+def test_intervention_names(test_ctx):
+    # verify that intervention names can use hyphens instead of
+    # underscore
+    ctx = install_mocks(test_ctx)
+    ctx = install_mock_curated_data(ctx)
+
+    manager = RecommendationManager(ctx.child())
+    recommendation_list = manager.recommend(TEST_CLIENT_IDS[0],
+                                            10,
+                                            extra_data={'branch': 'intervention-a'})
+
+    assert len(recommendation_list) == 10
+
+    recommendation_list = manager.recommend(TEST_CLIENT_IDS[0],
+                                            10,
+                                            extra_data={'branch': 'intervention-b'})
+
+    assert len(recommendation_list) == 10
+
+
+@mock_s3
 def test_fixed_client_id_empty_list(test_ctx):
     ctx = install_mocks(test_ctx)
     ctx = install_mock_curated_data(ctx)
