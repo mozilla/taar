@@ -5,14 +5,15 @@
 import boto3
 import json
 from moto import mock_s3
-from taar.profile_fetcher import ProfileFetcher
 from taar.recommenders import RecommendationManager
+from taar.recommenders.recommendation_manager import TEST_CLIENT_IDS
+from taar.recommenders.recommendation_manager import EMPTY_TEST_CLIENT_IDS
 from taar.recommenders.lazys3 import LazyJSONLoader
 from taar.schema import INTERVENTION_A
 from taar.schema import INTERVENTION_B
 from taar.schema import INTERVENTION_CONTROL
 from taar.recommenders.base_recommender import AbstractRecommender
-from .mocks import MockProfileController, MockRecommenderFactory
+from .mocks import MockRecommenderFactory
 from .test_hybrid_recommender import install_mock_curated_data
 
 
@@ -120,11 +121,39 @@ def test_intervention_control(test_ctx):
     assert len(recommendation_list) == 0
 
 
-def test_fixed_client_id_valid():
-    # return 4 arbitrary GUIDs from the shortlist
-    pass
+@mock_s3
+def test_fixed_client_id_valid(test_ctx):
+    ctx = install_mocks(test_ctx)
+    ctx = install_mock_curated_data(ctx)
 
-def test_fixed_client_id_empty_list():
-    # return an empty list
-    pass
+    manager = RecommendationManager(ctx.child())
+    recommendation_list = manager.recommend(TEST_CLIENT_IDS[0],
+                                            10,
+                                            extra_data={'branch': INTERVENTION_A})
 
+    assert len(recommendation_list) == 10
+
+    recommendation_list = manager.recommend(TEST_CLIENT_IDS[0],
+                                            10,
+                                            extra_data={'branch': INTERVENTION_B})
+
+    assert len(recommendation_list) == 10
+
+
+@mock_s3
+def test_fixed_client_id_empty_list(test_ctx):
+    ctx = install_mocks(test_ctx)
+    ctx = install_mock_curated_data(ctx)
+
+    manager = RecommendationManager(ctx.child())
+    recommendation_list = manager.recommend(EMPTY_TEST_CLIENT_IDS[0],
+                                            10,
+                                            extra_data={'branch': INTERVENTION_A})
+
+    assert len(recommendation_list) == 0
+
+    recommendation_list = manager.recommend(EMPTY_TEST_CLIENT_IDS[0],
+                                            10,
+                                            extra_data={'branch': INTERVENTION_B})
+
+    assert len(recommendation_list) == 0
