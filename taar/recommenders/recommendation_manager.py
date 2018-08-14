@@ -152,6 +152,14 @@ class RecommendationManager:
         :param limit: the maximum number of recommendations to return.
         :param extra_data: a dictionary with extra client data.
         """
+
+        # Select recommendation output based on extra_data['branch']
+        branch_selector = extra_data.get('branch', INTERVENTION_CONTROL)
+        method_selector = branch_selector.replace('-', '_')
+        method_name = 'recommend_{}'.format(method_selector)
+        self.logger.info("Dispatching to method [{}]".format(method_name))
+        branch_method = getattr(self, 'recommend_%s' % method_selector)
+
         if client_id in TEST_CLIENT_IDS:
             data = self._whitelist_data.get()[0]
             random.shuffle(data)
@@ -168,14 +176,6 @@ class RecommendationManager:
             self.logger.warn("Defaulting to empty results.  No client info fetched from dynamo.")
             return []
 
-        # Select recommendation output based on extra_data['branch']
-        branch_selector = extra_data.get('branch', INTERVENTION_CONTROL)
-        method_selector = branch_selector.replace('-', '_')
-
-        method_name = 'recommend_{}'.format(method_selector)
-
-        self.logger.info("Dispatching to method [{}]".format(method_name))
-        branch_method = getattr(self, 'recommend_%s' % method_selector)
         return branch_method(client_info, client_id, limit, extra_data)
 
     def recommend_intervention_a(self, client_info, client_id, limit, extra_data):
