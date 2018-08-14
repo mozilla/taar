@@ -8,7 +8,6 @@ from taar.schema import RecommendationManagerQuerySchema
 from srgutil.interfaces import IMozLogging
 
 import colander
-import logging
 
 from funcsigs import signature as inspect_sig
 import funcsigs
@@ -18,10 +17,26 @@ from taar.schema import INTERVENTION_B
 from taar.schema import INTERVENTION_CONTROL
 
 from taar.context import default_context
-from srgutil.interfaces import IMozLogging
 
+from .lazys3 import LazyJSONLoader
+import random
+
+# We need to build a default logger for the schema validation as there
+# is no class to bind to yet.
 ctx = default_context()
 schema_logger = ctx[IMozLogging].get_logger('taar.schema_validate')
+
+
+TEST_CLIENT_IDS = ['00000000-0000-0000-0000-000000000000',
+                   '11111111-1111-1111-1111-111111111111',
+                   '22222222-2222-2222-2222-222222222222',
+                   '33333333-3333-3333-3333-333333333333']
+
+EMPTY_TEST_CLIENT_IDS = ['00000000-aaaa-0000-0000-000000000000',
+                         '11111111-aaaa-1111-1111-111111111111',
+                         '22222222-aaaa-2222-2222-222222222222',
+                         '33333333-aaaa-3333-3333-333333333333']
+
 
 def schema_validate(colandar_schema):
     """
@@ -111,9 +126,7 @@ class RecommendationManager:
 
         assert 'profile_fetcher' in self._ctx
 
-        profile_fetcher = ctx['profile_fetcher']
-
-        self.profile_fetcher = profile_fetcher
+        self.profile_fetcher = ctx['profile_fetcher']
         self._recommender_map = {}
 
         self.logger.info("Initializing recommenders")
@@ -122,6 +135,11 @@ class RecommendationManager:
         hybrid_ctx = self._ctx.child()
         hybrid_ctx['ensemble_recommender'] = self._recommender_map[INTERVENTION_A]
         self._recommender_map[INTERVENTION_B] = HybridRecommender(hybrid_ctx)
+
+        # The whitelist data is only used for test client IDs
+        WHITELIST_S3_BUCKET = 'telemetry-parquet'
+        WHITELIST_S3_KEY = 'telemetry-ml/addon_recommender/top_200_whitelist.json'
+        self._whitelist_data = LazyJSONLoader(self._ctx, WHITELIST_S3_BUCKET, WHITELIST_S3_KEY)
 
     @schema_validate(RecommendationManagerQuerySchema)
     def recommend(self, client_id, limit, extra_data={}):
@@ -134,6 +152,17 @@ class RecommendationManager:
         :param limit: the maximum number of recommendations to return.
         :param extra_data: a dictionary with extra client data.
         """
+        if client_id in TEST_CLIENT_IDS:
+            data = self._whitelist_data.get()[0]
+            random.shuffle(data)
+            samples = data[:limit]
+            self.logger.info("Test ID detected [{}]".format(client_id))
+            return [(s['GUID'], 1.1) for s in samples]
+
+        if client_id in EMPTY_TEST_CLIENT_IDS:
+            self.logger.info("Empty Test ID detected [{}]".format(client_id))
+            return []
+
         client_info = self.profile_fetcher.get(client_id)
         if client_info is None:
             self.logger.warn("Defaulting to empty results.  No client info fetched from dynamo.")
