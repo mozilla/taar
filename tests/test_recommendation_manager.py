@@ -32,11 +32,13 @@ class StubRecommender(AbstractRecommender):
 
 def install_mocks(ctx):
     ctx = ctx.child()
-    fetcher = ProfileFetcher(ctx)
-    fetcher.set_client(MockProfileController(None))
-    factory = MockRecommenderFactory()
-    ctx['profile_fetcher'] = fetcher
-    ctx['recommender_factory'] = factory
+
+    class MockProfileFetcher:
+        def get(self, client_id):
+            return {'client_id': client_id}
+
+    ctx['profile_fetcher'] = MockProfileFetcher()
+    ctx['recommender_factory'] = MockRecommenderFactory()
 
     DATA = {'ensemble_weights': {'collaborative': 1000,
                                  'similarity': 100,
@@ -78,14 +80,6 @@ def test_intervention_a(test_ctx):
                         ('fgh', 22.0),
                         ('efg', 21.0)]
 
-    factory = MockRecommenderFactory()
-
-    class MockProfileFetcher:
-        def get(self, client_id):
-            return {'client_id': client_id}
-
-    ctx['recommender_factory'] = factory
-    ctx['profile_fetcher'] = MockProfileFetcher()
     manager = RecommendationManager(ctx.child())
     recommendation_list = manager.recommend('some_ignored_id',
                                             10,
@@ -104,14 +98,6 @@ def test_intervention_b(test_ctx):
     ctx = install_mocks(test_ctx)
     ctx = install_mock_curated_data(ctx)
 
-    factory = MockRecommenderFactory()
-
-    class MockProfileFetcher:
-        def get(self, client_id):
-            return {'client_id': client_id}
-
-    ctx['recommender_factory'] = factory
-    ctx['profile_fetcher'] = MockProfileFetcher()
     manager = RecommendationManager(ctx.child())
     recommendation_list = manager.recommend('some_ignored_id',
                                             4,
@@ -126,14 +112,6 @@ def test_intervention_control(test_ctx):
     ctx = install_mocks(test_ctx)
     ctx = install_mock_curated_data(ctx)
 
-    factory = MockRecommenderFactory()
-
-    class MockProfileFetcher:
-        def get(self, client_id):
-            return {'client_id': client_id}
-
-    ctx['recommender_factory'] = factory
-    ctx['profile_fetcher'] = MockProfileFetcher()
     manager = RecommendationManager(ctx.child())
     recommendation_list = manager.recommend('some_ignored_id',
                                             10,
