@@ -10,7 +10,7 @@ import operator as op
 from .base_recommender import AbstractRecommender
 
 ITEM_MATRIX_CONFIG = ('telemetry-public-analysis-2', 'telemetry-ml/addon_recommender/item_matrix.json')
-ADDON_MAPPING_CONFIG = ('telemetry-ml', 'addon_recommender/addon_mapping.json')
+ADDON_MAPPING_CONFIG = ('telemetry-public-analysis-2', 'telemetry-ml/addon_recommender/addon_mapping.json')
 
 
 # http://garage.pimentech.net/libcommonPython_src_python_libcommon_javastringhashcode/
