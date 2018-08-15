@@ -91,7 +91,7 @@ Similarity Recommender:
 
 CollaborativeRecommender:
   * s3://telemetry-public-analysis-2/telemetry-ml/addon_recommender/item_matrix.json
-  * s3://telemetry-public-analysis-2/addon_recommender/addon_mapping.json
+  * s3://telemetry-public-analysis-2/telemetry-ml/addon_recommender/addon_mapping.json
 
 LocaleRecommender:
   * s3://telemetry-parquet/taar/locale/top10_dict.json
