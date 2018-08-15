@@ -73,3 +73,28 @@ hashes for each dependency.  To update the hashes, you will need to
 remove the run `make freeze` which forces all packages in the current
 virtualenv to be written out to requirement.txt with versions and SHA
 hashes.
+
+
+## Required S3 dependencies
+
+
+RecommendationManager:
+  * s3://telemetry-parquet/telemetry-ml/addon_recommender/top_200_whitelist.json
+
+Hybrid Recommender:
+  * s3://telemetry-parquet/taar/ensemble/ensemble_weight.json
+  * s3://telemetry-parquet/telemetry-ml/addon_recommender/top_200_whitelist.json
+
+Similarity Recommender:
+  * s3://telemetry-parquet/taar/similarity/donors.json
+  * s3://telemetry-parquet/taar/similarity/lr_curves.json
+
+CollaborativeRecommender:
+  * s3://telemetry-public-analysis-2/telemetry-ml/addon_recommender/item_matrix.json
+  * s3://telemetry-public-analysis-2/addon_recommender/addon_mapping.json
+
+LocaleRecommender:
+  * s3://telemetry-parquet/taar/locale/top10_dict.json
+
+EnsembleRecommender:
+  * s3://telemetry-parquet/taar/ensemble/ensemble_weight.json
