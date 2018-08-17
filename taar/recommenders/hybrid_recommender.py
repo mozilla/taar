@@ -11,19 +11,12 @@ import operator as op
 S3_BUCKET = 'telemetry-parquet'
 
 ENSEMBLE_WEIGHTS = 'taar/ensemble/ensemble_weight.json'
-CURATED_WHITELIST = 'telemetry-ml/addon_recommender/top_200_whitelist.json'
+CURATED_WHITELIST = 'telemetry-ml/addon_recommender/only_guids_top_200.json'
 
 
 class CuratedWhitelistCache:
     """
     This fetches the curated whitelist from S3.
-
-    A sample of the whitelist below :
-
-        [{'GUID': guid_string,
-          'Extension': extension_name,
-          'Copy (final)': english_description},
-        ]
     """
     def __init__(self, ctx):
         self._ctx = ctx
@@ -39,8 +32,7 @@ class CuratedWhitelistCache:
         """ Fetch a subset of randomzied GUIDs from the whitelist """
         dataset = self.get_whitelist()
         random.shuffle(dataset)
-        samples = dataset[:item_count]
-        return [s['GUID'] for s in samples]
+        return dataset[:item_count]
 
 
 class CuratedRecommender(AbstractRecommender):

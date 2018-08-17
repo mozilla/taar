@@ -38,9 +38,7 @@ def install_no_curated_data(ctx):
 def install_mock_curated_data(ctx):
     mock_data = []
     for i in range(20):
-        mock_data.append({'GUID': str(i) * 16,
-                          'Extension': 'WebExt %d' % i,
-                          'Copy (final)': 'Copy for %d' % i})
+        mock_data.append(str(i) * 16)
 
     ctx = ctx.child()
     conn = boto3.resource('s3', region_name='us-west-2')
