@@ -138,7 +138,7 @@ class RecommendationManager:
 
         # The whitelist data is only used for test client IDs
         WHITELIST_S3_BUCKET = 'telemetry-parquet'
-        WHITELIST_S3_KEY = 'telemetry-ml/addon_recommender/top_200_whitelist.json'
+        WHITELIST_S3_KEY = 'telemetry-ml/addon_recommender/only_guids_top_200.json'
         self._whitelist_data = LazyJSONLoader(self._ctx, WHITELIST_S3_BUCKET, WHITELIST_S3_KEY)
 
     @schema_validate(RecommendationManagerQuerySchema)
@@ -165,7 +165,7 @@ class RecommendationManager:
             random.shuffle(data)
             samples = data[:limit]
             self.logger.info("Test ID detected [{}]".format(client_id))
-            return [(s['GUID'], 1.1) for s in samples]
+            return [(s, 1.1) for s in samples]
 
         if client_id in EMPTY_TEST_CLIENT_IDS:
             self.logger.info("Empty Test ID detected [{}]".format(client_id))
