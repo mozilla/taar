@@ -74,7 +74,7 @@ class LazyJSONLoader:
                     .read()
                 )
                 end_load = time.time()
-                load_time = (end_load-start_load)
+                load_time = (end_load - start_load)
                 msg = "Loaded JSON from S3: {}. Byte count: {:d}.  Time to Load: {:0.3f}"
                 msg_params = self._key_str, len(raw_bytes), load_time
                 self.logger.info(msg.format(*msg_params))
