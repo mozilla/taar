@@ -87,7 +87,7 @@ def schema_validate(colandar_schema):  # noqa: C901
 
                 # This logger can't use the context logger as the code
                 # is running in a method decorator
-                schema_logger.warn(msg)
+                schema_logger.warning(msg)
                 # Invalid data means TAAR safely returns an empty list
                 return []
             return func(*w_args, **w_kwargs)
@@ -175,7 +175,7 @@ class RecommendationManager:
 
         client_info = self.profile_fetcher.get(client_id)
         if client_info is None:
-            self.logger.warn("Defaulting to empty results.  No client info fetched from dynamo.")
+            self.logger.warning("Defaulting to empty results.  No client info fetched from dynamo.")
             return []
 
         return branch_method(client_info, client_id, limit, extra_data)
