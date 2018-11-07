@@ -21,21 +21,29 @@ from taar.context import default_context
 from .lazys3 import LazyJSONLoader
 import random
 
+from .s3config import TAAR_WHITELIST_BUCKET
+from .s3config import TAAR_WHITELIST_KEY
+
+
 # We need to build a default logger for the schema validation as there
 # is no class to bind to yet.
 ctx = default_context()
-schema_logger = ctx[IMozLogging].get_logger('taar.schema_validate')
+schema_logger = ctx[IMozLogging].get_logger("taar.schema_validate")
 
 
-TEST_CLIENT_IDS = ['00000000-0000-0000-0000-000000000000',
-                   '11111111-1111-1111-1111-111111111111',
-                   '22222222-2222-2222-2222-222222222222',
-                   '33333333-3333-3333-3333-333333333333']
+TEST_CLIENT_IDS = [
+    "00000000-0000-0000-0000-000000000000",
+    "11111111-1111-1111-1111-111111111111",
+    "22222222-2222-2222-2222-222222222222",
+    "33333333-3333-3333-3333-333333333333",
+]
 
-EMPTY_TEST_CLIENT_IDS = ['00000000-aaaa-0000-0000-000000000000',
-                         '11111111-aaaa-1111-1111-111111111111',
-                         '22222222-aaaa-2222-2222-222222222222',
-                         '33333333-aaaa-3333-3333-333333333333']
+EMPTY_TEST_CLIENT_IDS = [
+    "00000000-aaaa-0000-0000-000000000000",
+    "11111111-aaaa-1111-1111-111111111111",
+    "22222222-aaaa-2222-2222-222222222222",
+    "33333333-aaaa-3333-3333-333333333333",
+]
 
 
 # TODO: rework this function as it seems to add a lot of overhead
@@ -45,6 +53,7 @@ def schema_validate(colandar_schema):  # noqa: C901
     Compute the function signature and apply a schema validator on the
     function.
     """
+
     def real_decorator(func):
         func_sig = inspect_sig(func)
 
@@ -52,7 +61,7 @@ def schema_validate(colandar_schema):  # noqa: C901
         json_arg_names = []
         for key in func_sig.parameters.keys():
             json_arg_names.append(key)
-            if key == 'self':
+            if key == "self":
                 continue
 
             default_val = func_sig.parameters[key].default
@@ -63,7 +72,7 @@ def schema_validate(colandar_schema):  # noqa: C901
 
         def wrapper(*w_args, **w_kwargs):
 
-            if json_arg_names[0] == 'self':
+            if json_arg_names[0] == "self":
                 # first arg is 'self', so this is a method.
                 # Strip out self when doing argument validation
                 for i, argval in enumerate(w_args[1:]):
@@ -83,7 +92,10 @@ def schema_validate(colandar_schema):  # noqa: C901
             try:
                 schema.deserialize(json_args)
             except colander.Invalid as e:
-                msg = "Defaulting to empty results. Error deserializing input arguments: " + str(e.asdict().values())
+                msg = (
+                    "Defaulting to empty results. Error deserializing input arguments: "
+                    + str(e.asdict().values())
+                )
 
                 # This logger can't use the context logger as the code
                 # is running in a method decorator
@@ -93,6 +105,7 @@ def schema_validate(colandar_schema):  # noqa: C901
             return func(*w_args, **w_kwargs)
 
         return wrapper
+
     return real_decorator
 
 
@@ -104,10 +117,11 @@ class RecommenderFactory:
     the RecommendationManager and eases the implementation of test
     harnesses.
     """
+
     def __init__(self, ctx):
         self._ctx = ctx
         # This map is set in the default context
-        self._recommender_factory_map = self._ctx['recommender_factory_map']
+        self._recommender_factory_map = self._ctx["recommender_factory_map"]
 
     def get_names(self):
         return self._recommender_factory_map.keys()
@@ -124,24 +138,25 @@ class RecommendationManager:
         """Initialize the user profile fetcher and the recommenders.
         """
         self._ctx = ctx
-        self.logger = self._ctx[IMozLogging].get_logger('taar')
+        self.logger = self._ctx[IMozLogging].get_logger("taar")
 
-        assert 'profile_fetcher' in self._ctx
+        assert "profile_fetcher" in self._ctx
 
-        self.profile_fetcher = ctx['profile_fetcher']
+        self.profile_fetcher = ctx["profile_fetcher"]
         self._recommender_map = {}
 
         self.logger.info("Initializing recommenders")
         self._recommender_map[INTERVENTION_A] = EnsembleRecommender(self._ctx.child())
 
         hybrid_ctx = self._ctx.child()
-        hybrid_ctx['ensemble_recommender'] = self._recommender_map[INTERVENTION_A]
+        hybrid_ctx["ensemble_recommender"] = self._recommender_map[INTERVENTION_A]
         self._recommender_map[INTERVENTION_B] = HybridRecommender(hybrid_ctx)
 
         # The whitelist data is only used for test client IDs
-        WHITELIST_S3_BUCKET = 'telemetry-parquet'
-        WHITELIST_S3_KEY = 'telemetry-ml/addon_recommender/only_guids_top_200.json'
-        self._whitelist_data = LazyJSONLoader(self._ctx, WHITELIST_S3_BUCKET, WHITELIST_S3_KEY)
+
+        self._whitelist_data = LazyJSONLoader(
+            self._ctx, TAAR_WHITELIST_BUCKET, TAAR_WHITELIST_KEY
+        )
 
     @schema_validate(RecommendationManagerQuerySchema)
     def recommend(self, client_id, limit, extra_data={}):
@@ -156,11 +171,11 @@ class RecommendationManager:
         """
 
         # Select recommendation output based on extra_data['branch']
-        branch_selector = extra_data.get('branch', INTERVENTION_CONTROL)
-        method_selector = branch_selector.replace('-', '_')
-        method_name = 'recommend_{}'.format(method_selector)
+        branch_selector = extra_data.get("branch", INTERVENTION_CONTROL)
+        method_selector = branch_selector.replace("-", "_")
+        method_name = "recommend_{}".format(method_selector)
         self.logger.info("Dispatching to method [{}]".format(method_name))
-        branch_method = getattr(self, 'recommend_%s' % method_selector)
+        branch_method = getattr(self, "recommend_%s" % method_selector)
 
         if client_id in TEST_CLIENT_IDS:
             data = self._whitelist_data.get()[0]
@@ -175,7 +190,9 @@ class RecommendationManager:
 
         client_info = self.profile_fetcher.get(client_id)
         if client_info is None:
-            self.logger.warning("Defaulting to empty results.  No client info fetched from dynamo.")
+            self.logger.warning(
+                "Defaulting to empty results.  No client info fetched from dynamo."
+            )
             return []
 
         return branch_method(client_info, client_id, limit, extra_data)

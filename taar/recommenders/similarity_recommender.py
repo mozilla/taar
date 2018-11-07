@@ -9,6 +9,11 @@ from srgutil.interfaces import IMozLogging
 import numpy as np
 from .lazys3 import LazyJSONLoader
 
+from .s3config import TAAR_SIMILARITY_BUCKET
+from .s3config import TAAR_SIMILARITY_DONOR_KEY
+from .s3config import TAAR_SIMILARITY_LRCURVES_KEY
+
+
 FLOOR_DISTANCE_ADJUSTMENT = 0.001
 
 CATEGORICAL_FEATURES = ["geo_city", "locale", "os"]
@@ -19,11 +24,6 @@ CONTINUOUS_FEATURES = [
     "total_uri",
     "unique_tlds",
 ]
-
-S3_BUCKET = "telemetry-parquet"
-
-DONOR_LIST_KEY = "taar/similarity/donors.json"
-LR_CURVES_SIMILARITY_TO_PROBABILITY = "taar/similarity/lr_curves.json"
 
 
 class SimilarityRecommender(AbstractRecommender):
@@ -50,13 +50,15 @@ class SimilarityRecommender(AbstractRecommender):
         if "similarity_donors_pool" in self._ctx:
             self._donors_pool = self._ctx["similarity_donors_pool"]
         else:
-            self._donors_pool = LazyJSONLoader(self._ctx, S3_BUCKET, DONOR_LIST_KEY)
+            self._donors_pool = LazyJSONLoader(
+                self._ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY
+            )
 
         if "similarity_lr_curves" in self._ctx:
             self._lr_curves = self._ctx["similarity_lr_curves"]
         else:
             self._lr_curves = LazyJSONLoader(
-                self._ctx, S3_BUCKET, LR_CURVES_SIMILARITY_TO_PROBABILITY
+                self._ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY
             )
 
         self.logger = self._ctx[IMozLogging].get_logger("taar")
@@ -75,15 +77,13 @@ class SimilarityRecommender(AbstractRecommender):
         # Download the addon donors list.
         if self.donors_pool is None:
             self.logger.error(
-                "Cannot download the donor list: {}".format(DONOR_LIST_KEY)
+                "Cannot download the donor list: {}".format(TAAR_SIMILARITY_DONOR_KEY)
             )
 
         # Download the probability mapping curves from similarity to likelihood of being a good donor.
         if self.lr_curves is None:
             self.logger.error(
-                "Cannot download the lr curves: {}".format(
-                    LR_CURVES_SIMILARITY_TO_PROBABILITY
-                )
+                "Cannot download the lr curves: {}".format(TAAR_SIMILARITY_LRCURVES_KEY)
             )
         self.build_features_caches()
 
