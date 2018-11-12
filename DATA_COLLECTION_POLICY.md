@@ -4,12 +4,12 @@ Data collection policy and opt-out mechanisms pertaining to the Telemetry-Aware 
 Table of Contents (ToC):
 ===========================
 
-* [Overview](## Overview)
-* [Technical details](## Technical details)
-	* [Client-side](### Client-side data collection)
-	* [Server-side](### Data collected from the TAAR server (during response to client))
-* [Opt-out mechanisms](## Opt-out mechanisms for TAAR)
-* [Privacy considerations](## Privacy considerations)
+* [Overview](#overview)
+* [Technical details](#technical-details)
+	* [Client-side](#client-side-data-collection)
+	* [Server-side](#data-collected-from-the-taar-server)
+* [Opt-out mechanisms](#opt-out-mechanisms-for-taar)
+* [Privacy considerations](#privacy-considerations)
 
 ## Overview
 To better predict what extensions you may find interesting, Firefox uses the telemetry-Aware Add-on Recommender (TAAR) system—a Mozilla service that recommends extensions by examining basic browser telemetry. This means TAAR analyzes usage statistics from a large number of other Firefox users, looks at other extensions you may have installed, and considers general characteristics about your Firefox profile (like language preference). Based on this information, TAAR surfaces extension recommendations tailored just for you. 
@@ -24,7 +24,7 @@ The following data collection is implemented on the _client_
 
 * one-way hashed telemetry client_id: sha256(client_id)
 
-### Data collected from the TAAR server (during response to client)
+### Data collected from the TAAR server
 Note: this data is logged once a successful lookup has been performed associating a hashed client_id with a previously seen hashed client_id. The complete list of fields below is only collected in the the case that a successful response (including a set of recommendations has been has been made). This data is not from the client nor is it accessible by the client. It's included here for completeness.
 
 * timestamp (a timestamp object: system timestamp for the taar request)
