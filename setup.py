@@ -16,7 +16,6 @@ setup(
     install_requires=[
         'numpy',
         'requests',
-        'thriftpy',
         'six',
         'ply',
         'boto3',
