@@ -10,11 +10,9 @@ from taar.recommenders.hybrid_recommender import CuratedRecommender
 from taar.recommenders.hybrid_recommender import HybridRecommender
 from taar.recommenders.ensemble_recommender import EnsembleRecommender
 
-from taar.recommenders.hybrid_recommender import S3_BUCKET
-from taar.recommenders.hybrid_recommender import CURATED_WHITELIST
+from taar.recommenders.s3config import TAAR_WHITELIST_BUCKET, TAAR_WHITELIST_KEY
 
 # from taar.recommenders.hybrid_recommender import ENSEMBLE_WEIGHTS
-from taar.recommenders.lazys3 import LazyJSONLoader
 from .test_ensemblerecommender import install_mock_ensemble_data
 from .mocks import MockRecommenderFactory
 
@@ -27,9 +25,8 @@ def install_no_curated_data(ctx):
     ctx = ctx.child()
     conn = boto3.resource("s3", region_name="us-west-2")
 
-    conn.create_bucket(Bucket=S3_BUCKET)
-    conn.Object(S3_BUCKET, CURATED_WHITELIST).put(Body="")
-    ctx["curated_whitelist_data"] = LazyJSONLoader(ctx, S3_BUCKET, CURATED_WHITELIST)
+    conn.create_bucket(Bucket=TAAR_WHITELIST_BUCKET)
+    conn.Object(TAAR_WHITELIST_BUCKET, TAAR_WHITELIST_KEY).put(Body="")
 
     return ctx
 
@@ -42,9 +39,10 @@ def install_mock_curated_data(ctx):
     ctx = ctx.child()
     conn = boto3.resource("s3", region_name="us-west-2")
 
-    conn.create_bucket(Bucket=S3_BUCKET)
-    conn.Object(S3_BUCKET, CURATED_WHITELIST).put(Body=json.dumps(mock_data))
-    ctx["curated_whitelist_data"] = LazyJSONLoader(ctx, S3_BUCKET, CURATED_WHITELIST)
+    conn.create_bucket(Bucket=TAAR_WHITELIST_BUCKET)
+    conn.Object(TAAR_WHITELIST_BUCKET, TAAR_WHITELIST_KEY).put(
+        Body=json.dumps(mock_data)
+    )
 
     return ctx
 
