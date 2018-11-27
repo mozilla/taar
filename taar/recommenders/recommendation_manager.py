@@ -38,7 +38,9 @@ EMPTY_TEST_CLIENT_IDS = ['00000000-aaaa-0000-0000-000000000000',
                          '33333333-aaaa-3333-3333-333333333333']
 
 
-def schema_validate(colandar_schema):
+# TODO: rework this function as it seems to add a lot of overhead
+# See related issue https://github.com/mozilla/taar/issues/113
+def schema_validate(colandar_schema):  # noqa: C901
     """
     Compute the function signature and apply a schema validator on the
     function.

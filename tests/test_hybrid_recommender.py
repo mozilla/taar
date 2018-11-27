@@ -12,6 +12,7 @@ from taar.recommenders.ensemble_recommender import EnsembleRecommender
 
 from taar.recommenders.hybrid_recommender import S3_BUCKET
 from taar.recommenders.hybrid_recommender import CURATED_WHITELIST
+
 # from taar.recommenders.hybrid_recommender import ENSEMBLE_WEIGHTS
 from taar.recommenders.lazys3 import LazyJSONLoader
 from .test_ensemblerecommender import install_mock_ensemble_data
@@ -24,13 +25,11 @@ import boto3
 
 def install_no_curated_data(ctx):
     ctx = ctx.child()
-    conn = boto3.resource('s3', region_name='us-west-2')
+    conn = boto3.resource("s3", region_name="us-west-2")
 
     conn.create_bucket(Bucket=S3_BUCKET)
     conn.Object(S3_BUCKET, CURATED_WHITELIST).put(Body="")
-    ctx['curated_whitelist_data'] = LazyJSONLoader(ctx,
-                                                   S3_BUCKET,
-                                                   CURATED_WHITELIST)
+    ctx["curated_whitelist_data"] = LazyJSONLoader(ctx, S3_BUCKET, CURATED_WHITELIST)
 
     return ctx
 
@@ -41,13 +40,11 @@ def install_mock_curated_data(ctx):
         mock_data.append(str(i) * 16)
 
     ctx = ctx.child()
-    conn = boto3.resource('s3', region_name='us-west-2')
+    conn = boto3.resource("s3", region_name="us-west-2")
 
     conn.create_bucket(Bucket=S3_BUCKET)
     conn.Object(S3_BUCKET, CURATED_WHITELIST).put(Body=json.dumps(mock_data))
-    ctx['curated_whitelist_data'] = LazyJSONLoader(ctx,
-                                                   S3_BUCKET,
-                                                   CURATED_WHITELIST)
+    ctx["curated_whitelist_data"] = LazyJSONLoader(ctx, S3_BUCKET, CURATED_WHITELIST)
 
     return ctx
 
@@ -56,12 +53,14 @@ def install_ensemble_fixtures(ctx):
     ctx = install_mock_ensemble_data(ctx)
 
     factory = MockRecommenderFactory()
-    ctx['recommender_factory'] = factory
+    ctx["recommender_factory"] = factory
 
-    ctx['recommender_map'] = {'collaborative': factory.create('collaborative'),
-                              'similarity': factory.create('similarity'),
-                              'locale': factory.create('locale')}
-    ctx['ensemble_recommender'] = EnsembleRecommender(ctx.child())
+    ctx["recommender_map"] = {
+        "collaborative": factory.create("collaborative"),
+        "similarity": factory.create("similarity"),
+        "locale": factory.create("locale"),
+    }
+    ctx["ensemble_recommender"] = EnsembleRecommender(ctx.child())
     return ctx
 
 
@@ -85,7 +84,7 @@ def test_curated_recommendations(test_ctx):
     # what
 
     for LIMIT in range(1, 5):
-        guid_list = r.recommend({'client_id': '000000'}, limit = LIMIT)
+        guid_list = r.recommend({"client_id": "000000"}, limit=LIMIT)
         # The curated recommendations should always return with some kind
         # of recommendations
         assert len(guid_list) == LIMIT
@@ -102,13 +101,13 @@ def test_hybrid_recommendations(test_ctx):
 
     # Test that we can generate lists of results
     for LIMIT in range(4, 8):
-        guid_list = r.recommend({'client_id': '000000'}, limit = LIMIT)
+        guid_list = r.recommend({"client_id": "000000"}, limit=LIMIT)
         # The curated recommendations should always return with some kind
         # of recommendations
         assert len(guid_list) == LIMIT
 
     # Test that the results are actually mixed
-    guid_list = r.recommend({'client_id': '000000'}, limit = 4)
+    guid_list = r.recommend({"client_id": "000000"}, limit=4)
 
     # A mixed list will have two recommendations with weight > 1.0
     # (ensemble) and 2 with exactly weight 1.0 from the curated list
