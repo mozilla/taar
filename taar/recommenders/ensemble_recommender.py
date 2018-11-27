@@ -7,24 +7,20 @@ import itertools
 from .base_recommender import AbstractRecommender
 from .lazys3 import LazyJSONLoader
 
-
-S3_BUCKET = 'telemetry-parquet'
-ENSEMBLE_WEIGHTS = 'taar/ensemble/ensemble_weight.json'
+from .s3config import TAAR_ENSEMBLE_BUCKET
+from .s3config import TAAR_ENSEMBLE_KEY
 
 
 class WeightCache:
     def __init__(self, ctx):
         self._ctx = ctx
 
-        if 'ensemble_weights' in self._ctx:
-            self._weights = self._ctx['ensemble_weights']
-        else:
-            self._weights = LazyJSONLoader(self._ctx,
-                                           S3_BUCKET,
-                                           ENSEMBLE_WEIGHTS)
+        self._weights = LazyJSONLoader(
+            self._ctx, TAAR_ENSEMBLE_BUCKET, TAAR_ENSEMBLE_KEY
+        )
 
     def getWeights(self):
-        return self._weights.get()[0]['ensemble_weights']
+        return self._weights.get()[0]["ensemble_weights"]
 
 
 class EnsembleRecommender(AbstractRecommender):
@@ -34,12 +30,13 @@ class EnsembleRecommender(AbstractRecommender):
     factor.  The aggregate results are combines and used to recommend
     addons for users.
     """
-    def __init__(self, ctx):
-        self.RECOMMENDER_KEYS = ['collaborative', 'similarity', 'locale']
-        self._ctx = ctx
-        self.logger = self._ctx[IMozLogging].get_logger('taar.ensemble')
 
-        assert 'recommender_factory' in self._ctx
+    def __init__(self, ctx):
+        self.RECOMMENDER_KEYS = ["collaborative", "similarity", "locale"]
+        self._ctx = ctx
+        self.logger = self._ctx[IMozLogging].get_logger("taar.ensemble")
+
+        assert "recommender_factory" in self._ctx
 
         self._init_from_ctx()
 
@@ -47,7 +44,7 @@ class EnsembleRecommender(AbstractRecommender):
         # Copy the map of the recommenders
         self._recommender_map = {}
 
-        recommender_factory = self._ctx['recommender_factory']
+        recommender_factory = self._ctx["recommender_factory"]
         for rkey in self.RECOMMENDER_KEYS:
             self._recommender_map[rkey] = recommender_factory.create(rkey)
 
@@ -56,8 +53,12 @@ class EnsembleRecommender(AbstractRecommender):
     def can_recommend(self, client_data, extra_data={}):
         """The ensemble recommender is always going to be
         available if at least one recommender is available"""
-        result = sum([self._recommender_map[rkey].can_recommend(client_data)
-                      for rkey in self.RECOMMENDER_KEYS])
+        result = sum(
+            [
+                self._recommender_map[rkey].can_recommend(client_data)
+                for rkey in self.RECOMMENDER_KEYS
+            ]
+        )
         self.logger.info("Ensemble can_recommend: {}".format(result))
         return result
 
@@ -76,7 +77,7 @@ class EnsembleRecommender(AbstractRecommender):
         correct.
         """
         self.logger.info("Ensemble recommend invoked")
-        preinstalled_addon_ids = client_data.get('installed_addons', [])
+        preinstalled_addon_ids = client_data.get("installed_addons", [])
 
         # Compute an extended limit by adding the length of
         # the list of any preinstalled addons.
@@ -89,9 +90,9 @@ class EnsembleRecommender(AbstractRecommender):
             recommender = self._recommender_map[rkey]
 
             if recommender.can_recommend(client_data):
-                raw_results = recommender.recommend(client_data,
-                                                    extended_limit,
-                                                    extra_data)
+                raw_results = recommender.recommend(
+                    client_data, extended_limit, extra_data
+                )
                 reweighted_results = []
                 for guid, weight in raw_results:
                     item = (guid, weight * ensemble_weights[rkey])
@@ -114,14 +115,20 @@ class EnsembleRecommender(AbstractRecommender):
         # Sort in reverse order (greatest weight to least)
         ensemble_suggestions.sort(key=lambda x: -x[1])
 
-        filtered_ensemble_suggestions = [(guid, weight) for (guid, weight)
-                                         in ensemble_suggestions
-                                         if guid not in preinstalled_addon_ids]
+        filtered_ensemble_suggestions = [
+            (guid, weight)
+            for (guid, weight) in ensemble_suggestions
+            if guid not in preinstalled_addon_ids
+        ]
 
         results = filtered_ensemble_suggestions[:limit]
 
-        log_data = (client_data['client_id'],
-                    str(ensemble_weights),
-                    str([r[0] for r in results]))
-        self.logger.info("client_id: [%s], ensemble_weight: [%s], guids: [%s]" % log_data)
+        log_data = (
+            client_data["client_id"],
+            str(ensemble_weights),
+            str([r[0] for r in results]),
+        )
+        self.logger.info(
+            "client_id: [%s], ensemble_weight: [%s], guids: [%s]" % log_data
+        )
         return results

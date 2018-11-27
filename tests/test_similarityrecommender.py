@@ -12,13 +12,20 @@ from taar.recommenders.lazys3 import LazyJSONLoader
 import boto3
 from moto import mock_s3
 
-from taar.recommenders.similarity_recommender import S3_BUCKET
-from taar.recommenders.similarity_recommender import \
-    CATEGORICAL_FEATURES, CONTINUOUS_FEATURES, DONOR_LIST_KEY, LR_CURVES_SIMILARITY_TO_PROBABILITY, \
-    SimilarityRecommender
+from taar.recommenders.similarity_recommender import (
+    CATEGORICAL_FEATURES,
+    CONTINUOUS_FEATURES,
+    SimilarityRecommender,
+)
 
 from .similarity_data import CONTINUOUS_FEATURE_FIXTURE_DATA
 from .similarity_data import CATEGORICAL_FEATURE_FIXTURE_DATA
+
+from taar.recommenders.s3config import (
+    TAAR_SIMILARITY_BUCKET,
+    TAAR_SIMILARITY_DONOR_KEY,
+    TAAR_SIMILARITY_LRCURVES_KEY,
+)
 
 
 def generate_fake_lr_curves(num_elements, ceiling=10.0):
@@ -53,46 +60,53 @@ def generate_a_fake_taar_client():
         "bookmark_count": 7,
         "tab_open_count": 4,
         "total_uri": 222,
-        "unique_tlds": 21
+        "unique_tlds": 21,
     }
 
 
 def install_no_data(ctx):
     ctx = ctx.child()
-    conn = boto3.resource('s3', region_name='us-west-2')
+    conn = boto3.resource("s3", region_name="us-west-2")
 
-    conn.create_bucket(Bucket=S3_BUCKET)
-    conn.Object(S3_BUCKET, DONOR_LIST_KEY).put(Body="")
+    conn.create_bucket(Bucket=TAAR_SIMILARITY_BUCKET)
+    conn.Object(TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY).put(Body="")
 
-    conn.Object(S3_BUCKET, LR_CURVES_SIMILARITY_TO_PROBABILITY).put(Body="")
+    conn.Object(TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY).put(Body="")
 
-    ctx['similarity_donors_pool'] = LazyJSONLoader(ctx,
-                                                   S3_BUCKET,
-                                                   DONOR_LIST_KEY)
+    ctx["similarity_donors_pool"] = LazyJSONLoader(
+        ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY
+    )
 
-    ctx['similarity_lr_curves'] = LazyJSONLoader(ctx,
-                                                 S3_BUCKET,
-                                                 LR_CURVES_SIMILARITY_TO_PROBABILITY)
+    ctx["similarity_lr_curves"] = LazyJSONLoader(
+        ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY
+    )
 
     return ctx
 
 
 def install_categorical_data(ctx):
     ctx = ctx.child()
-    conn = boto3.resource('s3', region_name='us-west-2')
+    conn = boto3.resource("s3", region_name="us-west-2")
 
-    conn.create_bucket(Bucket=S3_BUCKET)
-    conn.Object(S3_BUCKET, DONOR_LIST_KEY).put(Body=json.dumps(CATEGORICAL_FEATURE_FIXTURE_DATA))
+    try:
+        conn.create_bucket(Bucket=TAAR_SIMILARITY_BUCKET)
+    except Exception:
+        pass
+    conn.Object(TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY).put(
+        Body=json.dumps(CATEGORICAL_FEATURE_FIXTURE_DATA)
+    )
 
-    conn.Object(S3_BUCKET, LR_CURVES_SIMILARITY_TO_PROBABILITY).put(Body=json.dumps(generate_fake_lr_curves(1000)))
+    conn.Object(TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY).put(
+        Body=json.dumps(generate_fake_lr_curves(1000))
+    )
 
-    ctx['similarity_donors_pool'] = LazyJSONLoader(ctx,
-                                                   S3_BUCKET,
-                                                   DONOR_LIST_KEY)
+    ctx["similarity_donors_pool"] = LazyJSONLoader(
+        ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY
+    )
 
-    ctx['similarity_lr_curves'] = LazyJSONLoader(ctx,
-                                                 S3_BUCKET,
-                                                 LR_CURVES_SIMILARITY_TO_PROBABILITY)
+    ctx["similarity_lr_curves"] = LazyJSONLoader(
+        ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY
+    )
 
     return ctx
 
@@ -102,20 +116,23 @@ def install_continuous_data(ctx):
     cts_data = json.dumps(CONTINUOUS_FEATURE_FIXTURE_DATA)
     lrs_data = json.dumps(generate_fake_lr_curves(1000))
 
-    conn = boto3.resource('s3', region_name='us-west-2')
+    conn = boto3.resource("s3", region_name="us-west-2")
 
-    conn.create_bucket(Bucket=S3_BUCKET)
-    conn.Object(S3_BUCKET, DONOR_LIST_KEY).put(Body=cts_data)
+    try:
+        conn.create_bucket(Bucket=TAAR_SIMILARITY_BUCKET)
+    except Exception:
+        pass
+    conn.Object(TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY).put(Body=cts_data)
 
-    conn.Object(S3_BUCKET, LR_CURVES_SIMILARITY_TO_PROBABILITY).put(Body=lrs_data)
+    conn.Object(TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY).put(Body=lrs_data)
 
-    ctx['similarity_donors_pool'] = LazyJSONLoader(ctx,
-                                                   S3_BUCKET,
-                                                   DONOR_LIST_KEY)
+    ctx["similarity_donors_pool"] = LazyJSONLoader(
+        ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY
+    )
 
-    ctx['similarity_lr_curves'] = LazyJSONLoader(ctx,
-                                                 S3_BUCKET,
-                                                 LR_CURVES_SIMILARITY_TO_PROBABILITY)
+    ctx["similarity_lr_curves"] = LazyJSONLoader(
+        ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY
+    )
 
     return ctx
 
@@ -209,7 +226,7 @@ def test_compute_clients_dist(test_ctx):
             "bookmark_count": 1,
             "tab_open_count": 1,
             "total_uri": 1,
-            "unique_tlds": 1
+            "unique_tlds": 1,
         },
         {
             "client_id": "test-client-003",
@@ -221,7 +238,7 @@ def test_compute_clients_dist(test_ctx):
             "bookmark_count": 10,
             "tab_open_count": 1,
             "total_uri": 1,
-            "unique_tlds": 1
+            "unique_tlds": 1,
         },
         {
             "client_id": "test-client-004",
@@ -233,8 +250,8 @@ def test_compute_clients_dist(test_ctx):
             "bookmark_count": 10,
             "tab_open_count": 10,
             "total_uri": 100,
-            "unique_tlds": 10
-        }
+            "unique_tlds": 10,
+        },
     ]
     per_client_test = []
 
@@ -260,27 +277,39 @@ def test_distance_functions(test_ctx):
     assert len(recs) > 0
 
     # Make it a generally poor match for the donors.
-    test_client.update({'total_uri': 10, 'bookmark_count': 2, 'subsession_length': 10})
+    test_client.update({"total_uri": 10, "bookmark_count": 2, "subsession_length": 10})
 
     all_client_values_zero = test_client
     # Make all categorical variables non-matching with any donor.
-    all_client_values_zero.update({key: 'zero' for key in test_client.keys() if key in CATEGORICAL_FEATURES})
+    all_client_values_zero.update(
+        {key: "zero" for key in test_client.keys() if key in CATEGORICAL_FEATURES}
+    )
     recs = r.recommend(all_client_values_zero, 10)
     assert len(recs) == 0
 
     # Make all continuous variables equal to zero.
-    all_client_values_zero.update({key: 0 for key in test_client.keys() if key in CONTINUOUS_FEATURES})
+    all_client_values_zero.update(
+        {key: 0 for key in test_client.keys() if key in CONTINUOUS_FEATURES}
+    )
     recs = r.recommend(all_client_values_zero, 10)
     assert len(recs) == 0
 
     # Make all categorical variables non-matching with any donor.
     all_client_values_high = test_client
-    all_client_values_high.update({key: 'one billion' for key in test_client.keys() if key in CATEGORICAL_FEATURES})
+    all_client_values_high.update(
+        {
+            key: "one billion"
+            for key in test_client.keys()
+            if key in CATEGORICAL_FEATURES
+        }
+    )
     recs = r.recommend(all_client_values_high, 10)
     assert len(recs) == 0
 
     # Make all continuous variables equal to a very high numerical value.
-    all_client_values_high.update({key: 1e60 for key in test_client.keys() if key in CONTINUOUS_FEATURES})
+    all_client_values_high.update(
+        {key: 1e60 for key in test_client.keys() if key in CONTINUOUS_FEATURES}
+    )
     recs = r.recommend(all_client_values_high, 10)
     assert len(recs) == 0
 
@@ -300,7 +329,7 @@ def test_weights_continuous(test_ctx):
     # In the ensemble method recommendations should be a sorted list of tuples
     # containing [(guid, weight), (guid, weight)... (guid, weight)].
     recommendation_list = r.recommend(generate_a_fake_taar_client(), 2)
-    with open('/tmp/similarity_recommender.json', 'w') as fout:
+    with open("/tmp/similarity_recommender.json", "w") as fout:
         fout.write(json.dumps(recommendation_list))
 
     # Make sure the structure of the recommendations is correct and
@@ -326,14 +355,14 @@ def test_weights_continuous(test_ctx):
 
 @mock_s3
 def test_weights_categorical(test_ctx):
-    '''
+    """
     This should get :
         ["{test-guid-1}", "{test-guid-2}", "{test-guid-3}", "{test-guid-4}"],
         ["{test-guid-9}", "{test-guid-10}", "{test-guid-11}", "{test-guid-12}"]
     from the first two entries in the sample data where the geo_city
     data
 
-    '''
+    """
     # Create a new instance of a SimilarityRecommender.
     cat_ctx = install_categorical_data(test_ctx)
     cts_ctx = install_continuous_data(test_ctx)

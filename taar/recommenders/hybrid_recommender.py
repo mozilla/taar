@@ -5,13 +5,10 @@
 from .base_recommender import AbstractRecommender
 from .lazys3 import LazyJSONLoader
 from srgutil.interfaces import IMozLogging
-import random
 import operator as op
-
-S3_BUCKET = "telemetry-parquet"
-
-ENSEMBLE_WEIGHTS = "taar/ensemble/ensemble_weight.json"
-CURATED_WHITELIST = "telemetry-ml/addon_recommender/only_guids_top_200.json"
+import random
+from .s3config import TAAR_WHITELIST_BUCKET
+from .s3config import TAAR_WHITELIST_KEY
 
 
 class CuratedWhitelistCache:
@@ -21,10 +18,9 @@ class CuratedWhitelistCache:
 
     def __init__(self, ctx):
         self._ctx = ctx
-        if "curated_whitelist_data" in self._ctx:
-            self._data = self._ctx["curated_whitelist_data"]
-        else:
-            self._data = LazyJSONLoader(self._ctx, S3_BUCKET, CURATED_WHITELIST)
+        self._data = LazyJSONLoader(
+            self._ctx, TAAR_WHITELIST_BUCKET, TAAR_WHITELIST_KEY
+        )
 
     def get_whitelist(self):
         return self._data.get()[0]

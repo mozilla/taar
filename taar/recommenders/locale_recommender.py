@@ -6,9 +6,8 @@ from srgutil.interfaces import IMozLogging
 from .base_recommender import AbstractRecommender
 from .lazys3 import LazyJSONLoader
 
-
-ADDON_LIST_BUCKET = 'telemetry-parquet'
-ADDON_LIST_KEY = 'taar/locale/top10_dict.json'
+from .s3config import TAAR_LOCALE_BUCKET
+from .s3config import TAAR_LOCALE_KEY
 
 
 class LocaleRecommender(AbstractRecommender):
@@ -24,12 +23,9 @@ class LocaleRecommender(AbstractRecommender):
     def __init__(self, ctx):
         self._ctx = ctx
 
-        if 'locale_mock_data' in self._ctx:
-            self._top_addons_per_locale = self._ctx['locale_mock_data']
-        else:
-            self._top_addons_per_locale = LazyJSONLoader(self._ctx,
-                                                         ADDON_LIST_BUCKET,
-                                                         ADDON_LIST_KEY)
+        self._top_addons_per_locale = LazyJSONLoader(self._ctx,
+                                                     TAAR_LOCALE_BUCKET,
+                                                     TAAR_LOCALE_KEY)
 
         self._init_from_ctx()
         self.logger = self._ctx[IMozLogging].get_logger('taar')
@@ -40,7 +36,7 @@ class LocaleRecommender(AbstractRecommender):
 
     def _init_from_ctx(self):
         if self.top_addons_per_locale is None:
-            self.logger.error("Cannot download the top per locale file {}".format(ADDON_LIST_KEY))
+            self.logger.error("Cannot download the top per locale file {}".format(TAAR_LOCALE_KEY))
 
     def can_recommend(self, client_data, extra_data={}):
         # We can't recommend if we don't have our data files.

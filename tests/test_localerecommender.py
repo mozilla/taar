@@ -9,30 +9,28 @@ import json
 
 
 from taar.recommenders import LocaleRecommender
-from taar.recommenders.lazys3 import LazyJSONLoader
-from taar.recommenders.locale_recommender import ADDON_LIST_BUCKET, ADDON_LIST_KEY
+from taar.recommenders.s3config import TAAR_LOCALE_KEY, TAAR_LOCALE_BUCKET
 
 
 FAKE_LOCALE_DATA = {
     "te-ST": [
-        "{1e6b8bce-7dc8-481c-9f19-123e41332b72}", "some-other@nice-addon.com",
-        "{66d1eed2-a390-47cd-8215-016e9fa9cc55}", "{5f1594c3-0d4c-49dd-9182-4fbbb25131a7}"
+        "{1e6b8bce-7dc8-481c-9f19-123e41332b72}",
+        "some-other@nice-addon.com",
+        "{66d1eed2-a390-47cd-8215-016e9fa9cc55}",
+        "{5f1594c3-0d4c-49dd-9182-4fbbb25131a7}",
     ],
-    "en": [
-        "some-uuid@test-addon.com", "other-addon@some-id.it"
-    ]
+    "en": ["some-uuid@test-addon.com", "other-addon@some-id.it"],
 }
 
 
 def install_mock_data(ctx):
     ctx = ctx.child()
-    conn = boto3.resource('s3', region_name='us-west-2')
+    conn = boto3.resource("s3", region_name="us-west-2")
 
-    conn.create_bucket(Bucket=ADDON_LIST_BUCKET)
-    conn.Object(ADDON_LIST_BUCKET, ADDON_LIST_KEY).put(Body=json.dumps(FAKE_LOCALE_DATA))
-    ctx['locale_mock_data'] = LazyJSONLoader(ctx,
-                                             ADDON_LIST_BUCKET,
-                                             ADDON_LIST_KEY)
+    conn.create_bucket(Bucket=TAAR_LOCALE_BUCKET)
+    conn.Object(TAAR_LOCALE_BUCKET, TAAR_LOCALE_KEY).put(
+        Body=json.dumps(FAKE_LOCALE_DATA)
+    )
 
     return ctx
 
