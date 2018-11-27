@@ -34,14 +34,37 @@ def configure_plugin(app):  # noqa: C901
     This is a factory function that configures all the routes for
     flask given a particular library.
     """
-    @app.route('/api/recommendations/<uuid:uuid_client_id>/')
-    def recommendations(uuid_client_id):
+
+    @app.route("/v1/api/recommendations/<hashed_client_id>/", methods=["GET", "POST"])
+    def recommendations(hashed_client_id):
         """Return a list of recommendations provided a telemetry client_id."""
         # Use the module global PROXY_MANAGER
         global PROXY_MANAGER
 
+        try:
+            promoted_guids = []
+            if request.method == "POST":
+                json_data = request.data
+                # At least Python3.5 returns request.data as bytes
+                # type instead of a string type.
+                # Both Python2.7 and Python3.7 return a string type
+                if type(json_data) == bytes:
+                    json_data = json_data.decode("utf8")
+
+                post_data = json.loads(json_data)
+                promoted_guids = post_data.get("options", {}).get("promoted", [])
+                if promoted_guids:
+                    promoted_guids.sort(key=lambda x: x[1], reverse=True)
+                    promoted_guids = [x[0] for x in promoted_guids]
+        except Exception as e:
+            return app.response_class(
+                response=json.dumps({"error": "Invalid JSON in POST: {}".format(e)}),
+                status=400,
+                mimetype="application/json",
+            )
+
         # Coerce the uuid.UUID type into a string
-        client_id = str(uuid_client_id)
+        client_id = str(hashed_client_id)
 
         branch = request.args.get("branch", "")
 
@@ -76,6 +99,7 @@ def configure_plugin(app):  # noqa: C901
         # Strip out weights from TAAR results to maintain compatibility
         # with TAAR 1.0
         jdata = {"results": [x[0] for x in recommendations]}
+        jdata["results"] = (promoted_guids + jdata["results"])[:TAAR_MAX_RESULTS]
 
         response = app.response_class(
             response=json.dumps(jdata), status=200, mimetype="application/json"
