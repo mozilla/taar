@@ -12,12 +12,18 @@ from .lazys3 import LazyJSONLoader
 FLOOR_DISTANCE_ADJUSTMENT = 0.001
 
 CATEGORICAL_FEATURES = ["geo_city", "locale", "os"]
-CONTINUOUS_FEATURES = ["subsession_length", "bookmark_count", "tab_open_count", "total_uri", "unique_tlds"]
+CONTINUOUS_FEATURES = [
+    "subsession_length",
+    "bookmark_count",
+    "tab_open_count",
+    "total_uri",
+    "unique_tlds",
+]
 
-S3_BUCKET = 'telemetry-parquet'
+S3_BUCKET = "telemetry-parquet"
 
-DONOR_LIST_KEY = 'taar/similarity/donors.json'
-LR_CURVES_SIMILARITY_TO_PROBABILITY = 'taar/similarity/lr_curves.json'
+DONOR_LIST_KEY = "taar/similarity/donors.json"
+LR_CURVES_SIMILARITY_TO_PROBABILITY = "taar/similarity/lr_curves.json"
 
 
 class SimilarityRecommender(AbstractRecommender):
@@ -41,17 +47,19 @@ class SimilarityRecommender(AbstractRecommender):
     def __init__(self, ctx):
         self._ctx = ctx
 
-        if 'similarity_donors_pool' in self._ctx:
-            self._donors_pool = self._ctx['similarity_donors_pool']
+        if "similarity_donors_pool" in self._ctx:
+            self._donors_pool = self._ctx["similarity_donors_pool"]
         else:
             self._donors_pool = LazyJSONLoader(self._ctx, S3_BUCKET, DONOR_LIST_KEY)
 
-        if 'similarity_lr_curves' in self._ctx:
-            self._lr_curves = self._ctx['similarity_lr_curves']
+        if "similarity_lr_curves" in self._ctx:
+            self._lr_curves = self._ctx["similarity_lr_curves"]
         else:
-            self._lr_curves = LazyJSONLoader(self._ctx, S3_BUCKET, LR_CURVES_SIMILARITY_TO_PROBABILITY)
+            self._lr_curves = LazyJSONLoader(
+                self._ctx, S3_BUCKET, LR_CURVES_SIMILARITY_TO_PROBABILITY
+            )
 
-        self.logger = self._ctx[IMozLogging].get_logger('taar')
+        self.logger = self._ctx[IMozLogging].get_logger("taar")
 
         self._init_from_ctx()
 
@@ -66,11 +74,17 @@ class SimilarityRecommender(AbstractRecommender):
     def _init_from_ctx(self):
         # Download the addon donors list.
         if self.donors_pool is None:
-            self.logger.error("Cannot download the donor list: {}".format(DONOR_LIST_KEY))
+            self.logger.error(
+                "Cannot download the donor list: {}".format(DONOR_LIST_KEY)
+            )
 
         # Download the probability mapping curves from similarity to likelihood of being a good donor.
         if self.lr_curves is None:
-            self.logger.error("Cannot download the lr curves: {}".format(LR_CURVES_SIMILARITY_TO_PROBABILITY))
+            self.logger.error(
+                "Cannot download the lr curves: {}".format(
+                    LR_CURVES_SIMILARITY_TO_PROBABILITY
+                )
+            )
         self.build_features_caches()
 
     def build_features_caches(self):
@@ -91,8 +105,9 @@ class SimilarityRecommender(AbstractRecommender):
             self.continuous_features[idx] = features
 
         # Build the cache for categorical features.
-        self.categorical_features =\
-            np.zeros((self.num_donors, len(CATEGORICAL_FEATURES)), dtype='object')
+        self.categorical_features = np.zeros(
+            (self.num_donors, len(CATEGORICAL_FEATURES)), dtype="object"
+        )
         for idx, d in enumerate(self.donors_pool):
             features = [d.get(specified_key) for specified_key in CATEGORICAL_FEATURES]
             self.categorical_features[idx] = np.array([features], dtype="object")
@@ -106,7 +121,9 @@ class SimilarityRecommender(AbstractRecommender):
         # telemetry field.
         REQUIRED_FIELDS = CATEGORICAL_FEATURES + CONTINUOUS_FEATURES
 
-        has_fields = all([client_data.get(f, None) is not None for f in REQUIRED_FIELDS])
+        has_fields = all(
+            [client_data.get(f, None) is not None for f in REQUIRED_FIELDS]
+        )
         if not has_fields:
             # Can not add extra info because client_id may not be available.
             self.logger.error("Unusable client data encountered")
@@ -147,16 +164,25 @@ class SimilarityRecommender(AbstractRecommender):
     # https://github.com/mozilla/python_mozetl/blob/master/mozetl/taar/taar_similarity.py
     #
     def compute_clients_dist(self, client_data):
-        client_categorical_feats = [client_data.get(specified_key) for specified_key in CATEGORICAL_FEATURES]
-        client_continuous_feats = [client_data.get(specified_key) for specified_key in CONTINUOUS_FEATURES]
+        client_categorical_feats = [
+            client_data.get(specified_key) for specified_key in CATEGORICAL_FEATURES
+        ]
+        client_continuous_feats = [
+            client_data.get(specified_key) for specified_key in CONTINUOUS_FEATURES
+        ]
 
         # Compute the distances between the user and the cached continuous features.
         cont_features = distance.cdist(
-            self.continuous_features, np.array([client_continuous_feats]), 'canberra')
+            self.continuous_features, np.array([client_continuous_feats]), "canberra"
+        )
 
         # Compute the distances between the user and the cached categorical features.
         cat_features = np.array(
-            [[distance.hamming(x, client_categorical_feats)] for x in self.categorical_features])
+            [
+                [distance.hamming(x, client_categorical_feats)]
+                for x in self.categorical_features
+            ]
+        )
 
         # See the "Note about cdist optimization" in README.md for why we only use cdist once.
 
@@ -188,8 +214,9 @@ class SimilarityRecommender(AbstractRecommender):
         # Compute the LR based on precomputed distributions that relate the score
         # to a probability of providing good addon recommendations.
 
-        lrs_from_scores =\
-            np.array([self.get_lr(distances[i]) for i in range(self.num_donors)])
+        lrs_from_scores = np.array(
+            [self.get_lr(distances[i]) for i in range(self.num_donors)]
+        )
 
         # Sort the LR values (descending) and return the sorted values together with
         # the original indices.
@@ -202,15 +229,17 @@ class SimilarityRecommender(AbstractRecommender):
         # 1.0 corresponds to a log likelihood ratio of 0 meaning that donors are equally
         # likely to be 'good'. A value > 0.0 is sufficient, but we like this to be high.
         if donor_log_lrs[0] < 0.1:
-            self.logger.warning("Addons recommended with very low similarity score, perhaps donor set is unrepresentative",
-                                extra={"maximum_similarity": donor_set_ranking[0]})
+            self.logger.warning(
+                "Addons recommended with very low similarity score, perhaps donor set is unrepresentative",
+                extra={"maximum_similarity": donor_set_ranking[0]},
+            )
 
         # Retrieve the indices of the highest ranked donors and then append their
         # installed addons.
         index_lrs_iter = zip(indices[donor_log_lrs > 0.0], donor_log_lrs)
         recommendations = []
         for (index, lrs) in index_lrs_iter:
-            for term in self.donors_pool[index]['active_addons']:
+            for term in self.donors_pool[index]["active_addons"]:
                 candidate = (term, lrs)
                 recommendations.append(candidate)
         # Sort recommendations on key (guid name)
@@ -222,9 +251,13 @@ class SimilarityRecommender(AbstractRecommender):
         # now re-sort on the basis of LLR.
         recommendations_out = sorted(recommendations_out, key=lambda x: -x[1])
 
-        log_data = (client_data['client_id'],
-                    str([r[0] for r in recommendations_out[:limit]]))
-        self.logger.info("similarity_recommender_triggered, "
-                         "client_id: [%s], guids: [%s]" % log_data)
+        log_data = (
+            client_data["client_id"],
+            str([r[0] for r in recommendations_out[:limit]]),
+        )
+        self.logger.info(
+            "similarity_recommender_triggered, "
+            "client_id: [%s], guids: [%s]" % log_data
+        )
 
         return recommendations_out[:limit]

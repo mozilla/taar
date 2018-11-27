@@ -9,16 +9,16 @@ import time
 def create_recommendation_manager():
     root_ctx = default_context()
     pf = ProfileFetcher(root_ctx)
-    pf.set_client(ProfileController(root_ctx, 'us-west-2', 'taar_addon_data_20180206'))
-    root_ctx['profile_fetcher'] = pf
+    pf.set_client(ProfileController(root_ctx, "us-west-2", "taar_addon_data_20180206"))
+    root_ctx["profile_fetcher"] = pf
     r_factory = recommenders.RecommenderFactory(root_ctx.child())
-    root_ctx['recommender_factory'] = r_factory
+    root_ctx["recommender_factory"] = r_factory
     rm = recommenders.RecommendationManager(root_ctx.child())
     return rm
 
 
 @pytest.mark.skip("This is an integration test")
-def test_recommenders(client_id='some_dev_client_id', branch='linear'):
+def test_recommenders(client_id="some_dev_client_id", branch="linear"):
     """
     This integration test can be used to drive the TAAR
     RecommendationManager from your machine.  This assumes you have
@@ -57,7 +57,7 @@ def test_recommenders(client_id='some_dev_client_id', branch='linear'):
             In [4]:
     """
     rm = create_recommendation_manager()
-    result = rm.recommend(client_id, limit=10, extra_data={'branch': branch})
+    result = rm.recommend(client_id, limit=10, extra_data={"branch": branch})
     return result
 
 
@@ -72,7 +72,7 @@ def micro_bench(x, client_id, branch_label):
     rm = create_recommendation_manager()
     start = time.time()
     for i in range(x):
-        rm.recommend(client_id, limit=10, extra_data={'branch': branch_label})
+        rm.recommend(client_id, limit=10, extra_data={"branch": branch_label})
     end = time.time()
 
     print(("%0.5f seconds per request" % ((end - start) / x)))
