@@ -24,20 +24,29 @@ class MockRecommenderFactory:
     the RecommendationManager and eases the implementation of test
     harnesses.
     """
-    def __init__(self, **kwargs):
-        mock_legacy = MockRecommender({'abc': 1.0, 'bcd': 1.1, 'cde': 1.2})
-        mock_locale = MockRecommender({'def': 2.0, 'efg': 2.1, 'fgh': 2.2, 'abc': 2.3})
-        mock_collaborative = MockRecommender({'ghi': 3.0, 'hij': 3.1, 'ijk': 3.2, 'def': 3.3})
-        mock_similarity = MockRecommender({'jkl': 4.0,  'klm': 4.1, 'lmn': 4.2, 'ghi': 4.3})
 
-        self._recommender_factory_map = {'legacy': lambda: mock_legacy,
-                                         'collaborative': lambda: mock_collaborative,
-                                         'similarity': lambda: mock_similarity,
-                                         'locale': lambda: mock_locale}
+    def __init__(self, **kwargs):
+        mock_legacy = MockRecommender({"abc": 1.0, "bcd": 1.1, "cde": 1.2})
+        mock_locale = MockRecommender({"def": 2.0, "efg": 2.1, "fgh": 2.2, "abc": 2.3})
+        mock_collaborative = MockRecommender(
+            {"ghi": 3.0, "hij": 3.1, "ijk": 3.2, "def": 3.3}
+        )
+        mock_similarity = MockRecommender(
+            {"jkl": 4.0, "klm": 4.1, "lmn": 4.2, "ghi": 4.3}
+        )
+
+        self._recommender_factory_map = {
+            "legacy": lambda: mock_legacy,
+            "collaborative": lambda: mock_collaborative,
+            "similarity": lambda: mock_similarity,
+            "locale": lambda: mock_locale,
+        }
 
         # Clobber any kwarg passed in recommenders
         for key in self._recommender_factory_map.keys():
-            self._recommender_factory_map[key] = kwargs.get(key, self._recommender_factory_map[key])
+            self._recommender_factory_map[key] = kwargs.get(
+                key, self._recommender_factory_map[key]
+            )
 
     def get_names(self):
         return self._recommender_factory_map.keys()

@@ -8,20 +8,21 @@ from srgutil.interfaces import IMozLogging
 import random
 import operator as op
 
-S3_BUCKET = 'telemetry-parquet'
+S3_BUCKET = "telemetry-parquet"
 
-ENSEMBLE_WEIGHTS = 'taar/ensemble/ensemble_weight.json'
-CURATED_WHITELIST = 'telemetry-ml/addon_recommender/only_guids_top_200.json'
+ENSEMBLE_WEIGHTS = "taar/ensemble/ensemble_weight.json"
+CURATED_WHITELIST = "telemetry-ml/addon_recommender/only_guids_top_200.json"
 
 
 class CuratedWhitelistCache:
     """
     This fetches the curated whitelist from S3.
     """
+
     def __init__(self, ctx):
         self._ctx = ctx
-        if 'curated_whitelist_data' in self._ctx:
-            self._data = self._ctx['curated_whitelist_data']
+        if "curated_whitelist_data" in self._ctx:
+            self._data = self._ctx["curated_whitelist_data"]
         else:
             self._data = LazyJSONLoader(self._ctx, S3_BUCKET, CURATED_WHITELIST)
 
@@ -49,7 +50,7 @@ class CuratedRecommender(AbstractRecommender):
     def __init__(self, ctx):
         self._ctx = ctx
 
-        self.logger = self._ctx[IMozLogging].get_logger('taar.curated')
+        self.logger = self._ctx[IMozLogging].get_logger("taar.curated")
         self._curated_wl = CuratedWhitelistCache(self._ctx)
 
     def can_recommend(self, client_data, extra_data={}):
@@ -66,8 +67,10 @@ class CuratedRecommender(AbstractRecommender):
 
         results = [(guid, 1.0) for guid in guids]
 
-        log_data = (client_data['client_id'], str(guids))
-        self.logger.info("Curated recommendations client_id: [%s], guids: [%s]" % log_data)
+        log_data = (client_data["client_id"], str(guids))
+        self.logger.info(
+            "Curated recommendations client_id: [%s], guids: [%s]" % log_data
+        )
         return results
 
 
@@ -78,19 +81,24 @@ class HybridRecommender(AbstractRecommender):
     factor.  The aggregate results are combines and used to recommend
     addons for users.
     """
+
     def __init__(self, ctx):
         self._ctx = ctx
 
-        self.logger = self._ctx[IMozLogging].get_logger('taar')
+        self.logger = self._ctx[IMozLogging].get_logger("taar")
 
-        self._ensemble_recommender = self._ctx['ensemble_recommender']
+        self._ensemble_recommender = self._ctx["ensemble_recommender"]
         self._curated_recommender = CuratedRecommender(self._ctx.child())
 
     def can_recommend(self, client_data, extra_data={}):
         """The ensemble recommender is always going to be
         available if at least one recommender is available"""
-        ensemble_recommend = self._ensemble_recommender.can_recommend(client_data, extra_data)
-        curated_recommend = self._curated_recommender.can_recommend(client_data, extra_data)
+        ensemble_recommend = self._ensemble_recommender.can_recommend(
+            client_data, extra_data
+        )
+        curated_recommend = self._curated_recommender.can_recommend(
+            client_data, extra_data
+        )
         result = ensemble_recommend and curated_recommend
         self.logger.info("Hybrid can_recommend: {}".format(result))
         return result
@@ -104,18 +112,18 @@ class HybridRecommender(AbstractRecommender):
         by weight.
         """
 
-        preinstalled_addon_ids = client_data.get('installed_addons', [])
+        preinstalled_addon_ids = client_data.get("installed_addons", [])
 
         # Compute an extended limit by adding the length of
         # the list of any preinstalled addons.
         extended_limit = limit + len(preinstalled_addon_ids)
 
-        ensemble_suggestions = self._ensemble_recommender.recommend(client_data,
-                                                                    extended_limit,
-                                                                    extra_data)
-        curated_suggestions = self._curated_recommender.recommend(client_data,
-                                                                  extended_limit,
-                                                                  extra_data)
+        ensemble_suggestions = self._ensemble_recommender.recommend(
+            client_data, extended_limit, extra_data
+        )
+        curated_suggestions = self._curated_recommender.recommend(
+            client_data, extended_limit, extra_data
+        )
 
         # Generate a set of results from each of the composite
         # recommenders.  We select one item from each recommender
@@ -123,16 +131,22 @@ class HybridRecommender(AbstractRecommender):
         # other.
         merged_results = set()
 
-        while len(merged_results) < limit and len(ensemble_suggestions) > 0 and len(curated_suggestions) > 0:
+        while (
+            len(merged_results) < limit
+            and len(ensemble_suggestions) > 0
+            and len(curated_suggestions) > 0
+        ):
 
             r1 = ensemble_suggestions.pop()
             if r1[0] not in [temp[0] for temp in merged_results]:
                 merged_results.add(r1)
 
             # Terminate early if we have an odd number for the limit
-            if not (len(merged_results) < limit and
-                    len(ensemble_suggestions) > 0 and
-                    len(curated_suggestions) > 0):
+            if not (
+                len(merged_results) < limit
+                and len(ensemble_suggestions) > 0
+                and len(curated_suggestions) > 0
+            ):
                 break
 
             r2 = curated_suggestions.pop()
@@ -140,16 +154,20 @@ class HybridRecommender(AbstractRecommender):
                 merged_results.add(r2)
 
         if len(merged_results) < limit:
-            msg = "Defaulting to empty results. Insufficient recommendations found for client: %s" % client_data['client_id']
+            msg = (
+                "Defaulting to empty results. Insufficient recommendations found for client: %s"
+                % client_data["client_id"]
+            )
             self.logger.info(msg)
             return []
 
-        sorted_results = sorted(list(merged_results),
-                                key=op.itemgetter(1),
-                                reverse=True)
+        sorted_results = sorted(
+            list(merged_results), key=op.itemgetter(1), reverse=True
+        )
 
-        log_data = (client_data['client_id'],
-                    str([r[0] for r in sorted_results]))
+        log_data = (client_data["client_id"], str([r[0] for r in sorted_results]))
 
-        self.logger.info("Hybrid recommendations client_id: [%s], guids: [%s]" % log_data)
+        self.logger.info(
+            "Hybrid recommendations client_id: [%s], guids: [%s]" % log_data
+        )
         return sorted_results
