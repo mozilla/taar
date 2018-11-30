@@ -49,6 +49,15 @@ def test_empty_results_by_default(client, app):
     assert res.json == {"results": []}
 
 
+@pytest.mark.skip("This is an integration test")
+def test_mixed_and_promoted_and_taar_adodns(client, app):
+    """
+    Test that we can provide addon suggestions that also get clobbered
+    by the promoted addon set.
+    """
+    pass
+
+
 def test_only_promoted_addons(client, app):
     # POSTing a JSON blob allows us to specify promoted addons to the
     # TAAR service.
