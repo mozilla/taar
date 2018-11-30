@@ -23,12 +23,13 @@ class LocaleRecommender(AbstractRecommender):
     def __init__(self, ctx):
         self._ctx = ctx
 
+        self.logger = self._ctx[IMozLogging].get_logger('taar')
+
         self._top_addons_per_locale = LazyJSONLoader(self._ctx,
                                                      TAAR_LOCALE_BUCKET,
                                                      TAAR_LOCALE_KEY)
 
         self._init_from_ctx()
-        self.logger = self._ctx[IMozLogging].get_logger('taar')
 
     @property
     def top_addons_per_locale(self):

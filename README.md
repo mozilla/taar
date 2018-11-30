@@ -115,7 +115,6 @@ Collaborative Recommender ::
     TAAR_ADDON_MAPPING_BUCKET = "telemetry-public-analysis-2"
     TAAR_ADDON_MAPPING_KEY = "telemetry-ml/addon_recommender/addon_mapping.json"
 
-
 Ensemble Recommender ::
 
     TAAR_ENSEMBLE_BUCKET = "telemetry-parquet"
@@ -136,5 +135,3 @@ Similarity Recommender ::
     TAAR_SIMILARITY_BUCKET = "telemetry-parquet"
     TAAR_SIMILARITY_DONOR_KEY = "taar/similarity/donors.json"
     TAAR_SIMILARITY_LRCURVES_KEY = "taar/similarity/lr_curves.json"
-     
-    

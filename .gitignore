@@ -107,3 +107,7 @@ ENV/
 
 # vscode garbage
 .vscode
+
+# unix history files
+.bash_history
+.python_history
