@@ -1,0 +1,39 @@
+version: "2"
+services:
+  web:
+    environment:
+      - PYTHONPATH=/app
+
+      # TAAR service configuration
+      - TAAR_API_PLUGIN=taar.plugin
+      - TAAR_ITEM_MATRIX_BUCKET=telemetry-public-analysis-2
+      - TAAR_ITEM_MATRIX_KEY=telemetry-ml/addon_recommender/item_matrix.json
+      - TAAR_ADDON_MAPPING_BUCKET=telemetry-public-analysis-2
+      - TAAR_ADDON_MAPPING_KEY=telemetry-ml/addon_recommender/addon_mapping.json
+      - TAAR_ENSEMBLE_BUCKET=telemetry-parquet
+      - TAAR_ENSEMBLE_KEY=taar/ensemble/ensemble_weight.json
+      - TAAR_WHITELIST_BUCKET=telemetry-parquet
+      - TAAR_WHITELIST_KEY=telemetry-ml/addon_recommender/only_guids_top_200.json
+      - TAAR_LOCALE_BUCKET=telemetry-parquet
+      - TAAR_LOCALE_KEY=taar/locale/top10_dict.json
+      - TAAR_SIMILARITY_BUCKET=telemetry-parquet
+      - TAAR_SIMILARITY_DONOR_KEY=taar/similarity/donors.json
+      - TAAR_SIMILARITY_LRCURVES_KEY=taar/similarity/lr_curves.json
+
+      # These are 'common' TAAR/TAARlite configuration
+      - TAAR_MAX_RESULTS=10
+
+      # These are TAAR specific and ignored by TAARlite
+      - DYNAMO_REGION=us-west-2
+      - DYNAMO_TABLE_NAME=taar_addon_data_20180206
+
+      # Pickup the AWS secret and access key from host env
+      - AWS_SECRET_ACCESS_KEY
+      - AWS_ACCESS_KEY_ID
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    command:
+      "web-dev"

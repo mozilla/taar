@@ -1,7 +1,0 @@
-#!/bin/bash
-touch requirements.txt
-for package_ver in `pip freeze |grep -v hashin`
-do 
-    echo "Processing "$package_ver
-    hashin $package_ver
-done
