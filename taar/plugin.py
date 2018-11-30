@@ -53,14 +53,21 @@ def configure_plugin(app):  # noqa: C901
 
                 post_data = json.loads(json_data)
                 promoted_guids = post_data.get("options", {}).get("promoted", [])
+
                 if promoted_guids:
+                    # Promoted GUIDs need to be sorted.  Any TAAR
+                    # generated weights will always be between 0 and 1.0.
+                    # Any integer weight that is passed in for a promoted
+                    # GUID will be greater than any machine generated
+                    # GUID.
                     promoted_guids.sort(key=lambda x: x[1], reverse=True)
                     promoted_guids = [x[0] for x in promoted_guids]
         except Exception as e:
+            jdata = {}
+            jdata["results"] = []
+            jdata["error"] = "Invalid JSON in POST: {}".format(e)
             return app.response_class(
-                response=json.dumps({"error": "Invalid JSON in POST: {}".format(e)}),
-                status=400,
-                mimetype="application/json",
+                response=json.dumps(jdata, status=400, mimetype="application/json")
             )
 
         # Coerce the uuid.UUID type into a string
