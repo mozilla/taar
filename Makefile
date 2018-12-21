@@ -7,7 +7,7 @@ all:
 upload:
 	twine upload --repository-url https://upload.pypi.org/legacy/ dist/*
 
-test:
+pytest:
 	python setup.py develop
 	python setup.py test
 	flake8 taar tests
