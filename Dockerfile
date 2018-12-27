@@ -27,6 +27,7 @@ RUN cat requirements.txt prod-requirements.txt > docker-requirements.txt
 RUN pip install --no-cache-dir -r docker-requirements.txt
 
 COPY . /app
+RUN python setup.py install
 USER app
 
 
