@@ -71,6 +71,7 @@ def test_only_promoted_addons_post(client, app):
     # The result should order the GUIDs in descending order of weight
     assert res.json == {"results": ["guid1", "guid55", "guid2"]}
 
+
 @pytest.mark.skip("This is an integration test")
 def test_recommenders(client_id="some_dev_client_id", branch="linear"):
     """
