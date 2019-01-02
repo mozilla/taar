@@ -45,7 +45,7 @@ def test_empty_results_by_default(client, app):
     # The default behaviour under test should be that the
     # RecommendationManager simply no-ops everything so we get back an
     # empty result list.
-    res = client.get("/v1/api/recommendations/not_a_real_hash/")
+    res = client.post("/v1/api/recommendations/not_a_real_hash/")
     assert res.json == {"results": []}
 
 
@@ -58,7 +58,7 @@ def test_mixed_and_promoted_and_taar_adodns(client, app):
     pass
 
 
-def test_only_promoted_addons(client, app):
+def test_only_promoted_addons_post(client, app):
     # POSTing a JSON blob allows us to specify promoted addons to the
     # TAAR service.
     res = client.post(
@@ -142,7 +142,7 @@ def empty_recommendation_manager(monkeypatch):
 
 @pytest.mark.skip("disabled until plugin system for taar-api is cleaned up")
 def test_empty_recommendation(client, empty_recommendation_manager):
-    response = client.get(url_for("recommendations", uuid_client_id=uuid.uuid4()))
+    response = client.post(url_for("recommendations", uuid_client_id=uuid.uuid4()))
     assert response.status_code == 200
     assert response.headers["Content-Type"] == "application/json"
     assert response.data == b'{"results": []}'
@@ -150,14 +150,14 @@ def test_empty_recommendation(client, empty_recommendation_manager):
 
 @pytest.mark.skip("disabled until plugin system for taar-api is cleaned up")
 def test_locale_recommendation(client, locale_recommendation_manager):
-    response = client.get(
+    response = client.post(
         url_for("recommendations", uuid_client_id=uuid.uuid4()) + "?locale=en-US"
     )
     assert response.status_code == 200
     assert response.headers["Content-Type"] == "application/json"
     assert response.data == b'{"results": ["addon-Locale"]}'
 
-    response = client.get(url_for("recommendations", uuid_client_id=uuid.uuid4()))
+    response = client.post(url_for("recommendations", uuid_client_id=uuid.uuid4()))
     assert response.status_code == 200
     assert response.headers["Content-Type"] == "application/json"
     assert response.data == b'{"results": []}'
@@ -168,12 +168,12 @@ def test_platform_recommendation(client, platform_recommendation_manager):
     uri = (
         url_for("recommendations", uuid_client_id=str(uuid.uuid4())) + "?platform=WOW64"
     )
-    response = client.get(uri)
+    response = client.post(uri)
     assert response.status_code == 200
     assert response.headers["Content-Type"] == "application/json"
     assert response.data == b'{"results": ["addon-WOW64"]}'
 
-    response = client.get(url_for("recommendations", uuid_client_id=uuid.uuid4()))
+    response = client.post(url_for("recommendations", uuid_client_id=uuid.uuid4()))
     assert response.status_code == 200
     assert response.headers["Content-Type"] == "application/json"
     assert response.data == b'{"results": []}'
@@ -182,7 +182,7 @@ def test_platform_recommendation(client, platform_recommendation_manager):
 @pytest.mark.skip("disabled until plugin system for taar-api is cleaned up")
 def test_intervention_a(client, static_recommendation_manager):
     url = url_for("recommendations", uuid_client_id=uuid.uuid4())
-    response = client.get(url + "?branch=intervention-a")
+    response = client.post(url + "?branch=intervention-a")
     assert response.status_code == 200
     assert response.headers["Content-Type"] == "application/json"
     expected = b'{"results": ["intervention-a-addon-1", "intervention-a-addon-2", "intervention-a-addon-N"]}'
@@ -192,7 +192,7 @@ def test_intervention_a(client, static_recommendation_manager):
 @pytest.mark.skip("disabled until plugin system for taar-api is cleaned up")
 def test_intervention_b(client, static_recommendation_manager):
     url = url_for("recommendations", uuid_client_id=uuid.uuid4())
-    response = client.get(url + "?branch=intervention_b")
+    response = client.post(url + "?branch=intervention_b")
     assert response.status_code == 200
     assert response.headers["Content-Type"] == "application/json"
     expected = b'{"results": ["intervention_b-addon-1", "intervention_b-addon-2", "intervention_b-addon-N"]}'
@@ -202,7 +202,7 @@ def test_intervention_b(client, static_recommendation_manager):
 @pytest.mark.skip("disabled until plugin system for taar-api is cleaned up")
 def test_control_branch(client, static_recommendation_manager):
     url = url_for("recommendations", uuid_client_id=uuid.uuid4())
-    response = client.get(url + "?branch=control")
+    response = client.post(url + "?branch=control")
     assert response.status_code == 200
     assert response.headers["Content-Type"] == "application/json"
     expected = b'{"results": ["control-addon-1", "control-addon-2", "control-addon-N"]}'
