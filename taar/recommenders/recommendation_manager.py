@@ -158,7 +158,6 @@ class RecommendationManager:
             self._ctx, TAAR_WHITELIST_BUCKET, TAAR_WHITELIST_KEY
         )
 
-    @schema_validate(RecommendationManagerQuerySchema)
     def recommend(self, client_id, limit, extra_data={}):
         """Return recommendations for the given client.
 

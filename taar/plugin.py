@@ -76,9 +76,7 @@ def configure_plugin(app):  # noqa: C901
         # Coerce the uuid.UUID type into a string
         client_id = str(hashed_client_id)
 
-        branch = request.args.get("branch", "")
-
-        extra_data = {"branch": branch}
+        extra_data = {"branch": 'intervention_a'}
 
         locale = request.args.get("locale", None)
         if locale is not None:

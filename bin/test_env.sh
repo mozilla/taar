@@ -1,0 +1,18 @@
+# Setup shell test enviroment settings
+export TAAR_API_PLUGIN=taar.plugin
+export TAAR_ITEM_MATRIX_BUCKET=telemetry-public-analysis-2
+export TAAR_ITEM_MATRIX_KEY=telemetry-ml/addon_recommender/item_matrix.json
+export TAAR_ADDON_MAPPING_BUCKET=telemetry-public-analysis-2
+export TAAR_ADDON_MAPPING_KEY=telemetry-ml/addon_recommender/addon_mapping.json
+export TAAR_ENSEMBLE_BUCKET=telemetry-parquet
+export TAAR_ENSEMBLE_KEY=taar/ensemble/ensemble_weight.json
+export TAAR_WHITELIST_BUCKET=telemetry-parquet
+export TAAR_WHITELIST_KEY=telemetry-ml/addon_recommender/only_guids_top_200.json
+export TAAR_LOCALE_BUCKET=telemetry-parquet
+export TAAR_LOCALE_KEY=taar/locale/top10_dict.json
+export TAAR_SIMILARITY_BUCKET=telemetry-parquet
+export TAAR_SIMILARITY_DONOR_KEY=taar/similarity/donors.json
+export TAAR_SIMILARITY_LRCURVES_KEY=taar/similarity/lr_curves.json
+export TAAR_MAX_RESULTS=10
+export DYNAMO_REGION=us-west-2
+export DYNAMO_TABLE_NAME=taar_addon_data_20180206
