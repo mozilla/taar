@@ -24,6 +24,7 @@ import random
 from .s3config import TAAR_WHITELIST_BUCKET
 from .s3config import TAAR_WHITELIST_KEY
 
+import hashlib
 
 # We need to build a default logger for the schema validation as there
 # is no class to bind to yet.
@@ -31,18 +32,22 @@ ctx = default_context()
 schema_logger = ctx[IMozLogging].get_logger("taar.schema_validate")
 
 
+def hasher(client_id):
+    return hashlib.new('sha256', client_id.encode('utf8')).hexdigest()
+
+
 TEST_CLIENT_IDS = [
-    "00000000-0000-0000-0000-000000000000",
-    "11111111-1111-1111-1111-111111111111",
-    "22222222-2222-2222-2222-222222222222",
-    "33333333-3333-3333-3333-333333333333",
+    hasher("00000000-0000-0000-0000-000000000000"),
+    hasher("11111111-1111-1111-1111-111111111111"),
+    hasher("22222222-2222-2222-2222-222222222222"),
+    hasher("33333333-3333-3333-3333-333333333333"),
 ]
 
 EMPTY_TEST_CLIENT_IDS = [
-    "00000000-aaaa-0000-0000-000000000000",
-    "11111111-aaaa-1111-1111-111111111111",
-    "22222222-aaaa-2222-2222-222222222222",
-    "33333333-aaaa-3333-3333-333333333333",
+    hasher("00000000-aaaa-0000-0000-000000000000"),
+    hasher("11111111-aaaa-1111-1111-111111111111"),
+    hasher("22222222-aaaa-2222-2222-222222222222"),
+    hasher("33333333-aaaa-3333-3333-333333333333"),
 ]
 
 
