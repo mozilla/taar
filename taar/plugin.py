@@ -41,8 +41,8 @@ def configure_plugin(app):  # noqa: C901
         # Use the module global PROXY_MANAGER
         global PROXY_MANAGER
 
+        promoted_guids = []
         try:
-            promoted_guids = []
             if request.method == "POST":
                 json_data = request.data
                 # At least Python3.5 returns request.data as bytes
@@ -51,10 +51,10 @@ def configure_plugin(app):  # noqa: C901
                 if type(json_data) == bytes:
                     json_data = json_data.decode("utf8")
 
-                post_data = json.loads(json_data)
-                promoted_guids = post_data.get("options", {}).get("promoted", [])
+                if json_data != "":
+                    post_data = json.loads(json_data)
+                    promoted_guids = post_data.get("options", {}).get("promoted", [])
 
-                if promoted_guids:
                     # Promoted GUIDs need to be sorted.  Any TAAR
                     # generated weights will always be between 0 and 1.0.
                     # Any integer weight that is passed in for a promoted
@@ -62,6 +62,9 @@ def configure_plugin(app):  # noqa: C901
                     # GUID.
                     promoted_guids.sort(key=lambda x: x[1], reverse=True)
                     promoted_guids = [x[0] for x in promoted_guids]
+                else:
+                    promoted_guids = []
+
         except Exception as e:
             jdata = {}
             jdata["results"] = []
