@@ -111,3 +111,6 @@ ENV/
 # unix history files
 .bash_history
 .python_history
+
+# output from bin/build
+version.json
