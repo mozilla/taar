@@ -1,17 +1,25 @@
-import pytest
-from taar.context import default_context
-from taar import ProfileFetcher
-from taar.profile_fetcher import ProfileController
-from taar import recommenders
-from flask import url_for
+import hashlib
 import time
-from flask import Flask
 import uuid
+
+from flask import Flask
+from flask import url_for
+
+import pytest
+
+from taar import ProfileFetcher
+from taar import recommenders
+from taar.context import default_context
+from taar.profile_fetcher import ProfileController
 
 try:
     from unittest.mock import MagicMock
 except Exception:
     from mock import MagicMock
+
+
+def hasher(uuid):
+    return hashlib.new("sha256", str(uuid).encode("utf8")).hexdigest()
 
 
 def create_recommendation_manager():
@@ -133,31 +141,68 @@ def micro_bench(x, client_id, branch_label):
     print(("%0.5f seconds per request" % ((end - start) / x)))
 
 
+class FakeRecommendationManager(object):
+    def __init__(self, *args, **kwargs):
+        pass
+
+
+class LocaleRecommendationManager(FakeRecommendationManager):
+    def recommend(self, client_id, limit, extra_data={}):
+        if extra_data.get("locale", None) == "en-US":
+            return [("addon-Locale", 1.0)]
+        return []
+
+
+class EmptyRecommendationManager(FakeRecommendationManager):
+    def recommend(self, client_id, limit, extra_data={}):
+        return []
+
+
+@pytest.fixture
+def locale_recommendation_manager(monkeypatch):
+    # Force the plugin configuration
+    import os
+
+    os.environ["TAAR_API_PLUGIN"] = "taar.plugin"
+
+    import taar.flask_app
+
+    taar.flask_app.APP_WRAPPER.set({"PROXY_RESOURCE": LocaleRecommendationManager()})
+
+
 @pytest.fixture
 def empty_recommendation_manager(monkeypatch):
-    # TODO: Clobbering the recommendationmanager really needs to be
-    # simplified
-    return None
+    # Force the plugin configuration
+    import os
+
+    os.environ["TAAR_API_PLUGIN"] = "taar.plugin"
+
+    import taar.flask_app
+
+    taar.flask_app.APP_WRAPPER.set({"PROXY_RESOURCE": EmptyRecommendationManager()})
 
 
-@pytest.mark.skip("disabled until plugin system for taar-api is cleaned up")
 def test_empty_recommendation(client, empty_recommendation_manager):
-    response = client.post(url_for("recommendations", uuid_client_id=uuid.uuid4()))
+    response = client.post(
+        url_for("recommendations", hashed_client_id=hasher(uuid.uuid4()))
+    )
     assert response.status_code == 200
     assert response.headers["Content-Type"] == "application/json"
     assert response.data == b'{"results": []}'
 
 
-@pytest.mark.skip("disabled until plugin system for taar-api is cleaned up")
 def test_locale_recommendation(client, locale_recommendation_manager):
     response = client.post(
-        url_for("recommendations", uuid_client_id=uuid.uuid4()) + "?locale=en-US"
+        url_for("recommendations", hashed_client_id=hasher(uuid.uuid4()))
+        + "?locale=en-US"
     )
     assert response.status_code == 200
     assert response.headers["Content-Type"] == "application/json"
     assert response.data == b'{"results": ["addon-Locale"]}'
 
-    response = client.post(url_for("recommendations", uuid_client_id=uuid.uuid4()))
+    response = client.post(
+        url_for("recommendations", hashed_client_id=hasher(uuid.uuid4()))
+    )
     assert response.status_code == 200
     assert response.headers["Content-Type"] == "application/json"
     assert response.data == b'{"results": []}'
