@@ -19,7 +19,9 @@ TAAR_LOCALE_BUCKET = config("TAAR_LOCALE_BUCKET", default="test_locale_bucket")
 TAAR_LOCALE_KEY = config("TAAR_LOCALE_KEY", default="test_locale_key")
 
 
-TAAR_SIMILARITY_BUCKET = config("telemetry-parquet", default="test_similarity_bucket")
+TAAR_SIMILARITY_BUCKET = config(
+    "TAAR_SIMILARITY_BUCKET", default="test_similarity_bucket"
+)
 TAAR_SIMILARITY_DONOR_KEY = config(
     "TAAR_SIMILARITY_DONOR_KEY", default="test_similarity_donor_key"
 )
