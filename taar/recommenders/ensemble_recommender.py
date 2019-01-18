@@ -49,6 +49,7 @@ class EnsembleRecommender(AbstractRecommender):
             self._recommender_map[rkey] = recommender_factory.create(rkey)
 
         self._weight_cache = WeightCache(self._ctx.child())
+        self.logger.info("EnsembleRecommender initialized")
 
     def can_recommend(self, client_data, extra_data={}):
         """The ensemble recommender is always going to be
