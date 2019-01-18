@@ -235,3 +235,29 @@ def test_mixed_and_promoted_and_taar_adodns(client, static_recommendation_manage
         ]
     }
     assert res.json == expected
+
+
+def test_overlapping_mixed_and_promoted_and_taar_adodns(client, static_recommendation_manager):
+    """
+    Test that we can provide addon suggestions that also get clobbered
+    by the promoted addon set.
+    """
+    url = url_for("recommendations", hashed_client_id=hasher(uuid.uuid4()))
+    res = client.post(
+        url,
+        json=dict(
+            {"options": {"promoted": [["intervention_a-addon-1", 10], ["guid2", 5], ["guid55", 8]]}}
+        ),
+        follow_redirects=True,
+    )
+    # The result should order the GUIDs in descending order of weight
+    expected = {
+        "results": [
+            "intervention_a-addon-1",
+            "guid55",
+            "guid2",
+            "intervention_a-addon-2",
+            "intervention_a-addon-N",
+        ]
+    }
+    assert res.json == expected
