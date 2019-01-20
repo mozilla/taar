@@ -80,12 +80,10 @@ class StaticRecommendationManager(FakeRecommendationManager):
     # Recommenders must return a list of 2-tuple results
     # with (GUID, weight)
     def recommend(self, client_id, limit, extra_data={}):
-        branch_id = extra_data.get("branch", "control")
-        data = {"branch": branch_id}
         result = [
-            ("%(branch)s-addon-1" % data, 1.0),
-            ("%(branch)s-addon-2" % data, 1.0),
-            ("%(branch)s-addon-N" % data, 1.0),
+            ("test-addon-1", 1.0),
+            ("test-addon-2", 1.0),
+            ("test-addon-N", 1.0),
         ]
         return result
 
@@ -201,12 +199,12 @@ def test_platform_recommendation(client, platform_recommendation_manager):
     assert response.data == b'{"results": []}'
 
 
-def test_default_intervention(client, static_recommendation_manager):
+def test_simple_request(client, static_recommendation_manager):
     url = url_for("recommendations", hashed_client_id=hasher(uuid.uuid4()))
     response = client.post(url)
     assert response.status_code == 200
     assert response.headers["Content-Type"] == "application/json"
-    expected = b'{"results": ["intervention_a-addon-1", "intervention_a-addon-2", "intervention_a-addon-N"]}'
+    expected = b'{"results": ["test-addon-1", "test-addon-2", "test-addon-N"]}'
     assert response.data == expected
 
 
@@ -229,9 +227,9 @@ def test_mixed_and_promoted_and_taar_adodns(client, static_recommendation_manage
             "guid1",
             "guid55",
             "guid2",
-            "intervention_a-addon-1",
-            "intervention_a-addon-2",
-            "intervention_a-addon-N",
+            "test-addon-1",
+            "test-addon-2",
+            "test-addon-N",
         ]
     }
     assert res.json == expected
@@ -246,18 +244,18 @@ def test_overlapping_mixed_and_promoted_and_taar_adodns(client, static_recommend
     res = client.post(
         url,
         json=dict(
-            {"options": {"promoted": [["intervention_a-addon-1", 10], ["guid2", 5], ["guid55", 8]]}}
+            {"options": {"promoted": [["test-addon-1", 10], ["guid2", 5], ["guid55", 8]]}}
         ),
         follow_redirects=True,
     )
     # The result should order the GUIDs in descending order of weight
     expected = {
         "results": [
-            "intervention_a-addon-1",
+            "test-addon-1",
             "guid55",
             "guid2",
-            "intervention_a-addon-2",
-            "intervention_a-addon-N",
+            "test-addon-2",
+            "test-addon-N",
         ]
     }
     assert res.json == expected

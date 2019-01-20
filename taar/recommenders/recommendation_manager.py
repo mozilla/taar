@@ -21,7 +21,7 @@ ctx = default_context()
 
 
 def hasher(client_id):
-    return hashlib.new('sha256', client_id.encode('utf8')).hexdigest()
+    return hashlib.new("sha256", client_id.encode("utf8")).hexdigest()
 
 
 TEST_CLIENT_IDS = [
