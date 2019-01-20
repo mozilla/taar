@@ -29,6 +29,40 @@ class ResourceProxy(object):
 PROXY_MANAGER = ResourceProxy()
 
 
+def clean_promoted_guids(raw_promoted_guids):
+    """ Verify that the promoted GUIDs are formatted correctly,
+    otherwise strip it down into an empty list.
+    """
+    valid = True
+
+    for row in raw_promoted_guids:
+        if len(row) != 2:
+            valid = False
+            break
+
+        if not (
+            isinstance(row[0], str)
+            and (isinstance(row[1], int) or isinstance(row[1], float))
+        ):
+            valid = False
+            break
+
+    if valid:
+        return raw_promoted_guids
+    return []
+
+
+def merge_promoted_guids(promoted_guids, recommended_guids):
+    guids = set()
+    final = []
+    tmp = sorted(promoted_guids + [x for x in recommended_guids], key=lambda x: x[1], reverse=True)
+    for guid, weight in tmp:
+        if guid not in guids:
+            final.append((guid, weight))
+            guids.add(guid)
+    return final
+
+
 def configure_plugin(app):  # noqa: C901
     """
     This is a factory function that configures all the routes for
@@ -41,7 +75,10 @@ def configure_plugin(app):  # noqa: C901
         # Use the module global PROXY_MANAGER
         global PROXY_MANAGER
 
-        promoted_guids = []
+        extra_data = {}
+        extra_data["options"] = {}
+        extra_data["options"]["promoted"] = []
+
         try:
             if request.method == "POST":
                 json_data = request.data
@@ -53,17 +90,11 @@ def configure_plugin(app):  # noqa: C901
 
                 if json_data != "":
                     post_data = json.loads(json_data)
-                    promoted_guids = post_data.get("options", {}).get("promoted", [])
-
-                    # Promoted GUIDs need to be sorted.  Any TAAR
-                    # generated weights will always be between 0 and 1.0.
-                    # Any integer weight that is passed in for a promoted
-                    # GUID will be greater than any machine generated
-                    # GUID.
-                    promoted_guids.sort(key=lambda x: x[1], reverse=True)
-                    promoted_guids = [x[0] for x in promoted_guids]
-                else:
-                    promoted_guids = []
+                    raw_promoted_guids = post_data.get("options", {}).get(
+                        "promoted", []
+                    )
+                    promoted_guids = clean_promoted_guids(raw_promoted_guids)
+                    extra_data["options"]["promoted"] = promoted_guids
 
         except Exception as e:
             jdata = {}
@@ -75,8 +106,6 @@ def configure_plugin(app):  # noqa: C901
 
         # Coerce the uuid.UUID type into a string
         client_id = str(hashed_client_id)
-
-        extra_data = {"branch": 'intervention_a'}
 
         locale = request.args.get("locale", None)
         if locale is not None:
@@ -104,10 +133,12 @@ def configure_plugin(app):  # noqa: C901
             client_id=client_id, limit=TAAR_MAX_RESULTS, extra_data=extra_data
         )
 
+        promoted_guids = extra_data.get("options", {}).get("promoted", [])
+        recommendations = merge_promoted_guids(promoted_guids, recommendations)
+
         # Strip out weights from TAAR results to maintain compatibility
         # with TAAR 1.0
         jdata = {"results": [x[0] for x in recommendations]}
-        jdata["results"] = (promoted_guids + jdata["results"])[:TAAR_MAX_RESULTS]
 
         response = app.response_class(
             response=json.dumps(jdata), status=200, mimetype="application/json"
