@@ -41,7 +41,7 @@ def clean_promoted_guids(raw_promoted_guids):
             break
 
         if not (
-            isinstance(row[0], str)
+            (isinstance(row[0], str) or isinstance(row[0], unicode))
             and (isinstance(row[1], int) or isinstance(row[1], float))
         ):
             valid = False
