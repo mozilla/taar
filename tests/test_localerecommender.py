@@ -14,12 +14,12 @@ from taar.recommenders.s3config import TAAR_LOCALE_KEY, TAAR_LOCALE_BUCKET
 
 FAKE_LOCALE_DATA = {
     "te-ST": [
-        "{1e6b8bce-7dc8-481c-9f19-123e41332b72}",
-        "some-other@nice-addon.com",
-        "{66d1eed2-a390-47cd-8215-016e9fa9cc55}",
-        "{5f1594c3-0d4c-49dd-9182-4fbbb25131a7}",
+        ["{1e6b8bce-7dc8-481c-9f19-123e41332b72}", 0.1],
+        ["some-other@nice-addon.com", 0.2],
+        ["{66d1eed2-a390-47cd-8215-016e9fa9cc55}", 0.3],
+        ["{5f1594c3-0d4c-49dd-9182-4fbbb25131a7}", 0.4],
     ],
-    "en": ["some-uuid@test-addon.com", "other-addon@some-id.it"],
+    "en": [["other-addon@some-id.it", 0.3], ["some-uuid@test-addon.com", 0.1]],
 }
 
 
@@ -78,9 +78,11 @@ def test_recommendations(test_ctx):
     assert len(recommendations) == len(FAKE_LOCALE_DATA["en"])
 
     # Make sure that the reported addons are the one from the fake data.
-    for (addon_id, weight) in recommendations:
-        assert 1 == weight
-        assert addon_id in FAKE_LOCALE_DATA["en"]
+    for (addon_id, weight), (expected_id, expected_weight) in zip(
+        recommendations, FAKE_LOCALE_DATA["en"]
+    ):
+        assert addon_id == expected_id
+        assert weight == expected_weight
 
 
 @mock_s3
@@ -90,13 +92,16 @@ def test_recommender_extra_data(test_ctx):
     def validate_recommendations(data, expected_locale):
         # Make sure the structure of the recommendations is correct and that we
         # recommended the the right addon.
+        data = sorted(data, key=lambda x: x[1], reverse=True)
         assert isinstance(data, list)
         assert len(data) == len(FAKE_LOCALE_DATA[expected_locale])
 
         # Make sure that the reported addons are the one from the fake data.
-        for (addon_id, weight) in data:
-            assert addon_id in FAKE_LOCALE_DATA[expected_locale]
-            assert 1 == weight
+        for (addon_id, weight), (expected_id, expected_weight) in zip(
+            data, FAKE_LOCALE_DATA[expected_locale]
+        ):
+            assert addon_id == expected_id
+            assert weight == expected_weight
 
     ctx = install_mock_data(test_ctx)
     r = LocaleRecommender(ctx)

@@ -31,7 +31,7 @@ class LazyJSONLoader:
     def has_expired(self):
         return self._clock.time() > self._expiry_time
 
-    def get(self):
+    def get(self, transform=None):
         """
         Return the JSON defined at the S3 location in the constructor.
 
@@ -42,9 +42,9 @@ class LazyJSONLoader:
         if not self.has_expired() and self._cached_copy is not None:
             return self._cached_copy, False
 
-        return self._refresh_cache(), True
+        return self._refresh_cache(transform), True
 
-    def _refresh_cache(self):
+    def _refresh_cache(self, transform=None):
         with self._lock:
             # If some requests get stale data while the S3 bucket is
             # being reloaded - it's not the end of the world.
@@ -86,7 +86,10 @@ class LazyJSONLoader:
                 # It is possible to have corrupted files in S3, so
                 # protect against that.
                 try:
-                    self._cached_copy = json.loads(raw_data)
+                    tmp = json.loads(raw_data)
+                    if transform is not None:
+                        tmp = transform(tmp)
+                    self._cached_copy = tmp
                 except ValueError:
                     # In the event of an error, we want to try to reload
                     # the data so force the expiry to 0, but leave the

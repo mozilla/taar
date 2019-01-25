@@ -33,7 +33,14 @@ class LocaleRecommender(AbstractRecommender):
 
     @property
     def top_addons_per_locale(self):
-        return self._top_addons_per_locale.get()[0]
+
+        def presort_locale(data):
+            result = {}
+            for locale, guid_list in data.items():
+                result[locale] = sorted(guid_list, key=lambda x: x[1], reverse=True)
+            return result
+
+        return self._top_addons_per_locale.get(transform=presort_locale)[0]
 
     def _init_from_ctx(self):
         if self.top_addons_per_locale is None:
@@ -71,8 +78,8 @@ class LocaleRecommender(AbstractRecommender):
                 client_data['locale'] = None
 
         log_data = (client_data['locale'],
-                    str([r for r in result_list]))
+                    str([r[0] for r in result_list]))
         self.logger.info("locale_recommender_triggered, "
                          "client_locale: [%s], guids: [%s]" % log_data)
-        # Need to have the actual prevalence here in order to improve this.
-        return [(x, 1.0) for x in result_list]
+
+        return result_list
