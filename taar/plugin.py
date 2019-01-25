@@ -42,7 +42,7 @@ def clean_promoted_guids(raw_promoted_guids):
 
         if not (
             (isinstance(row[0], str) or isinstance(row[0], unicode))
-            and (isinstance(row[1], int) or isinstance(row[1], float))
+            and (isinstance(row[1], int) or isinstance(row[1], float))  # noqa
         ):
             valid = False
             break
@@ -55,7 +55,11 @@ def clean_promoted_guids(raw_promoted_guids):
 def merge_promoted_guids(promoted_guids, recommended_guids):
     guids = set()
     final = []
-    tmp = sorted(promoted_guids + [x for x in recommended_guids], key=lambda x: x[1], reverse=True)
+    tmp = sorted(
+        promoted_guids + [x for x in recommended_guids],
+        key=lambda x: x[1],
+        reverse=True,
+    )
     for guid, weight in tmp:
         if guid not in guids:
             final.append((guid, weight))
