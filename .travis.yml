@@ -29,6 +29,7 @@ after_success:
 - coveralls
 deploy:
   provider: pypi
+  skip_existing: true
   user: victorng
   distributions: sdist bdist_wheel
   password:
