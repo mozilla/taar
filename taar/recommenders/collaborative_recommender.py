@@ -49,7 +49,6 @@ class CollaborativeRecommender(AbstractRecommender):
         self.logger = self._ctx[IMozLogging].get_logger("taar")
 
         self.model = None
-        self._build_model()
 
     @property
     def addon_mapping(self):
@@ -57,7 +56,16 @@ class CollaborativeRecommender(AbstractRecommender):
 
     @property
     def raw_item_matrix(self):
-        return self._raw_item_matrix.get()[0]
+        val, new_copy = self._raw_item_matrix.get()
+        if new_copy:
+            # Build a dense numpy matrix out of it.
+            num_rows = len(val)
+            num_cols = len(val[0]["features"])
+
+            self.model = np.zeros(shape=(num_rows, num_cols))
+            for index, row in enumerate(val):
+                self.model[index, :] = row["features"]
+        return val
 
     def _load_json_models(self):
         # Download the addon mappings.
@@ -74,18 +82,6 @@ class CollaborativeRecommender(AbstractRecommender):
                     TAAR_ITEM_MATRIX_BUCKET, TAAR_ITEM_MATRIX_KEY
                 )
             )
-
-    def _build_model(self):
-        if self.raw_item_matrix is None:
-            return
-
-        # Build a dense numpy matrix out of it.
-        num_rows = len(self.raw_item_matrix)
-        num_cols = len(self.raw_item_matrix[0]["features"])
-
-        self.model = np.zeros(shape=(num_rows, num_cols))
-        for index, row in enumerate(self.raw_item_matrix):
-            self.model[index, :] = row["features"]
 
     def can_recommend(self, client_data, extra_data={}):
         # We can't recommend if we don't have our data files.
