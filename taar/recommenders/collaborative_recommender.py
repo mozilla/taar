@@ -57,7 +57,7 @@ class CollaborativeRecommender(AbstractRecommender):
     @property
     def raw_item_matrix(self):
         val, new_copy = self._raw_item_matrix.get()
-        if new_copy:
+        if val is not None and new_copy:
             # Build a dense numpy matrix out of it.
             num_rows = len(val)
             num_cols = len(val[0]["features"])
@@ -65,6 +65,8 @@ class CollaborativeRecommender(AbstractRecommender):
             self.model = np.zeros(shape=(num_rows, num_cols))
             for index, row in enumerate(val):
                 self.model[index, :] = row["features"]
+        elif val is None and new_copy:
+            self.model = None
         return val
 
     def _load_json_models(self):
