@@ -20,20 +20,20 @@ class LocaleRecommender(AbstractRecommender):
     This recommender may provide useful recommendations when collaborative_recommender
     may not work.
     """
+
     def __init__(self, ctx):
         self._ctx = ctx
 
-        self.logger = self._ctx[IMozLogging].get_logger('taar')
+        self.logger = self._ctx[IMozLogging].get_logger("taar")
 
-        self._top_addons_per_locale = LazyJSONLoader(self._ctx,
-                                                     TAAR_LOCALE_BUCKET,
-                                                     TAAR_LOCALE_KEY)
+        self._top_addons_per_locale = LazyJSONLoader(
+            self._ctx, TAAR_LOCALE_BUCKET, TAAR_LOCALE_KEY
+        )
 
         self._init_from_ctx()
 
     @property
     def top_addons_per_locale(self):
-
         def presort_locale(data):
             result = {}
             for locale, guid_list in data.items():
@@ -44,7 +44,9 @@ class LocaleRecommender(AbstractRecommender):
 
     def _init_from_ctx(self):
         if self.top_addons_per_locale is None:
-            self.logger.error("Cannot download the top per locale file {}".format(TAAR_LOCALE_KEY))
+            self.logger.error(
+                "Cannot download the top per locale file {}".format(TAAR_LOCALE_KEY)
+            )
 
     def can_recommend(self, client_data, extra_data={}):
         # We can't recommend if we don't have our data files.
@@ -53,7 +55,9 @@ class LocaleRecommender(AbstractRecommender):
 
         # If we have data coming from other sources, we can use that for
         # recommending.
-        client_locale = client_data.get('locale', None) or extra_data.get('locale', None)
+        client_locale = client_data.get("locale", None) or extra_data.get(
+            "locale", None
+        )
         if not isinstance(client_locale, str):
             return False
 
@@ -66,20 +70,35 @@ class LocaleRecommender(AbstractRecommender):
         return True
 
     def recommend(self, client_data, limit, extra_data={}):
+        try:
+            result_list = self._recommend(client_data, limit, extra_data)
+        except Exception as e:
+            result_list = []
+            self._top_addons_per_locale.force_expiry()
+            self.logger.exception(
+                "Locale recommender crashed for {}".format(
+                    client_data.get("client_id", "no-client-id")
+                ),
+                e,
+            )
+
+        return result_list
+
+    def _recommend(self, client_data, limit, extra_data={}):
         # If we have data coming from multiple sourecs, prefer the one
         # from 'client_data'.
-        client_locale = client_data.get('locale') or extra_data.get('locale', None)
+        client_locale = client_data.get("locale") or extra_data.get("locale", None)
         result_list = self.top_addons_per_locale.get(client_locale, [])[:limit]
 
-        if 'locale' not in client_data:
+        if "locale" not in client_data:
             try:
-                client_data['locale'] = extra_data["locale"]
+                client_data["locale"] = extra_data["locale"]
             except KeyError:
-                client_data['locale'] = None
+                client_data["locale"] = None
 
-        log_data = (client_data['locale'],
-                    str([r[0] for r in result_list]))
-        self.logger.info("locale_recommender_triggered, "
-                         "client_locale: [%s], guids: [%s]" % log_data)
-
+        log_data = (client_data["locale"], str([r[0] for r in result_list]))
+        self.logger.info(
+            "locale_recommender_triggered, "
+            "client_locale: [%s], guids: [%s]" % log_data
+        )
         return result_list

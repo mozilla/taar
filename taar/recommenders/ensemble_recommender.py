@@ -64,6 +64,21 @@ class EnsembleRecommender(AbstractRecommender):
         return result
 
     def recommend(self, client_data, limit, extra_data={}):
+        try:
+            results = self._recommend(client_data, limit, extra_data)
+        except Exception as e:
+            results = []
+            self._weight_cache._weights.force_expiry()
+            self.logger.exception(
+                "Ensemble recommender crashed for {}".format(
+                    client_data.get("client_id", "no-client-id")
+                ),
+                e,
+            )
+
+        return results
+
+    def _recommend(self, client_data, limit, extra_data={}):
         """
         Ensemble recommendations are aggregated from individual
         recommenders.  The ensemble recommender applies a weight to

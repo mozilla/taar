@@ -223,7 +223,7 @@ class SimilarityRecommender(AbstractRecommender):
         indices = (-lrs_from_scores).argsort()
         return lrs_from_scores[indices], indices
 
-    def recommend(self, client_data, limit, extra_data={}):
+    def _recommend(self, client_data, limit, extra_data={}):
         donor_set_ranking, indices = self.get_similar_donors(client_data)
         donor_log_lrs = np.log(donor_set_ranking)
         # 1.0 corresponds to a log likelihood ratio of 0 meaning that donors are equally
@@ -259,5 +259,21 @@ class SimilarityRecommender(AbstractRecommender):
             "similarity_recommender_triggered, "
             "client_id: [%s], guids: [%s]" % log_data
         )
+        return recommendations_out
+
+    def recommend(self, client_data, limit, extra_data={}):
+        try:
+            recommendations_out = self._recommend(client_data, limit, extra_data)
+        except Exception as e:
+            recommendations_out = []
+            self._donors_pool.force_expiry()
+            self._lr_curves.force_expiry()
+
+            self.logger.exception(
+                "Similarity recommender crashed for {}".format(
+                    client_data.get("client_id", "no-client-id")
+                ),
+                e,
+            )
 
         return recommendations_out[:limit]
