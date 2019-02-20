@@ -4,6 +4,7 @@
 
 import json
 import six
+import logging
 
 import numpy as np
 import scipy.stats
@@ -137,21 +138,31 @@ def install_continuous_data(ctx):
     return ctx
 
 
+def check_matrix_built(caplog):
+    msg = "Reconstructed matrices for similarity recommender"
+    return sum([msg in str(s) for s in caplog.records]) > 0
+
+
 @mock_s3
-def test_soft_fail(test_ctx):
+def test_soft_fail(test_ctx, caplog):
     # Create a new instance of a SimilarityRecommender.
     ctx = install_no_data(test_ctx)
     r = SimilarityRecommender(ctx)
 
     # Don't recommend if the source files cannot be found.
     assert not r.can_recommend({})
+    assert not check_matrix_built(caplog)
 
 
 @mock_s3
-def test_can_recommend(test_ctx):
+def test_can_recommend(test_ctx, caplog):
+    caplog.set_level(logging.INFO)
+
     # Create a new instance of a SimilarityRecommender.
     ctx = install_continuous_data(test_ctx)
     r = SimilarityRecommender(ctx)
+
+    assert check_matrix_built(caplog)
 
     # Test that we can't recommend if we have not enough client info.
     assert not r.can_recommend({})
@@ -388,3 +399,24 @@ def test_weights_categorical(test_ctx):
     rec1_weight = rec1[1]
 
     assert rec0_weight > rec1_weight > 0
+
+
+@mock_s3
+def test_recompute_matrices(test_ctx, caplog):
+    caplog.set_level(logging.INFO)
+
+    # Create a new instance of a SimilarityRecommender.
+    ctx = install_continuous_data(test_ctx)
+    r = SimilarityRecommender(ctx)
+
+    # Reloading the donors pool should reconstruct the matrices
+    caplog.clear()
+    r._donors_pool.force_expiry()
+    r.donors_pool
+    assert check_matrix_built(caplog)
+
+    # Reloading the LR curves should reconstruct the matrices
+    caplog.clear()
+    r._lr_curves.force_expiry()
+    r.lr_curves
+    assert check_matrix_built(caplog)
