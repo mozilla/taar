@@ -20,7 +20,7 @@ PLUGIN = config("TAAR_API_PLUGIN", default=None)
 
 
 sentry_sdk.init(
-    dsn=config("SENTRY_DSN"),
+    dsn=config("SENTRY_DSN", ''),
     integrations=[FlaskIntegration()],
 )
 
