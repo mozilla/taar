@@ -8,12 +8,19 @@ from dockerflow.flask import Dockerflow
 import optparse
 from decouple import config
 import importlib
+import sentry_sdk
+from sentry_sdk.integrations.flask import FlaskIntegration
+
 
 app = Flask(__name__)
 dockerflow = Dockerflow(app)
 
 # Hook the application plugin and configure it
 PLUGIN = config('TAAR_API_PLUGIN', default=None)
+sentry_sdk.init(
+    dsn=config("SENTRY_DSN"),
+    integrations=[FlaskIntegration()],
+)
 
 # There should only be a single registered app for the taar-api
 if PLUGIN is None:
