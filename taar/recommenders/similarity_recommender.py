@@ -67,40 +67,61 @@ class SimilarityRecommender(AbstractRecommender):
 
     @property
     def donors_pool(self):
-        return self._donors_pool.get()[0]
+        result, status = self._donors_pool.get()
+        if status:
+            # Force a reconstruction of the features cache on new
+            # donor pool data
+            self._build_features_caches()
+        return result
 
     @property
     def lr_curves(self):
-        return self._lr_curves.get()[0]
+        result, status = self._lr_curves.get()
+        if status:
+            # Force a reconstruction of the features cache on new
+            # curve data
+            self._build_features_caches()
+        return result
 
     def _init_from_ctx(self):
         # Download the addon donors list.
         if self.donors_pool is None:
-            self.logger.error(
-                "Cannot download the donor list: {}".format(TAAR_SIMILARITY_DONOR_KEY)
+            self.logger.info(
+                "Similarity donors pool has not been fetched from S3: {}".format(
+                    TAAR_SIMILARITY_DONOR_KEY
+                )
             )
 
         # Download the probability mapping curves from similarity to likelihood of being a good donor.
         if self.lr_curves is None:
             self.logger.error(
-                "Cannot download the lr curves: {}".format(TAAR_SIMILARITY_LRCURVES_KEY)
+                "Similarity LR Curves have not been fetched from S3: {}".format(
+                    TAAR_SIMILARITY_LRCURVES_KEY
+                )
             )
-        self.build_features_caches()
 
-    def build_features_caches(self):
+    def _build_features_caches(self):
         """This function build two feature cache matrices.
+
+        That's the self.categorical_features and
+        self.continuous_features attributes.
 
         One matrix is for the continuous features and the other is for
         the categorical features. This is needed to speed up the similarity
         recommendation process."""
-        if self.donors_pool is None or self.lr_curves is None:
+        _donors_pool = self._donors_pool.get()[0]
+        _lr_curves = self._lr_curves.get()[0]
+
+        if _donors_pool is None or _lr_curves is None:
+            # We need to have both donors_pool and lr_curves defined
+            # to reconstruct the matrices
             return None
 
-        self.num_donors = len(self.donors_pool)
+        self.num_donors = len(_donors_pool)
 
         # Build a numpy matrix cache for the continuous features.
         self.continuous_features = np.zeros((self.num_donors, len(CONTINUOUS_FEATURES)))
-        for idx, d in enumerate(self.donors_pool):
+        for idx, d in enumerate(_donors_pool):
             features = [d.get(specified_key) for specified_key in CONTINUOUS_FEATURES]
             self.continuous_features[idx] = features
 
@@ -108,9 +129,11 @@ class SimilarityRecommender(AbstractRecommender):
         self.categorical_features = np.zeros(
             (self.num_donors, len(CATEGORICAL_FEATURES)), dtype="object"
         )
-        for idx, d in enumerate(self.donors_pool):
+        for idx, d in enumerate(_donors_pool):
             features = [d.get(specified_key) for specified_key in CATEGORICAL_FEATURES]
             self.categorical_features[idx] = np.array([features], dtype="object")
+
+        self.logger.info("Reconstructed matrices for similarity recommender")
 
     def can_recommend(self, client_data, extra_data={}):
         # We can't recommend if we don't have our data files.
