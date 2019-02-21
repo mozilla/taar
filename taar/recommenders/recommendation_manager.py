@@ -106,7 +106,7 @@ class RecommendationManager:
 
         client_info = self.profile_fetcher.get(client_id)
         if client_info is None:
-            self.logger.warning(
+            self.logger.info(
                 "Defaulting to empty results.  No client info fetched from dynamo."
             )
             return []

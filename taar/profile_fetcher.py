@@ -39,11 +39,14 @@ class ProfileController:
             json_byte_data = zlib.decompress(compressed_bytes)
             json_str_data = json_byte_data.decode('utf8')
             return json.loads(json_str_data)
+        except KeyError:
+            # No client ID found - not really an error
+            return None
         except Exception as e:
             # Return None on error.  The caller in ProfileFetcher will
             # handle error logging
             msg = "Error loading client data for {}.  Error: {}"
-            self.logger.error(msg.format(client_id, str(e)))
+            self.logger.debug(msg.format(client_id, str(e)))
             return None
 
 
@@ -65,7 +68,7 @@ class ProfileFetcher:
         profile_data = self._client.get_client_profile(client_id)
 
         if profile_data is None:
-            self.logger.error("Client profile not found", extra={"client_id": client_id})
+            self.logger.debug("Client profile not found", extra={"client_id": client_id})
             return None
 
         addon_ids = [addon['addon_id']
