@@ -3,7 +3,7 @@ from setuptools import find_packages, setup
 setup(
     name="mozilla-taar3",
     use_scm_version=False,
-    version="0.4.3",
+    version="0.4.5",
     setup_requires=["setuptools_scm", "pytest-runner"],
     tests_require=["pytest"],
     include_package_data=True,
@@ -13,7 +13,7 @@ setup(
     author_email="fx-data-dev@mozilla.org",
     url="https://github.com/mozilla/taar",
     license="MPL 2.0",
-    install_requires=["numpy", "requests", "six", "ply", "boto3", "scipy"],
+    install_requires=[],
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Environment :: Web Environment :: Mozilla",
