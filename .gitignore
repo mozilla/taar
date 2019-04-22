@@ -114,3 +114,6 @@ ENV/
 
 # output from bin/build
 version.json
+
+# local virtual_env
+virtual_env
