@@ -73,6 +73,23 @@ def configure_plugin(app):  # noqa: C901
     flask given a particular library.
     """
 
+    @app.route(
+        "/v1/api/client_has_addon/<hashed_client_id>/<addon_id>/", methods=["GET"]
+    )
+    def client_has_addon(hashed_client_id, addon_id):
+        # Use the module global PROXY_MANAGER
+        global PROXY_MANAGER
+        recommendation_manager = self.check_proxy_manager(PROXY_MANAGER)
+        pf = recommendation_manager._ctx["profile_fetcher"]
+
+        client_meta = pf.get(hashed_client_id)
+        if client_meta is None:
+            # no valid client metadata was found for the given
+            # clientId
+            return False
+
+        return addon_id in client_meta.get("installed_addons", [])
+
     @app.route("/v1/api/recommendations/<hashed_client_id>/", methods=["GET", "POST"])
     def recommendations(hashed_client_id):
         """Return a list of recommendations provided a telemetry client_id."""
@@ -119,21 +136,8 @@ def configure_plugin(app):  # noqa: C901
         if platform is not None:
             extra_data["platform"] = platform
 
-        if PROXY_MANAGER.getResource() is None:
-            ctx = default_context()
-            profile_fetcher = ProfileFetcher(ctx)
-
-            ctx["profile_fetcher"] = profile_fetcher
-
-            # Lock the context down after we've got basic bits installed
-            root_ctx = ctx.child()
-            r_factory = recommenders.RecommenderFactory(root_ctx)
-            root_ctx["recommender_factory"] = r_factory
-            instance = recommenders.RecommendationManager(root_ctx.child())
-            PROXY_MANAGER.setResource(instance)
-
-        instance = PROXY_MANAGER.getResource()
-        recommendations = instance.recommend(
+        recommendation_manager = check_proxy_manager(PROXY_MANAGER)
+        recommendations = recommendation_manager.recommend(
             client_id=client_id, limit=TAAR_MAX_RESULTS, extra_data=extra_data
         )
 
@@ -148,6 +152,21 @@ def configure_plugin(app):  # noqa: C901
             response=json.dumps(jdata), status=200, mimetype="application/json"
         )
         return response
+
+    def check_proxy_manager(PROXY_MANAGER):
+        if PROXY_MANAGER.getResource() is None:
+            ctx = default_context()
+            profile_fetcher = ProfileFetcher(ctx)
+
+            ctx["profile_fetcher"] = profile_fetcher
+
+            # Lock the context down after we've got basic bits installed
+            root_ctx = ctx.child()
+            r_factory = recommenders.RecommenderFactory(root_ctx)
+            root_ctx["recommender_factory"] = r_factory
+            instance = recommenders.RecommendationManager(root_ctx.child())
+            PROXY_MANAGER.setResource(instance)
+        return PROXY_MANAGER.getResource()
 
     class MyPlugin:
         def set(self, config_options):
