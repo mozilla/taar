@@ -80,11 +80,7 @@ class StaticRecommendationManager(FakeRecommendationManager):
     # Recommenders must return a list of 2-tuple results
     # with (GUID, weight)
     def recommend(self, client_id, limit, extra_data={}):
-        result = [
-            ("test-addon-1", 1.0),
-            ("test-addon-2", 1.0),
-            ("test-addon-N", 1.0),
-        ]
+        result = [("test-addon-1", 1.0), ("test-addon-2", 1.0), ("test-addon-N", 1.0)]
         return result
 
 
@@ -105,6 +101,13 @@ class PlatformRecommendationManager(FakeRecommendationManager):
         if extra_data.get("platform", None) == "WOW64":
             return [("addon-WOW64", 1.0)]
         return []
+
+
+class ProfileFetcherEnabledRecommendationManager(FakeRecommendationManager):
+    def __init__(self, *args, **kwargs):
+        self._ctx = default_context()
+        self._ctx["profile_fetcher"] = kwargs["profile_fetcher"]
+        super(ProfileFetcherEnabledRecommendationManager, self).__init__(args, kwargs)
 
 
 @pytest.fixture
@@ -153,6 +156,26 @@ def static_recommendation_manager(monkeypatch):
     import taar.flask_app
 
     taar.flask_app.APP_WRAPPER.set({"PROXY_RESOURCE": StaticRecommendationManager()})
+
+
+@pytest.fixture
+def profile_enabled_rm(monkeypatch):
+    # Force the plugin configuration
+    import os
+
+    os.environ["TAAR_API_PLUGIN"] = "taar.plugin"
+
+    import taar.flask_app
+
+    mock_profile = {"installed_addons": ["addon_119", "addon_219"]}
+
+    class MockPF:
+        def get(self, hashed_client_id):
+            return mock_profile
+
+    pf = MockPF()
+    pfm = ProfileFetcherEnabledRecommendationManager(profile_fetcher=pf)
+    taar.flask_app.APP_WRAPPER.set({"PROXY_RESOURCE": pfm})
 
 
 def test_empty_recommendation(client, empty_recommendation_manager):
@@ -235,7 +258,9 @@ def test_mixed_and_promoted_and_taar_adodns(client, static_recommendation_manage
     assert res.json == expected
 
 
-def test_overlapping_mixed_and_promoted_and_taar_adodns(client, static_recommendation_manager):
+def test_overlapping_mixed_and_promoted_and_taar_adodns(
+    client, static_recommendation_manager
+):
     """
     Test that we can provide addon suggestions that also get clobbered
     by the promoted addon set.
@@ -244,18 +269,51 @@ def test_overlapping_mixed_and_promoted_and_taar_adodns(client, static_recommend
     res = client.post(
         url,
         json=dict(
-            {"options": {"promoted": [["test-addon-1", 10], ["guid2", 5], ["guid55", 8]]}}
+            {
+                "options": {
+                    "promoted": [["test-addon-1", 10], ["guid2", 5], ["guid55", 8]]
+                }
+            }
         ),
         follow_redirects=True,
     )
     # The result should order the GUIDs in descending order of weight
     expected = {
-        "results": [
-            "test-addon-1",
-            "guid55",
-            "guid2",
-            "test-addon-2",
-            "test-addon-N",
-        ]
+        "results": ["test-addon-1", "guid55", "guid2", "test-addon-2", "test-addon-N"]
     }
+    assert res.json == expected
+
+
+def test_client_has_no_addon(client, profile_enabled_rm):
+    """
+    test that we can see if a client has an addon installed
+    """
+    hashed_client_id = hasher(uuid.uuid4())
+    addon_id = "abc123"
+
+    url = url_for(
+        "client_has_addon", hashed_client_id=hashed_client_id, addon_id=addon_id
+    )
+    res = client.get(url, follow_redirects=True)
+
+    # The result should order the GUIDs in descending order of weight
+    expected = {"results": False}
+    assert res.json == expected
+
+
+def test_client_has_addon(client, profile_enabled_rm):
+    """
+    test that we can see if a client has an addon installed
+    """
+
+    hashed_client_id = hasher(uuid.uuid4())
+    addon_id = "addon_119"
+
+    url = url_for(
+        "client_has_addon", hashed_client_id=hashed_client_id, addon_id=addon_id
+    )
+    res = client.get(url, follow_redirects=True)
+
+    # The result should order the GUIDs in descending order of weight
+    expected = {"results": True}
     assert res.json == expected
