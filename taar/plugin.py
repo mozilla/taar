@@ -79,7 +79,7 @@ def configure_plugin(app):  # noqa: C901
     def client_has_addon(hashed_client_id, addon_id):
         # Use the module global PROXY_MANAGER
         global PROXY_MANAGER
-        recommendation_manager = self.check_proxy_manager(PROXY_MANAGER)
+        recommendation_manager = check_proxy_manager(PROXY_MANAGER)
         pf = recommendation_manager._ctx["profile_fetcher"]
 
         client_meta = pf.get(hashed_client_id)
@@ -88,7 +88,11 @@ def configure_plugin(app):  # noqa: C901
             # clientId
             return False
 
-        return addon_id in client_meta.get("installed_addons", [])
+        result = {"results": addon_id in client_meta.get("installed_addons", [])}
+        response = app.response_class(
+            response=json.dumps(result), status=200, mimetype="application/json"
+        )
+        return response
 
     @app.route("/v1/api/recommendations/<hashed_client_id>/", methods=["GET", "POST"])
     def recommendations(hashed_client_id):
