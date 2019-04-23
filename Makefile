@@ -1,4 +1,4 @@
-.PHONY: build up tests flake8 ci
+.PHONY: build up tests flake8 ci tests-with-cov
 
 all:
 	# PySpark only knows eggs, not wheels
@@ -17,6 +17,9 @@ build:
 
 up:
 	docker-compose up
+
+testsnocov:
+	docker-compose run web tox -etestsnocov
 
 tests:
 	docker-compose run web tox -etests
