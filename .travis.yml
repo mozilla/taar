@@ -1,30 +1,18 @@
 language: python
 matrix:
   include:
-  - python: '3.5'
+  - python: '3.6'
     env: REQUIREMENTS="latest"
-  - python: '2.7'
-    env: REQUIREMENTS="emr"
 before_install:
 # Work around https://github.com/travis-ci/travis-ci/issues/7940
 - export BOTO_CONFIG=/dev/null
+services:
+- docker
 install:
-- sudo apt-get update
-# Install conda
-- wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
-- bash miniconda.sh -b -p $HOME/miniconda
-- export PATH="$HOME/miniconda/bin:$PATH"
-- hash -r
-- conda config --set always_yes yes --set changeps1 no
-- conda info -a
-- if [[ "$REQUIREMENTS" == "latest" ]]; then conda create -n latest python=$TRAVIS_PYTHON_VERSION;
-  source activate latest; pip install -e . --process-dependency-links; elif [[ "$REQUIREMENTS"
-  == "emr" ]]; then conda env create -f environment_emr.yaml; source activate emr;
-  pip install -e . --process-dependency-links; else exit 1; fi
-- pip install -r requirements.txt
+- make build
 script:
-- if [[ $TRAVIS_PYTHON_VERSION == 3.5 ]]; then flake8 taar tests || exit 1; fi
-- py.test --cov taar tests
+- make flake8
+- make testsnocov  # Disable coverage tests because of Travis
 after_success:
 - coveralls
 deploy:

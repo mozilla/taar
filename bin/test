@@ -10,4 +10,4 @@ export DEVELOPMENT=1
     export CI_ENV=`bash <(curl -s https://codecov.io/env)`
 
 # run docker compose with the given environment variables
-docker-compose run -e DEVELOPMENT $CI_ENV web tox -etests
+docker-compose run -e DEVELOPMENT $CI_ENV web tox -etestsnocov
