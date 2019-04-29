@@ -284,7 +284,7 @@ def test_overlapping_mixed_and_promoted_and_taar_adodns(
     assert res.json == expected
 
 
-def test_client_has_no_addon(client, profile_enabled_rm):
+def test_client_addon_lookup_no_client(client, profile_enabled_rm):
     """
     test that we can see if a client has an addon installed
     """
@@ -296,9 +296,8 @@ def test_client_has_no_addon(client, profile_enabled_rm):
     )
     res = client.get(url, follow_redirects=True)
 
-    # The result should order the GUIDs in descending order of weight
     expected = {"results": False}
-    assert res.json == expected
+    assert res.json['results'] == False
 
 
 def test_client_has_addon(client, profile_enabled_rm):
@@ -314,6 +313,21 @@ def test_client_has_addon(client, profile_enabled_rm):
     )
     res = client.get(url, follow_redirects=True)
 
-    # The result should order the GUIDs in descending order of weight
     expected = {"results": True}
     assert res.json == expected
+
+
+def test_client_has_no_addon(client, profile_enabled_rm):
+    """
+    test that we can see if a client has an addon installed
+    """
+
+    hashed_client_id = hasher(uuid.uuid4())
+    addon_id = "addon_984932434"
+
+    url = url_for(
+        "client_has_addon", hashed_client_id=hashed_client_id, addon_id=addon_id
+    )
+    res = client.get(url, follow_redirects=True)
+
+    assert res.json['results'] == False
