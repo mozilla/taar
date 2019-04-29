@@ -86,7 +86,11 @@ def configure_plugin(app):  # noqa: C901
         if client_meta is None:
             # no valid client metadata was found for the given
             # clientId
-            return False
+            result = {"results": False, 'error': 'No client found'}
+            response = app.response_class(
+                response=json.dumps(result), status=200, mimetype="application/json"
+            )
+            return response
 
         result = {"results": addon_id in client_meta.get("installed_addons", [])}
         response = app.response_class(
