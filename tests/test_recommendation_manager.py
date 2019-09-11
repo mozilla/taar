@@ -6,8 +6,7 @@ import boto3
 import json
 from moto import mock_s3
 from taar.recommenders import RecommendationManager
-from taar.recommenders.recommendation_manager import TEST_CLIENT_IDS
-from taar.recommenders.recommendation_manager import EMPTY_TEST_CLIENT_IDS
+from taar.recommenders import TEST_CLIENT_IDS, EMPTY_TEST_CLIENT_IDS
 from taar.recommenders.base_recommender import AbstractRecommender
 
 from taar.recommenders.ensemble_recommender import (
@@ -18,6 +17,9 @@ from taar.recommenders.ensemble_recommender import (
 
 from .mocks import MockRecommenderFactory
 from .test_hybrid_recommender import install_mock_curated_data
+
+import operator
+from functools import reduce
 
 
 class StubRecommender(AbstractRecommender):
@@ -63,6 +65,7 @@ def test_none_profile_returns_empty_list(test_ctx):
     class MockProfileFetcher:
         def get(self, client_id):
             return None
+
     ctx["profile_fetcher"] = MockProfileFetcher()
 
     rec_manager = RecommendationManager(ctx)
@@ -87,9 +90,7 @@ def test_simple_recommendation(test_ctx):
     ]
 
     manager = RecommendationManager(ctx.child())
-    recommendation_list = manager.recommend(
-        "some_ignored_id", 10
-    )
+    recommendation_list = manager.recommend("some_ignored_id", 10)
 
     assert isinstance(recommendation_list, list)
     assert recommendation_list == EXPECTED_RESULTS
@@ -101,9 +102,7 @@ def test_fixed_client_id_valid(test_ctx):
     ctx = install_mock_curated_data(ctx)
 
     manager = RecommendationManager(ctx.child())
-    recommendation_list = manager.recommend(
-        TEST_CLIENT_IDS[0], 10
-    )
+    recommendation_list = manager.recommend(TEST_CLIENT_IDS[0], 10)
 
     assert len(recommendation_list) == 10
 
@@ -114,8 +113,40 @@ def test_fixed_client_id_empty_list(test_ctx):
     ctx = install_mock_curated_data(ctx)
 
     manager = RecommendationManager(ctx.child())
-    recommendation_list = manager.recommend(
-        EMPTY_TEST_CLIENT_IDS[0], 10
-    )
+    recommendation_list = manager.recommend(EMPTY_TEST_CLIENT_IDS[0], 10)
 
     assert len(recommendation_list) == 0
+
+
+@mock_s3
+def test_experimental_randomization(test_ctx):
+    ctx = install_mocks(test_ctx)
+    ctx = install_mock_curated_data(ctx)
+
+    manager = RecommendationManager(ctx.child())
+    raw_list = manager.recommend(TEST_CLIENT_IDS[0], 10)
+
+    # Clobber the experiment probability to be 100% to force a
+    # reordering.
+    ctx["TAAR_EXPERIMENT_PROB"] = 1.0
+
+    manager = RecommendationManager(ctx.child())
+    rand_list = manager.recommend(TEST_CLIENT_IDS[0], 10)
+
+    '''
+    The two lists should be :
+
+    * different (guid, weight) lists (possibly just order)
+    * same length
+    '''
+    assert (
+        reduce(
+            operator.and_,
+            [
+                (t1[0] == t2[0] and t1[1] == t2[1])
+                for t1, t2 in zip(rand_list, raw_list)
+            ],
+        )
+        is False
+    )
+    assert len(rand_list) == len(raw_list)

@@ -3,15 +3,16 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from taar.recommenders.ensemble_recommender import EnsembleRecommender
+from taar.recommenders.randomizer import in_experiment, reorder_guids
 from srgutil.interfaces import IMozLogging
 
 from taar.context import default_context
 
 from .lazys3 import LazyJSONLoader
-import random
 
 from .s3config import TAAR_WHITELIST_BUCKET
 from .s3config import TAAR_WHITELIST_KEY
+from .s3config import TAAR_EXPERIMENT_PROB
 
 import hashlib
 
@@ -82,6 +83,8 @@ class RecommendationManager:
             self._ctx, TAAR_WHITELIST_BUCKET, TAAR_WHITELIST_KEY
         )
 
+        self._experiment_prob = ctx.get("TAAR_EXPERIMENT_PROB", TAAR_EXPERIMENT_PROB)
+
     def recommend(self, client_id, limit, extra_data={}):
         """Return recommendations for the given client.
 
@@ -93,24 +96,35 @@ class RecommendationManager:
         :param extra_data: a dictionary with extra client data.
         """
 
+        results = None
+
         if client_id in TEST_CLIENT_IDS:
             data = self._whitelist_data.get()[0]
-            random.shuffle(data)
             samples = data[:limit]
             self.logger.info("Test ID detected [{}]".format(client_id))
-            return [(s, 1.1) for s in samples]
+            results = [(s, 1.1) for s in samples]
 
         if client_id in EMPTY_TEST_CLIENT_IDS:
             self.logger.info("Empty Test ID detected [{}]".format(client_id))
-            return []
+            results = []
 
         client_info = self.profile_fetcher.get(client_id)
         if client_info is None:
             self.logger.info(
                 "Defaulting to empty results.  No client info fetched from dynamo."
             )
-            return []
+            results = []
 
-        results = self._ensemble_recommender.recommend(client_info, limit, extra_data)
+        if in_experiment(client_id, self._experiment_prob):
+            if results is None:
+                results = self._ensemble_recommender.recommend(
+                    client_info, limit, extra_data
+                )
+            results = reorder_guids(results, limit)
+        else:
+            if results is None:
+                results = self._ensemble_recommender.recommend(
+                    client_info, limit, extra_data
+                )
 
         return results
