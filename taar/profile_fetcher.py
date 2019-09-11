@@ -12,6 +12,7 @@ import json
 import zlib
 import datetime
 
+from taar.recommenders import TEST_CLIENT_IDS, EMPTY_TEST_CLIENT_IDS
 
 BIGTABLE_PROJECT_ID = config(
     "BIGTABLE_PROJECT_ID", default="cfr-personalization-experiment"
@@ -145,6 +146,22 @@ class ProfileFetcher:
         self.__client = client
 
     def get(self, client_id):
+
+        if client_id in TEST_CLIENT_IDS or client_id in EMPTY_TEST_CLIENT_IDS:
+            return {
+                "client_id": client_id,
+                "geo_city": "Toronto",
+                "subsession_length": 42,
+                "locale": "en-CA",
+                "os": "Linux",
+                "installed_addons": [],
+                "disabled_addons_ids": [],
+                "bookmark_count": 0,
+                "tab_open_count": 0,
+                "total_uri": 0,
+                "unique_tlds": 0,
+            }
+
         profile_data = self._client.get_client_profile(client_id)
 
         if profile_data is None:
