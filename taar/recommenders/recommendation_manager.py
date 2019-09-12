@@ -14,30 +14,9 @@ from .s3config import TAAR_WHITELIST_BUCKET
 from .s3config import TAAR_WHITELIST_KEY
 from .s3config import TAAR_EXPERIMENT_PROB
 
-import hashlib
-
 # We need to build a default logger for the schema validation as there
 # is no class to bind to yet.
 ctx = default_context()
-
-
-def hasher(client_id):
-    return hashlib.new("sha256", client_id.encode("utf8")).hexdigest()
-
-
-TEST_CLIENT_IDS = [
-    hasher("00000000-0000-0000-0000-000000000000"),
-    hasher("11111111-1111-1111-1111-111111111111"),
-    hasher("22222222-2222-2222-2222-222222222222"),
-    hasher("33333333-3333-3333-3333-333333333333"),
-]
-
-EMPTY_TEST_CLIENT_IDS = [
-    hasher("00000000-aaaa-0000-0000-000000000000"),
-    hasher("11111111-aaaa-1111-1111-111111111111"),
-    hasher("22222222-aaaa-2222-2222-222222222222"),
-    hasher("33333333-aaaa-3333-3333-333333333333"),
-]
 
 
 class RecommenderFactory:
@@ -97,16 +76,7 @@ class RecommendationManager:
         """
 
         results = None
-
-        if client_id in TEST_CLIENT_IDS:
-            data = self._whitelist_data.get()[0]
-            samples = data[:limit]
-            self.logger.info("Test ID detected [{}]".format(client_id))
-            results = [(s, 1.1) for s in samples]
-
-        if client_id in EMPTY_TEST_CLIENT_IDS:
-            self.logger.info("Empty Test ID detected [{}]".format(client_id))
-            results = []
+        whitelist = self._whitelist_data.get()[0]
 
         client_info = self.profile_fetcher.get(client_id)
         if client_info is None:
@@ -117,8 +87,10 @@ class RecommendationManager:
 
         if in_experiment(client_id, self._experiment_prob):
             if results is None:
+                # Fetch back all possible whitelisted addons for this
+                # client
                 results = self._ensemble_recommender.recommend(
-                    client_info, limit, extra_data
+                    client_info, len(whitelist), extra_data
                 )
             results = reorder_guids(results, limit)
         else:
