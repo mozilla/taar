@@ -89,6 +89,7 @@ class RecommendationManager:
             if results is None:
                 # Fetch back all possible whitelisted addons for this
                 # client
+                extra_data['guid_randomization'] = True
                 results = self._ensemble_recommender.recommend(
                     client_info, len(whitelist), extra_data
                 )

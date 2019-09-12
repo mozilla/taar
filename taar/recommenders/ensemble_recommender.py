@@ -160,10 +160,12 @@ class EnsembleRecommender(AbstractRecommender):
 
         log_data = (
             client_data["client_id"],
+            extra_data.get("guid_randomization", False),
             str(ensemble_weights),
             str([r[0] for r in results]),
         )
         self.logger.info(
-            "client_id: [%s], ensemble_weight: [%s], guids: [%s]" % log_data
+            "client_id: [%s], guid_randomization: [%s], ensemble_weight: [%s], guids: [%s]"
+            % log_data
         )
         return results
