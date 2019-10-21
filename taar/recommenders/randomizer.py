@@ -19,6 +19,12 @@ def in_experiment(client_id, xp_prob=0.5):
 
 
 def reorder_guids(guid_weight_tuples, size=None):
+    """
+    This reorders (GUID, weight) 2-tuples based on the weight using
+    random selection, without replacement.
+
+    @size denotes the length of the output.
+    """
     weight_list = [weight for (guid, weight) in guid_weight_tuples]
     guids = [guid for (guid, weight) in guid_weight_tuples]
     guid_map = dict(zip(guids, guid_weight_tuples))
