@@ -13,6 +13,8 @@ def in_experiment(client_id, xp_prob=0.5):
     xp_prob should be a probability between 0.0 and 1.0 which is the
     chance that the experimental branch is selected.
     """
+    # Strip out anything that's not a hex value so we can safely
+    # convert from base16 (hex) to base10
     hex_client = ''.join([c for c in client_id if c.lower() in 'abcdef0123456789'])
     int_client = int(hex_client, 16)
     return int((int_client % 100) <= (xp_prob * 100))
