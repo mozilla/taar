@@ -27,7 +27,7 @@ This is the ordered list of the currently supported models:
 | 4 | [Locale](taar/recommenders/locale_recommender.py) |recommends add-ons based on the top addons for the user's locale|Telemetry data is available for the user and the locale has enough users|[source](https://github.com/mozilla/python_mozetl/blob/master/mozetl/taar/taar_locale.py)|
 | 5 | [Ensemble](taar/recommenders/ensemble_recommender.py) &#42;|recommends add-ons based on the combined (by [stacked generalization](https://en.wikipedia.org/wiki/Ensemble_learning#Stacking)) recomendations of other available recommender modules.|More than one of the other Models are available to provide recommendations.|[source](https://github.com/mozilla/python_mozetl/blob/master/mozetl/taar/taar_ensemble.py)|
 
-&#42; In order to ensure stable/repeatable testing and prevent unecessary computation, these jobs are not scheduled on [Airflow](https://github.com/mozilla/telemetry-airflow), rather run manually when fresh models are desired.
+&#42; In order to ensure stable/repeatable testing and prevent unnecessary computation, these jobs are not scheduled on [Airflow](https://github.com/mozilla/telemetry-airflow), rather run manually when fresh models are desired.
 
 ## Instructions for releasing updates
 New releases can be shipped by using the normal [github workflow](https://help.github.com/articles/creating-releases/). Once a new release is created, it will be automatically uploaded to `pypi`.
@@ -101,12 +101,12 @@ EnsembleRecommender:
 
 
 
-TAAR breaks out all S3 data load configuration into enviroment
+TAAR breaks out all S3 data load configuration into environment
 variables.  This ensures that running under test has no chance of
 clobbering the production data in the event that a developer has AWS
 configuration keys installed locally in `~/.aws/`
 
-Production enviroment variables required for TAAR
+Production environment variables required for TAAR
 
 Collaborative Recommender ::
 
