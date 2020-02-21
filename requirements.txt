@@ -12,7 +12,6 @@ backports.tempfile==1.0
 backports.weakref==1.0.post1
 bcrypt==3.1.4
 binaryornot==0.4.4
-blinker==1.4
 boto==2.49.0
 boto3==1.7.71
 botocore==1.10.71
