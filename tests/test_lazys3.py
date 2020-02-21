@@ -7,6 +7,7 @@ import json
 from taar.recommenders.lazys3 import LazyJSONLoader
 
 import boto3
+import pickle
 from moto import mock_s3
 
 
@@ -43,6 +44,15 @@ def test_does_it_load(test_ctx):
     jdata, status = ctx["similarity_donors_pool"].get()
     assert jdata["test"] == "donor_key"
     check_jdata_status(jdata, status)
+
+
+@mock_s3
+def test_can_pickle(test_ctx):
+    ctx = install_categorical_data(test_ctx)
+
+    lazy_inst = ctx["similarity_donors_pool"]
+    lazy_pickle = pickle.dumps(lazy_inst)
+    lazy_inst2 = pickle.loads(lazy_pickle)
 
 
 @mock_s3
