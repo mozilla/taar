@@ -10,6 +10,7 @@ import numpy
 
 from moto import mock_s3
 import boto3
+import pickle
 from taar.recommenders.collaborative_recommender import (
     TAAR_ITEM_MATRIX_BUCKET,
     TAAR_ITEM_MATRIX_KEY,
@@ -95,6 +96,14 @@ def test_cant_recommend(test_ctx):
     # Test that we can't recommend if we have not enough client info.
     assert not r.can_recommend({})
     assert not r.can_recommend({"installed_addons": []})
+
+@mock_s3
+def test_can_pickle(test_ctx):
+    ctx = install_mock_data(test_ctx)
+    r = CollaborativeRecommender(ctx)
+
+    r_pickle = pickle.dumps(r)
+    r2 = pickle.loads(r_pickle)
 
 
 @mock_s3

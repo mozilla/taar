@@ -66,6 +66,23 @@ class CollaborativeRecommender(AbstractRecommender):
 
         self.model = None
 
+    def __getstate__(self):
+        # We need to override the pickling feature to work around
+        # serialization of locks
+        state = self.__dict__.copy()
+        del state['_lock']
+        del state['logger']
+        return state
+
+    def __setstate__(self, state):
+        # We need to override the pickling feature to work around
+        # serialization of locks
+        self.__dict__.update(state)
+
+        # Add the lock back since it doesn't exist in the pickle
+        self._lock = threading.RLock()
+        self.logger = self._ctx[IMozLogging].get_logger("taar")
+
     @property
     def addon_mapping(self):
         return self._addon_mapping.get()[0]
