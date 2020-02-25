@@ -5,7 +5,6 @@
 from .base_recommender import AbstractRecommender
 from itertools import groupby
 from scipy.spatial import distance
-from srgutil.interfaces import IMozLogging
 from srgutil.log import get_logger
 import numpy as np
 from srgutil.cache import LazyJSONLoader
@@ -68,7 +67,7 @@ class SimilarityRecommender(AbstractRecommender):
 
     def __getstate__(self):
         state = self.__dict__.copy()
-        del state['logger']
+        del state["logger"]
         return state
 
     def __setstate__(self, state):
@@ -131,9 +130,13 @@ class SimilarityRecommender(AbstractRecommender):
         self.num_donors = len(_donors_pool)
 
         # Build a numpy matrix cache for the continuous features.
-        self.continuous_features = np.zeros((self.num_donors, len(CONTINUOUS_FEATURES)))
+        self.continuous_features = np.zeros(
+            (self.num_donors, len(CONTINUOUS_FEATURES))
+        )
         for idx, d in enumerate(_donors_pool):
-            features = [d.get(specified_key) for specified_key in CONTINUOUS_FEATURES]
+            features = [
+                d.get(specified_key) for specified_key in CONTINUOUS_FEATURES
+            ]
             self.continuous_features[idx] = features
 
         # Build the cache for categorical features.
@@ -141,8 +144,12 @@ class SimilarityRecommender(AbstractRecommender):
             (self.num_donors, len(CATEGORICAL_FEATURES)), dtype="object"
         )
         for idx, d in enumerate(_donors_pool):
-            features = [d.get(specified_key) for specified_key in CATEGORICAL_FEATURES]
-            self.categorical_features[idx] = np.array([features], dtype="object")
+            features = [
+                d.get(specified_key) for specified_key in CATEGORICAL_FEATURES
+            ]
+            self.categorical_features[idx] = np.array(
+                [features], dtype="object"
+            )
 
         self.logger.info("Reconstructed matrices for similarity recommender")
 
@@ -199,15 +206,19 @@ class SimilarityRecommender(AbstractRecommender):
     #
     def compute_clients_dist(self, client_data):
         client_categorical_feats = [
-            client_data.get(specified_key) for specified_key in CATEGORICAL_FEATURES
+            client_data.get(specified_key)
+            for specified_key in CATEGORICAL_FEATURES
         ]
         client_continuous_feats = [
-            client_data.get(specified_key) for specified_key in CONTINUOUS_FEATURES
+            client_data.get(specified_key)
+            for specified_key in CONTINUOUS_FEATURES
         ]
 
         # Compute the distances between the user and the cached continuous features.
         cont_features = distance.cdist(
-            self.continuous_features, np.array([client_continuous_feats]), "canberra"
+            self.continuous_features,
+            np.array([client_continuous_feats]),
+            "canberra",
         )
 
         # Compute the distances between the user and the cached categorical features.
@@ -297,7 +308,9 @@ class SimilarityRecommender(AbstractRecommender):
 
     def recommend(self, client_data, limit, extra_data={}):
         try:
-            recommendations_out = self._recommend(client_data, limit, extra_data)
+            recommendations_out = self._recommend(
+                client_data, limit, extra_data
+            )
         except Exception as e:
             recommendations_out = []
             self._donors_pool.force_expiry()

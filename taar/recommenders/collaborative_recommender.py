@@ -2,7 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from srgutil.interfaces import IMozLogging
 from srgutil.cache import LazyJSONLoader
 from srgutil.log import get_logger
 import numpy as np
@@ -71,8 +70,8 @@ class CollaborativeRecommender(AbstractRecommender):
         # We need to override the pickling feature to work around
         # serialization of locks
         state = self.__dict__.copy()
-        del state['_lock']
-        del state['logger']
+        del state["_lock"]
+        del state["logger"]
         return state
 
     def __setstate__(self, state):
@@ -167,7 +166,9 @@ class CollaborativeRecommender(AbstractRecommender):
             if (
                 hashed_id in installed_addons_as_hashes
                 or str_hashed_id not in self.addon_mapping
-                or self.addon_mapping[str_hashed_id].get("isWebextension", False)
+                or self.addon_mapping[str_hashed_id].get(
+                    "isWebextension", False
+                )
                 is False
             ):
                 continue
@@ -180,7 +181,9 @@ class CollaborativeRecommender(AbstractRecommender):
 
         # Sort the suggested addons by their score and return the
         # sorted list of addon ids.
-        sorted_dists = sorted(distances.items(), key=op.itemgetter(1), reverse=True)
+        sorted_dists = sorted(
+            distances.items(), key=op.itemgetter(1), reverse=True
+        )
         recommendations = [(s[0], s[1]) for s in sorted_dists[:limit]]
         return recommendations
 
@@ -188,7 +191,9 @@ class CollaborativeRecommender(AbstractRecommender):
         # Addons identifiers are stored as positive hash values within the model.
         with self._lock:
             try:
-                recommendations = self._recommend(client_data, limit, extra_data)
+                recommendations = self._recommend(
+                    client_data, limit, extra_data
+                )
             except Exception as e:
                 recommendations = []
 
@@ -202,7 +207,10 @@ class CollaborativeRecommender(AbstractRecommender):
                     e,
                 )
 
-        log_data = (client_data["client_id"], str([r[0] for r in recommendations]))
+        log_data = (
+            client_data["client_id"],
+            str([r[0] for r in recommendations]),
+        )
         self.logger.info(
             "collaborative_recommender_triggered, "
             "client_id: [%s], "
