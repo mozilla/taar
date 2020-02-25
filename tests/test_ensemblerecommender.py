@@ -46,14 +46,14 @@ def test_recommendations(test_ctx):
     ]
 
     factory = MockRecommenderFactory()
-    ctx["recommender_factory"] = factory
+    ctx.set("recommender_factory", factory)
 
-    ctx["recommender_map"] = {
+    ctx.set("recommender_map", {
         "collaborative": factory.create("collaborative"),
         "similarity": factory.create("similarity"),
         "locale": factory.create("locale"),
-    }
-    r = EnsembleRecommender(ctx.child())
+    })
+    r = EnsembleRecommender(ctx)
     client = {"client_id": "12345"}  # Anything will work here
 
     recommendation_list = r.recommend(client, 5)
@@ -74,14 +74,14 @@ def test_preinstalled_guids(test_ctx):
     ]
 
     factory = MockRecommenderFactory()
-    ctx["recommender_factory"] = factory
+    ctx.set("recommender_factory", factory)
 
-    ctx["recommender_map"] = {
+    ctx.set("recommender_map", {
         "collaborative": factory.create("collaborative"),
         "similarity": factory.create("similarity"),
         "locale": factory.create("locale"),
-    }
-    r = EnsembleRecommender(ctx.child())
+    })
+    r = EnsembleRecommender(ctx)
 
     # 'hij' should be excluded from the suggestions list
     # The other two addon GUIDs 'def' and 'jkl' will never be

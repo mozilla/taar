@@ -6,8 +6,9 @@ from .base_recommender import AbstractRecommender
 from itertools import groupby
 from scipy.spatial import distance
 from srgutil.interfaces import IMozLogging
+from srgutil.log import get_logger
 import numpy as np
-from .lazys3 import LazyJSONLoader
+from srgutil.cache import LazyJSONLoader
 
 from .s3config import TAAR_SIMILARITY_BUCKET
 from .s3config import TAAR_SIMILARITY_DONOR_KEY
@@ -47,23 +48,33 @@ class SimilarityRecommender(AbstractRecommender):
     def __init__(self, ctx):
         self._ctx = ctx
 
-        if "similarity_donors_pool" in self._ctx:
-            self._donors_pool = self._ctx["similarity_donors_pool"]
+        if self._ctx.get("similarity_donors_pool", None) is not None:
+            self._donors_pool = self._ctx.get("similarity_donors_pool")
         else:
             self._donors_pool = LazyJSONLoader(
                 self._ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY
             )
 
-        if "similarity_lr_curves" in self._ctx:
-            self._lr_curves = self._ctx["similarity_lr_curves"]
+        if self._ctx.get("similarity_lr_curves", None) is not None:
+            self._lr_curves = self._ctx.get("similarity_lr_curves")
         else:
             self._lr_curves = LazyJSONLoader(
                 self._ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY
             )
 
-        self.logger = self._ctx[IMozLogging].get_logger("taar")
+        self.logger = get_logger("taar")
 
         self._init_from_ctx()
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        del state['logger']
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.logger = get_logger("taar")
+        return state
 
     @property
     def donors_pool(self):

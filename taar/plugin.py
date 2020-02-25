@@ -80,7 +80,7 @@ def configure_plugin(app):  # noqa: C901
         # Use the module global PROXY_MANAGER
         global PROXY_MANAGER
         recommendation_manager = check_proxy_manager(PROXY_MANAGER)
-        pf = recommendation_manager._ctx["profile_fetcher"]
+        pf = recommendation_manager._ctx.get("profile_fetcher")
 
         client_meta = pf.get(hashed_client_id)
         if client_meta is None:
@@ -163,16 +163,15 @@ def configure_plugin(app):  # noqa: C901
 
     def check_proxy_manager(PROXY_MANAGER):
         if PROXY_MANAGER.getResource() is None:
-            ctx = default_context()
-            profile_fetcher = ProfileFetcher(ctx)
+            root_ctx = default_context()
+            profile_fetcher = ProfileFetcher(root_ctx)
 
-            ctx["profile_fetcher"] = profile_fetcher
+            root_ctx.set("profile_fetcher", profile_fetcher)
 
             # Lock the context down after we've got basic bits installed
-            root_ctx = ctx.child()
             r_factory = recommenders.RecommenderFactory(root_ctx)
-            root_ctx["recommender_factory"] = r_factory
-            instance = recommenders.RecommendationManager(root_ctx.child())
+            root_ctx.set("recommender_factory", r_factory)
+            instance = recommenders.RecommendationManager(root_ctx)
             PROXY_MANAGER.setResource(instance)
         return PROXY_MANAGER.getResource()
 

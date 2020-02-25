@@ -5,7 +5,7 @@
 from srgutil.interfaces import IMozLogging
 import itertools
 from .base_recommender import AbstractRecommender
-from .lazys3 import LazyJSONLoader
+from srgutil.cache import LazyJSONLoader
 
 from .s3config import TAAR_WHITELIST_BUCKET
 from .s3config import TAAR_WHITELIST_KEY
@@ -38,9 +38,9 @@ class EnsembleRecommender(AbstractRecommender):
     def __init__(self, ctx):
         self.RECOMMENDER_KEYS = ["collaborative", "similarity", "locale"]
         self._ctx = ctx
-        self.logger = self._ctx[IMozLogging].get_logger("taar.ensemble")
+        self.logger = self._ctx.get(IMozLogging).get_logger("taar.ensemble")
 
-        assert "recommender_factory" in self._ctx
+        assert self._ctx.get("recommender_factory", None) is not None
 
         self._init_from_ctx()
 
@@ -48,7 +48,7 @@ class EnsembleRecommender(AbstractRecommender):
         # Copy the map of the recommenders
         self._recommender_map = {}
 
-        recommender_factory = self._ctx["recommender_factory"]
+        recommender_factory = self._ctx.get("recommender_factory")
         for rkey in self.RECOMMENDER_KEYS:
             self._recommender_map[rkey] = recommender_factory.create(rkey)
 
@@ -56,7 +56,7 @@ class EnsembleRecommender(AbstractRecommender):
             self._ctx, TAAR_WHITELIST_BUCKET, TAAR_WHITELIST_KEY
         )
 
-        self._weight_cache = WeightCache(self._ctx.child())
+        self._weight_cache = WeightCache(self._ctx)
         self.logger.info("EnsembleRecommender initialized")
 
     def can_recommend(self, client_data, extra_data={}):

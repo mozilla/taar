@@ -26,8 +26,13 @@ def default_context():
     # Note that the EnsembleRecommender is *not* in this map as it
     # needs to ensure that the recommender_map key is installed in the
     # context
-    ctx['recommender_factory_map'] = {'collaborative': lambda: CollaborativeRecommender(ctx.child()),
-                                      'similarity': lambda: SimilarityRecommender(ctx.child()),
-                                      'locale': lambda: LocaleRecommender(ctx.child())}
+    ctx.set(
+        "recommender_factory_map",
+        {
+            "collaborative": lambda: CollaborativeRecommender(ctx),
+            "similarity": lambda: SimilarityRecommender(ctx),
+            "locale": lambda: LocaleRecommender(ctx),
+        },
+    )
 
     return ctx

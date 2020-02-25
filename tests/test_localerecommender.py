@@ -24,7 +24,6 @@ FAKE_LOCALE_DATA = {
 
 
 def install_mock_data(ctx):
-    ctx = ctx.child()
     conn = boto3.resource("s3", region_name="us-west-2")
 
     conn.create_bucket(Bucket=TAAR_LOCALE_BUCKET)

@@ -6,9 +6,10 @@ import json
 import six
 import logging
 
+import pickle
 import numpy as np
 import scipy.stats
-from taar.recommenders.lazys3 import LazyJSONLoader
+from srgutil.cache import LazyJSONLoader
 
 import boto3
 from moto import mock_s3
@@ -66,7 +67,6 @@ def generate_a_fake_taar_client():
 
 
 def install_no_data(ctx):
-    ctx = ctx.child()
     conn = boto3.resource("s3", region_name="us-west-2")
 
     conn.create_bucket(Bucket=TAAR_SIMILARITY_BUCKET)
@@ -74,19 +74,18 @@ def install_no_data(ctx):
 
     conn.Object(TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY).put(Body="")
 
-    ctx["similarity_donors_pool"] = LazyJSONLoader(
+    ctx.set("similarity_donors_pool", LazyJSONLoader(
         ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY
-    )
+    ))
 
-    ctx["similarity_lr_curves"] = LazyJSONLoader(
+    ctx.set("similarity_lr_curves", LazyJSONLoader(
         ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY
-    )
+    ))
 
     return ctx
 
 
 def install_categorical_data(ctx):
-    ctx = ctx.child()
     conn = boto3.resource("s3", region_name="us-west-2")
 
     try:
@@ -101,19 +100,18 @@ def install_categorical_data(ctx):
         Body=json.dumps(generate_fake_lr_curves(1000))
     )
 
-    ctx["similarity_donors_pool"] = LazyJSONLoader(
+    ctx.set("similarity_donors_pool",  LazyJSONLoader(
         ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY
-    )
+    ))
 
-    ctx["similarity_lr_curves"] = LazyJSONLoader(
+    ctx.set("similarity_lr_curves", LazyJSONLoader(
         ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY
-    )
+    ))
 
     return ctx
 
 
 def install_continuous_data(ctx):
-    ctx = ctx.child()
     cts_data = json.dumps(CONTINUOUS_FEATURE_FIXTURE_DATA)
     lrs_data = json.dumps(generate_fake_lr_curves(1000))
 
@@ -127,13 +125,13 @@ def install_continuous_data(ctx):
 
     conn.Object(TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY).put(Body=lrs_data)
 
-    ctx["similarity_donors_pool"] = LazyJSONLoader(
+    ctx.set("similarity_donors_pool", LazyJSONLoader(
         ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY
-    )
+    ))
 
-    ctx["similarity_lr_curves"] = LazyJSONLoader(
+    ctx.set("similarity_lr_curves", LazyJSONLoader(
         ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY
-    )
+    ))
 
     return ctx
 
@@ -141,6 +139,17 @@ def install_continuous_data(ctx):
 def check_matrix_built(caplog):
     msg = "Reconstructed matrices for similarity recommender"
     return sum([msg in str(s) for s in caplog.records]) > 0
+
+@mock_s3
+def test_can_pickle(test_ctx):
+
+    test_ctx = install_continuous_data(test_ctx)
+
+    r = SimilarityRecommender(test_ctx)
+    restored = pickle.loads(pickle.dumps(r))
+    assert restored._ctx.get("similarity_donors_pool", None) is not None
+    assert restored._ctx.get("similarity_lr_curves", None) is not None
+
 
 
 @mock_s3
@@ -375,11 +384,10 @@ def test_weights_categorical(test_ctx):
 
     """
     # Create a new instance of a SimilarityRecommender.
-    cat_ctx = install_categorical_data(test_ctx)
-    cts_ctx = install_continuous_data(test_ctx)
+    test_ctx = install_categorical_data(test_ctx)
+    test_ctx = install_continuous_data(test_ctx)
 
-    wrapped = cts_ctx.wrap(cat_ctx)
-    r = SimilarityRecommender(wrapped)
+    r = SimilarityRecommender(test_ctx)
 
     # In the ensemble method recommendations should be a sorted list of tuples
     # containing [(guid, weight), (guid, weight)... (guid, weight)].

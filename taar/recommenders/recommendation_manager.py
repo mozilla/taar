@@ -8,7 +8,7 @@ from srgutil.interfaces import IMozLogging
 
 from taar.context import default_context
 
-from .lazys3 import LazyJSONLoader
+from srgutil.cache import LazyJSONLoader
 
 from .s3config import TAAR_WHITELIST_BUCKET
 from .s3config import TAAR_WHITELIST_KEY
@@ -31,7 +31,7 @@ class RecommenderFactory:
     def __init__(self, ctx):
         self._ctx = ctx
         # This map is set in the default context
-        self._recommender_factory_map = self._ctx["recommender_factory_map"]
+        self._recommender_factory_map = self._ctx.get("recommender_factory_map")
 
     def get_names(self):
         return self._recommender_factory_map.keys()
@@ -48,13 +48,13 @@ class RecommendationManager:
         """Initialize the user profile fetcher and the recommenders.
         """
         self._ctx = ctx
-        self.logger = self._ctx[IMozLogging].get_logger("taar")
+        self.logger = self._ctx.get(IMozLogging).get_logger("taar")
 
-        assert "profile_fetcher" in self._ctx
+        assert self._ctx.get("profile_fetcher", None) is not None
 
-        self.profile_fetcher = ctx["profile_fetcher"]
+        self.profile_fetcher = ctx.get("profile_fetcher")
 
-        self._ensemble_recommender = EnsembleRecommender(self._ctx.child())
+        self._ensemble_recommender = EnsembleRecommender(self._ctx)
 
         # The whitelist data is only used for test client IDs
 

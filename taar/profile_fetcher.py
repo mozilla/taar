@@ -28,7 +28,7 @@ class ProfileController:
         Configure access to the DynamoDB instance
         """
         self._ctx = ctx
-        self.logger = self._ctx[IMozLogging].get_logger("taar")
+        self.logger = self._ctx.get(IMozLogging).get_logger("taar")
         self._ddb = boto3.resource("dynamodb", region_name=region_name)
         self._table = self._ddb.Table(table_name)
 
@@ -59,7 +59,7 @@ class ProfileFetcher:
 
     def __init__(self, ctx):
         self._ctx = ctx
-        self.logger = self._ctx[IMozLogging].get_logger("taar")
+        self.logger = self._ctx.get(IMozLogging).get_logger("taar")
         self._client = ProfileController(
             self._ctx, region_name=DYNAMO_REGION, table_name=DYNAMO_TABLE_NAME
         )

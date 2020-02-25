@@ -4,7 +4,7 @@
 
 from srgutil.interfaces import IMozLogging
 from .base_recommender import AbstractRecommender
-from .lazys3 import LazyJSONLoader
+from srgutil.cache import LazyJSONLoader
 
 from .s3config import TAAR_LOCALE_BUCKET
 from .s3config import TAAR_LOCALE_KEY
@@ -24,7 +24,7 @@ class LocaleRecommender(AbstractRecommender):
     def __init__(self, ctx):
         self._ctx = ctx
 
-        self.logger = self._ctx[IMozLogging].get_logger("taar")
+        self.logger = self._ctx.get(IMozLogging).get_logger("taar")
 
         self._top_addons_per_locale = LazyJSONLoader(
             self._ctx, TAAR_LOCALE_BUCKET, TAAR_LOCALE_KEY

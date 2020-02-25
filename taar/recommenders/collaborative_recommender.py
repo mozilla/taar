@@ -3,7 +3,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from srgutil.interfaces import IMozLogging
-from .lazys3 import LazyJSONLoader
+from srgutil.cache import LazyJSONLoader
+from srgutil.log import get_logger
 import numpy as np
 import operator as op
 import functools
@@ -62,7 +63,7 @@ class CollaborativeRecommender(AbstractRecommender):
             self._ctx, TAAR_ITEM_MATRIX_BUCKET, TAAR_ITEM_MATRIX_KEY
         )
 
-        self.logger = self._ctx[IMozLogging].get_logger("taar")
+        self.logger = get_logger("taar")
 
         self.model = None
 
@@ -81,7 +82,7 @@ class CollaborativeRecommender(AbstractRecommender):
 
         # Add the lock back since it doesn't exist in the pickle
         self._lock = threading.RLock()
-        self.logger = self._ctx[IMozLogging].get_logger("taar")
+        self.logger = get_logger("taar")
 
     @property
     def addon_mapping(self):

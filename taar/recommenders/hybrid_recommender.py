@@ -3,7 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from .base_recommender import AbstractRecommender
-from .lazys3 import LazyJSONLoader
+from srgutil.cache import LazyJSONLoader
 from srgutil.interfaces import IMozLogging
 import operator as op
 import random
@@ -46,7 +46,7 @@ class CuratedRecommender(AbstractRecommender):
     def __init__(self, ctx):
         self._ctx = ctx
 
-        self.logger = self._ctx[IMozLogging].get_logger("taar.curated")
+        self.logger = self._ctx.get(IMozLogging).get_logger("taar.curated")
         self._curated_wl = CuratedWhitelistCache(self._ctx)
 
     def can_recommend(self, client_data, extra_data={}):
@@ -81,10 +81,10 @@ class HybridRecommender(AbstractRecommender):
     def __init__(self, ctx):
         self._ctx = ctx
 
-        self.logger = self._ctx[IMozLogging].get_logger("taar")
+        self.logger = self._ctx.get(IMozLogging).get_logger("taar")
 
-        self._ensemble_recommender = self._ctx["ensemble_recommender"]
-        self._curated_recommender = CuratedRecommender(self._ctx.child())
+        self._ensemble_recommender = self._ctx.get("ensemble_recommender")
+        self._curated_recommender = CuratedRecommender(self._ctx)
 
     def can_recommend(self, client_data, extra_data={}):
         """The ensemble recommender is always going to be

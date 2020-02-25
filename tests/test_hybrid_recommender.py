@@ -22,7 +22,6 @@ import boto3
 
 
 def install_no_curated_data(ctx):
-    ctx = ctx.child()
     conn = boto3.resource("s3", region_name="us-west-2")
 
     conn.create_bucket(Bucket=TAAR_WHITELIST_BUCKET)
@@ -36,7 +35,6 @@ def install_mock_curated_data(ctx):
     for i in range(20):
         mock_data.append(str(i) * 16)
 
-    ctx = ctx.child()
     conn = boto3.resource("s3", region_name="us-west-2")
 
     conn.create_bucket(Bucket=TAAR_WHITELIST_BUCKET)
@@ -51,14 +49,17 @@ def install_ensemble_fixtures(ctx):
     ctx = install_mock_ensemble_data(ctx)
 
     factory = MockRecommenderFactory()
-    ctx["recommender_factory"] = factory
+    ctx.set("recommender_factory", factory)
 
-    ctx["recommender_map"] = {
-        "collaborative": factory.create("collaborative"),
-        "similarity": factory.create("similarity"),
-        "locale": factory.create("locale"),
-    }
-    ctx["ensemble_recommender"] = EnsembleRecommender(ctx.child())
+    ctx.set(
+        "recommender_map",
+        {
+            "collaborative": factory.create("collaborative"),
+            "similarity": factory.create("similarity"),
+            "locale": factory.create("locale"),
+        },
+    )
+    ctx.set("ensemble_recommender", EnsembleRecommender(ctx))
     return ctx
 
 

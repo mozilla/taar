@@ -20,5 +20,5 @@ FAKE_LOCALE_DATA = {
 @pytest.fixture
 def test_ctx():
     ctx = default_context()
-    ctx['clock'] = ctx[IClock]
+    ctx.set('clock', ctx.get(IClock))
     return ctx
