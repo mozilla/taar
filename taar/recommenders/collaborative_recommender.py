@@ -136,9 +136,14 @@ class CollaborativeRecommender(AbstractRecommender):
         return False
 
     def _recommend(self, client_data, limit, extra_data):
+
+        # Some client's are going to have None as the list of
+        # installed_addons instead of the empty list
+        client_installed_addons = client_data.get("installed_addons", []) or []
+
         installed_addons_as_hashes = [
             positive_hash(addon_id)
-            for addon_id in client_data.get("installed_addons", [])
+            for addon_id in  client_installed_addons
         ]
 
         # Build the query vector by setting the position of the queried addons to 1.0
@@ -201,7 +206,7 @@ class CollaborativeRecommender(AbstractRecommender):
                 self._raw_item_matrix.force_expiry()
 
                 self.logger.exception(
-                    "Collaborative recommender crashed for {}".format(
+                    "Collaborative recommender crashed for clientID {}".format(
                         client_data.get("client_id", "no-client-id")
                     ),
                     e,
