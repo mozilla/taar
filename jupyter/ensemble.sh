@@ -9,11 +9,13 @@ gcloud beta dataproc clusters create jupyter-ensemble-broken-${RANDOM} \
     --enable-component-gateway \
     --image-version=1.4 \
     --initialization-actions gs://dataproc-initialization-actions/python/pip-install.sh \
-    --master-machine-type=n1-highmem-8 \
+    --master-machine-type=n1-standard-8 \
+    --max-idle 15m \
     --metadata "PIP_PACKAGES=${requirements}" \
-    --num-workers=15 \
+    --num-workers=5 \
+    --num-preemptible-workers=20 \
     --optional-components=ANACONDA,JUPYTER \
     --project moz-fx-data-bq-srg \
     --properties ^#^spark:spark.jars=gs://spark-lib/bigquery/spark-bigquery-latest.jar#spark:spark.hadoop.fs.s3a.access.key=${AWS_ACCESS_KEY_ID}#spark:spark.hadoop.fs.s3a.secret.key=${AWS_SECRET_ACCESS_KEY}#spark:spark.jars.packages=org.apache.spark:spark-avro_2.11:2.4.4#spark:spark.python.profile=true \
     --region us-west1 \
-    --worker-machine-type=n1-highmem-96
+    --worker-machine-type=n1-standard-8
