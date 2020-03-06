@@ -11,10 +11,7 @@ gcloud beta dataproc clusters create jupyter-ensemble-broken-${RANDOM} \
     --initialization-actions gs://dataproc-initialization-actions/python/pip-install.sh \
     --max-idle 10m \
     --metadata "PIP_PACKAGES=${requirements}" \
-    --num-workers=15 \
     --optional-components=ANACONDA,JUPYTER \
     --project moz-fx-data-bq-srg \
     --properties "spark:spark.jars=gs://spark-lib/bigquery/spark-bigquery-latest.jar#spark:spark.hadoop.fs.s3a.access.key=${AWS_ACCESS_KEY_ID}#spark:spark.hadoop.fs.s3a.secret.key=${AWS_SECRET_ACCESS_KEY}#spark:spark.python.profile=true" \
-    --region us-west1 \
-
-
+    --region us-west1 
