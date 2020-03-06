@@ -11,7 +11,7 @@ gcloud beta dataproc clusters create jupyter-ensemble \
     --initialization-actions gs://dataproc-initialization-actions/python/pip-install.sh \
     --metadata "PIP_PACKAGES=${requirements}" \
     --num-workers=15 \
-    --master-machine-type=n1-highmem-8 \
+    --master-machine-type=n1-highmem-96 \
     --worker-machine-type=n1-highmem-96 \
     --bucket jupyter-ensemble \
     --region us-west1 \
