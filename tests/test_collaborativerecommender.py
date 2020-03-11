@@ -21,6 +21,7 @@ from taar.recommenders.collaborative_recommender import (
 from taar.recommenders.collaborative_recommender import CollaborativeRecommender
 from taar.recommenders.collaborative_recommender import positive_hash
 import json
+import pytest
 
 
 """
@@ -104,6 +105,12 @@ def test_can_pickle(test_ctx):
 
     r_pickle = pickle.dumps(r)
     r2 = pickle.loads(r_pickle)
+
+
+@mock_s3
+@pytest.mark.xfail(reason="not implemented yet")
+def test_can_pickle_maintains_matrices(test_ctx):
+    pass
 
 
 @mock_s3
