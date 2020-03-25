@@ -7,13 +7,14 @@ TAAR_WHITELIST_BUCKET = config("TAAR_WHITELIST_BUCKET", default="test_whitelist_
 TAAR_WHITELIST_KEY = config("TAAR_WHITELIST_KEY", default="test_whitelist_key")
 
 TAAR_ITEM_MATRIX_BUCKET = config(
-    "TAAR_ITEM_MATRIX_BUCKET", default="test_matrix_bucket"
+    "TAAR_ITEM_MATRIX_BUCKET", default="telemetry-public-analysis-2"
 )
-TAAR_ITEM_MATRIX_KEY = config("TAAR_ITEM_MATRIX_KEY", default="test_matrix_key")
+TAAR_ITEM_MATRIX_KEY = config("TAAR_ITEM_MATRIX_KEY", default="telemetry-ml/addon_recommender/item_matrix.json")
+
 TAAR_ADDON_MAPPING_BUCKET = config(
-    "TAAR_ADDON_MAPPING_BUCKET", default="test_mapping_bucket"
+    "TAAR_ADDON_MAPPING_BUCKET", default="telemetry-public-analysis-2"
 )
-TAAR_ADDON_MAPPING_KEY = config("TAAR_ADDON_MAPPING_KEY", default="test_mapping_key")
+TAAR_ADDON_MAPPING_KEY = config("TAAR_ADDON_MAPPING_KEY", default="telemetry-ml/addon_recommender/addon_mapping.json")
 
 TAAR_LOCALE_BUCKET = config("TAAR_LOCALE_BUCKET", default="test_locale_bucket")
 TAAR_LOCALE_KEY = config("TAAR_LOCALE_KEY", default="test_locale_key")
