@@ -51,7 +51,7 @@ class EnsembleRecommender(AbstractRecommender):
         )
 
         self._recommender_map = {}
-        if self._ctx.get('mock_recommender_map'):
+        if self._ctx.get('mock_recommender_map', None) is not None:
             self._recommender_map.update(self._ctx.get('mock_recommender_map'))
         else:
             self._recommender_map["collaborative"] = CollaborativeRecommender(

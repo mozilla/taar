@@ -16,7 +16,7 @@ from moto import mock_s3
 import boto3
 import json
 import pytest
-from .mocks import MockRecommenderFactory, MockRecommender
+from .mocks import MockRecommender
 
 EXPECTED = {"collaborative": 1000, "similarity": 100, "locale": 10}
 

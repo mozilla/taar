@@ -3,12 +3,16 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from taar.recommenders.ensemble_recommender import EnsembleRecommender
+from taar.recommenders import CollaborativeRecommender
+from taar.recommenders import SimilarityRecommender
+from taar.recommenders import LocaleRecommender
+
 from taar.recommenders.randomizer import in_experiment, reorder_guids
 from srgutil.interfaces import IMozLogging
 
 from taar.context import default_context
 
-from srgutil.cache import LazyJSONLoader
+from .lazys3 import LazyJSONLoader
 
 from .s3config import TAAR_WHITELIST_BUCKET
 from .s3config import TAAR_WHITELIST_KEY
@@ -17,27 +21,6 @@ from .s3config import TAAR_EXPERIMENT_PROB
 # We need to build a default logger for the schema validation as there
 # is no class to bind to yet.
 ctx = default_context()
-
-
-class RecommenderFactory:
-    """
-    A RecommenderFactory provides support to create recommenders.
-
-    The existence of a factory enables injection of dependencies into
-    the RecommendationManager and eases the implementation of test
-    harnesses.
-    """
-
-    def __init__(self, ctx):
-        self._ctx = ctx
-        # This map is set in the default context
-        self._recommender_factory_map = self._ctx.get("recommender_factory_map")
-
-    def get_names(self):
-        return self._recommender_factory_map.keys()
-
-    def create(self, recommender_name):
-        return self._recommender_factory_map[recommender_name]()
 
 
 class RecommendationManager:
@@ -62,7 +45,9 @@ class RecommendationManager:
             self._ctx, TAAR_WHITELIST_BUCKET, TAAR_WHITELIST_KEY
         )
 
-        self._experiment_prob = ctx.get("TAAR_EXPERIMENT_PROB", TAAR_EXPERIMENT_PROB)
+        self._experiment_prob = ctx.get(
+            "TAAR_EXPERIMENT_PROB", TAAR_EXPERIMENT_PROB
+        )
 
     def recommend(self, client_id, limit, extra_data={}):
         """Return recommendations for the given client.
@@ -89,7 +74,7 @@ class RecommendationManager:
             if results is None:
                 # Fetch back all possible whitelisted addons for this
                 # client
-                extra_data['guid_randomization'] = True
+                extra_data["guid_randomization"] = True
                 results = self._ensemble_recommender.recommend(
                     client_info, len(whitelist), extra_data
                 )

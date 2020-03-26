@@ -9,6 +9,7 @@ from taar.recommenders import RecommendationManager
 from taar.recommenders import TEST_CLIENT_IDS, EMPTY_TEST_CLIENT_IDS
 from taar.recommenders.base_recommender import AbstractRecommender
 
+import pytest
 from taar.recommenders.ensemble_recommender import (
     TAAR_ENSEMBLE_BUCKET,
     TAAR_ENSEMBLE_KEY,
@@ -16,10 +17,33 @@ from taar.recommenders.ensemble_recommender import (
 
 
 from .mocks import MockRecommenderFactory
-from .test_hybrid_recommender import install_mock_curated_data
+from .conftest import install_mock_curated_data
 
 import operator
 from functools import reduce
+from .mocks import MockRecommender
+
+
+@pytest.fixture
+def recommender_map_ctx(test_ctx):
+    mock_locale = MockRecommender(
+        {"def": 2.0, "efg": 2.1, "fgh": 2.2, "abc": 2.3}
+    )
+    mock_collaborative = MockRecommender(
+        {"ghi": 3.0, "hij": 3.1, "ijk": 3.2, "def": 3.3}
+    )
+    mock_similarity = MockRecommender(
+        {"jkl": 4.0, "klm": 4.1, "lmn": 4.2, "ghi": 4.3}
+    )
+
+    mock_recommender_map = {
+        "collaborative": mock_collaborative,
+        "similarity": mock_similarity,
+        "locale": mock_locale,
+    }
+
+    test_ctx.set("mock_recommender_map", mock_recommender_map)
+    return test_ctx
 
 
 class StubRecommender(AbstractRecommender):
@@ -43,6 +67,7 @@ def install_mocks(ctx):
             return {"client_id": client_id}
 
     ctx.set("profile_fetcher", MockProfileFetcher())
+
     ctx.set("recommender_factory", MockRecommenderFactory())
 
     DATA = {
@@ -77,8 +102,8 @@ def test_none_profile_returns_empty_list(test_ctx):
 
 
 @mock_s3
-def test_simple_recommendation(test_ctx):
-    ctx = install_mocks(test_ctx)
+def test_simple_recommendation(recommender_map_ctx):
+    ctx = install_mocks(recommender_map_ctx)
 
     EXPECTED_RESULTS = [
         ("ghi", 3430.0),
