@@ -8,7 +8,7 @@ from srgutil.interfaces import IMozLogging
 
 from taar.context import default_context
 
-from srgutil.cache import LazyJSONLoader
+from .lazys3 import LazyJSONLoader
 
 from .s3config import TAAR_WHITELIST_BUCKET
 from .s3config import TAAR_WHITELIST_KEY

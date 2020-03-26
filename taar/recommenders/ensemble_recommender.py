@@ -5,7 +5,7 @@
 from srgutil.interfaces import IMozLogging
 import itertools
 from .base_recommender import AbstractRecommender
-from srgutil.cache import LazyJSONLoader
+from .lazys3 import LazyJSONLoader
 
 from .s3config import TAAR_WHITELIST_BUCKET
 from .s3config import TAAR_WHITELIST_KEY

@@ -15,6 +15,8 @@ chain.
 
 # Clobber the Context name to prevent messy name collisions
 from srgutil.context import default_context as _default_context
+import os
+from taar.recommenders.s3config import AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
 
 
 def default_context():
@@ -34,5 +36,13 @@ def default_context():
             "locale": lambda: LocaleRecommender(ctx),
         },
     )
+
+    # You have to stuff the s3config attributes into the context as
+    # the context object is passed to worker nodes in spark.
+
+    # Using python-decouple on spark worker nodes won't work as the
+    # workers will not be configured the same as the master node.
+    ctx.set("AWS_ACCESS_KEY_ID", AWS_ACCESS_KEY_ID)
+    ctx.set("AWS_SECRET_ACCESS_KEY", AWS_SECRET_ACCESS_KEY)
 
     return ctx

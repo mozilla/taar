@@ -3,7 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from .base_recommender import AbstractRecommender
-from srgutil.cache import LazyJSONLoader
+from .lazys3 import LazyJSONLoader
 from srgutil.interfaces import IMozLogging
 import operator as op
 import random

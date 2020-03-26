@@ -4,7 +4,7 @@
 
 from srgutil.interfaces import IMozLogging
 from .base_recommender import AbstractRecommender
-from srgutil.cache import LazyJSONLoader
+from .lazys3 import LazyJSONLoader
 
 from .s3config import TAAR_LOCALE_BUCKET
 from .s3config import TAAR_LOCALE_KEY
