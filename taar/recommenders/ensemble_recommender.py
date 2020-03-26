@@ -5,7 +5,7 @@
 from srgutil.interfaces import IMozLogging
 import itertools
 from .base_recommender import AbstractRecommender
-from srgutil.cache import LazyJSONLoader
+from .lazys3 import LazyJSONLoader
 
 from .s3config import TAAR_WHITELIST_BUCKET
 from .s3config import TAAR_WHITELIST_KEY
@@ -37,20 +37,28 @@ class EnsembleRecommender(AbstractRecommender):
 
     def __init__(self, ctx):
         self.RECOMMENDER_KEYS = ["collaborative", "similarity", "locale"]
+
         self._ctx = ctx
         self.logger = self._ctx.get(IMozLogging).get_logger("taar.ensemble")
-
-        assert self._ctx.get("recommender_factory", None) is not None
 
         self._init_from_ctx()
 
     def _init_from_ctx(self):
-        # Copy the map of the recommenders
-        self._recommender_map = {}
+        from taar.recommenders import (
+            CollaborativeRecommender,
+            LocaleRecommender,
+            SimilarityRecommender,
+        )
 
-        recommender_factory = self._ctx.get("recommender_factory")
-        for rkey in self.RECOMMENDER_KEYS:
-            self._recommender_map[rkey] = recommender_factory.create(rkey)
+        self._recommender_map = {}
+        if self._ctx.get('mock_recommender_map'):
+            self._recommender_map.update(self._ctx.get('mock_recommender_map'))
+        else:
+            self._recommender_map["collaborative"] = CollaborativeRecommender(
+                self._ctx
+            )
+            self._recommender_map["similarity"] = SimilarityRecommender(self._ctx)
+            self._recommender_map["locale"] = LocaleRecommender(self._ctx)
 
         self._whitelist_data = LazyJSONLoader(
             self._ctx, TAAR_WHITELIST_BUCKET, TAAR_WHITELIST_KEY
@@ -139,7 +147,9 @@ class EnsembleRecommender(AbstractRecommender):
 
         # group by the guid, sum up the weights for recurring GUID
         # suggestions across all recommenders
-        guid_grouper = itertools.groupby(flattened_results, lambda item: item[0])
+        guid_grouper = itertools.groupby(
+            flattened_results, lambda item: item[0]
+        )
 
         ensemble_suggestions = []
         for (guid, guid_group) in guid_grouper:
