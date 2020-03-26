@@ -36,7 +36,6 @@ class MockRecommenderFactory:
         )
 
         self._recommender_factory_map = {
-            "legacy": lambda: mock_legacy,
             "collaborative": lambda: mock_collaborative,
             "similarity": lambda: mock_similarity,
             "locale": lambda: mock_locale,
