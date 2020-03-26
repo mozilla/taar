@@ -2,7 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from srgutil.cache import LazyJSONLoader
+from .lazys3 import LazyJSONLoader
 from srgutil.log import get_logger
 import numpy as np
 import operator as op

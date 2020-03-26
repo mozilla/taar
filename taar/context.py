@@ -21,22 +21,6 @@ from taar.recommenders.s3config import AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
 
 def default_context():
     ctx = _default_context()
-    from taar.recommenders import CollaborativeRecommender
-    from taar.recommenders import SimilarityRecommender
-    from taar.recommenders import LocaleRecommender
-
-    # Note that the EnsembleRecommender is *not* in this map as it
-    # needs to ensure that the recommender_map key is installed in the
-    # context
-    ctx.set(
-        "recommender_factory_map",
-        {
-            "collaborative": lambda: CollaborativeRecommender(ctx),
-            "similarity": lambda: SimilarityRecommender(ctx),
-            "locale": lambda: LocaleRecommender(ctx),
-        },
-    )
-
     # You have to stuff the s3config attributes into the context as
     # the context object is passed to worker nodes in spark.
 

@@ -9,7 +9,12 @@ import json
 
 
 from taar.recommenders import LocaleRecommender
-from taar.recommenders.s3config import TAAR_LOCALE_KEY, TAAR_LOCALE_BUCKET
+from taar.recommenders.s3config import (
+    TAAR_LOCALE_KEY,
+    TAAR_LOCALE_BUCKET,
+    AWS_ACCESS_KEY_ID,
+    AWS_SECRET_ACCESS_KEY,
+)
 
 
 FAKE_LOCALE_DATA = {
@@ -24,7 +29,12 @@ FAKE_LOCALE_DATA = {
 
 
 def install_mock_data(ctx):
-    conn = boto3.resource("s3", region_name="us-west-2")
+    conn = boto3.resource(
+        "s3",
+        region_name="us-west-2",
+        aws_access_key_id=AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+    )
 
     conn.create_bucket(Bucket=TAAR_LOCALE_BUCKET)
     conn.Object(TAAR_LOCALE_BUCKET, TAAR_LOCALE_KEY).put(
@@ -108,5 +118,7 @@ def test_recommender_extra_data(test_ctx):
     validate_recommendations(recommendations, "en")
 
     # Make sure that we favour client data over the extra data.
-    recommendations = r.recommend({"locale": "en"}, 10, extra_data={"locale": "te-ST"})
+    recommendations = r.recommend(
+        {"locale": "en"}, 10, extra_data={"locale": "te-ST"}
+    )
     validate_recommendations(recommendations, "en")

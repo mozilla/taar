@@ -168,9 +168,6 @@ def configure_plugin(app):  # noqa: C901
 
             root_ctx.set("profile_fetcher", profile_fetcher)
 
-            # Lock the context down after we've got basic bits installed
-            r_factory = recommenders.RecommenderFactory(root_ctx)
-            root_ctx.set("recommender_factory", r_factory)
             instance = recommenders.RecommendationManager(root_ctx)
             PROXY_MANAGER.setResource(instance)
         return PROXY_MANAGER.getResource()

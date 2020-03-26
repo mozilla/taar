@@ -7,7 +7,7 @@ from itertools import groupby
 from scipy.spatial import distance
 from srgutil.log import get_logger
 import numpy as np
-from srgutil.cache import LazyJSONLoader
+from .lazys3 import LazyJSONLoader
 
 from .s3config import TAAR_SIMILARITY_BUCKET
 from .s3config import TAAR_SIMILARITY_DONOR_KEY

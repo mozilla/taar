@@ -2,9 +2,10 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import boto3
 from srgutil.interfaces import IMozLogging
 from .base_recommender import AbstractRecommender
-from srgutil.cache import LazyJSONLoader
+from .lazys3 import LazyJSONLoader
 
 from .s3config import TAAR_LOCALE_BUCKET
 from .s3config import TAAR_LOCALE_KEY
@@ -37,7 +38,9 @@ class LocaleRecommender(AbstractRecommender):
         def presort_locale(data):
             result = {}
             for locale, guid_list in data.items():
-                result[locale] = sorted(guid_list, key=lambda x: x[1], reverse=True)
+                result[locale] = sorted(
+                    guid_list, key=lambda x: x[1], reverse=True
+                )
             return result
 
         return self._top_addons_per_locale.get(transform=presort_locale)[0]
@@ -45,7 +48,9 @@ class LocaleRecommender(AbstractRecommender):
     def _init_from_ctx(self):
         if self.top_addons_per_locale is None:
             self.logger.error(
-                "Cannot download the top per locale file {}".format(TAAR_LOCALE_KEY)
+                "Cannot download the top per locale file {}".format(
+                    TAAR_LOCALE_KEY
+                )
             )
 
     def can_recommend(self, client_data, extra_data={}):
@@ -87,7 +92,9 @@ class LocaleRecommender(AbstractRecommender):
     def _recommend(self, client_data, limit, extra_data={}):
         # If we have data coming from multiple sourecs, prefer the one
         # from 'client_data'.
-        client_locale = client_data.get("locale") or extra_data.get("locale", None)
+        client_locale = client_data.get("locale") or extra_data.get(
+            "locale", None
+        )
         result_list = self.top_addons_per_locale.get(client_locale, [])[:limit]
 
         if "locale" not in client_data:
