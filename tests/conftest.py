@@ -3,7 +3,7 @@ These are global fixtures automagically loaded by pytest
 """
 
 import pytest
-from srgutil.context import default_context
+from taar.context import default_context
 from srgutil.interfaces import IClock
 
 FAKE_LOCALE_DATA = {
