@@ -1,5 +1,9 @@
 from decouple import config
 
+
+AWS_ACCESS_KEY_ID = config("AWS_ACCESS_KEY_ID", default='mock_access_key')
+AWS_SECRET_ACCESS_KEY = config("AWS_SECRET_ACCESS_KEY", default='mock_secret_key')
+
 TAAR_ENSEMBLE_BUCKET = config("TAAR_ENSEMBLE_BUCKET", default="test_ensemble_bucket")
 TAAR_ENSEMBLE_KEY = config("TAAR_ENSEMBLE_KEY", default="test_ensemble_key")
 
