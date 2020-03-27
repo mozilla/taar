@@ -2,7 +2,7 @@
 
 AWS_ACCESS_KEY_ID=AKIA5PV4VQIY4HJLNP4B
 AWS_SECRET_ACCESS_KEY=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
-requirements="mozilla-taar3==0.4.11 mozilla-srgutil==0.2.1 python-decouple==3.1 click==7.0 boto3==1.7.71 dockerflow==2018.4.0"
+requirements="mozilla-taar3==0.4.12 mozilla-srgutil==0.2.1 python-decouple==3.1 click==7.0 boto3==1.7.71 dockerflow==2018.4.0"
 
 gcloud beta dataproc clusters create jupyter-ensemble-${RANDOM} \
     --bucket jupyter-ensemble \
