@@ -2,9 +2,11 @@
 These are global fixtures automagically loaded by pytest
 """
 
+import json
 import pytest
 import boto3
-import json
+from srgutil.interfaces import IClock
+
 from taar.context import default_context
 from taar.recommenders.s3config import (
     TAAR_WHITELIST_BUCKET,
@@ -12,8 +14,6 @@ from taar.recommenders.s3config import (
     AWS_ACCESS_KEY_ID,
     AWS_SECRET_ACCESS_KEY,
 )
-from srgutil.interfaces import IClock
-from .mocks import MockRecommender
 
 FAKE_LOCALE_DATA = {
     "te-ST": [
@@ -65,4 +65,3 @@ def install_mock_curated_data(ctx):
     )
 
     return ctx
-

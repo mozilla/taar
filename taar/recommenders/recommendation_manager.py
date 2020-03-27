@@ -3,10 +3,6 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from taar.recommenders.ensemble_recommender import EnsembleRecommender
-from taar.recommenders import CollaborativeRecommender
-from taar.recommenders import SimilarityRecommender
-from taar.recommenders import LocaleRecommender
-
 from taar.recommenders.randomizer import in_experiment, reorder_guids
 from srgutil.interfaces import IMozLogging
 

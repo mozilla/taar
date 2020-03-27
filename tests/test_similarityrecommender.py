@@ -39,7 +39,9 @@ def generate_fake_lr_curves(num_elements, ceiling=10.0):
 
     # This sets up a normal distribution with a mean of 0.5 and std
     # deviation of 0.5
-    numerator_density = [scipy.stats.norm.pdf(float(i), 0.5, 0.5) for i in lr_index]
+    numerator_density = [
+        scipy.stats.norm.pdf(float(i), 0.5, 0.5) for i in lr_index
+    ]
 
     # This sets up a normal distribution with a mean of 5.0 and std
     # deviation of 1.5.  So this is right shifted and has a wide std
@@ -47,7 +49,9 @@ def generate_fake_lr_curves(num_elements, ceiling=10.0):
 
     # This results in a small overlap.  Using ranges between 0.5 to
     # 5.0 will yield large values to small values.
-    denominator_density = [scipy.stats.norm.pdf(float(i), 5.0, 1.5) for i in lr_index]
+    denominator_density = [
+        scipy.stats.norm.pdf(float(i), 5.0, 1.5) for i in lr_index
+    ]
     return list(zip(lr_index, zip(numerator_density, denominator_density)))
 
 
@@ -72,15 +76,21 @@ def install_no_data(ctx):
     conn.create_bucket(Bucket=TAAR_SIMILARITY_BUCKET)
     conn.Object(TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY).put(Body="")
 
-    conn.Object(TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY).put(Body="")
+    conn.Object(TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY).put(
+        Body=""
+    )
 
-    ctx.set("similarity_donors_pool", LazyJSONLoader(
-        ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY
-    ))
+    ctx.set(
+        "similarity_donors_pool",
+        LazyJSONLoader(ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY),
+    )
 
-    ctx.set("similarity_lr_curves", LazyJSONLoader(
-        ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY
-    ))
+    ctx.set(
+        "similarity_lr_curves",
+        LazyJSONLoader(
+            ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY
+        ),
+    )
 
     return ctx
 
@@ -100,13 +110,17 @@ def install_categorical_data(ctx):
         Body=json.dumps(generate_fake_lr_curves(1000))
     )
 
-    ctx.set("similarity_donors_pool",  LazyJSONLoader(
-        ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY
-    ))
+    ctx.set(
+        "similarity_donors_pool",
+        LazyJSONLoader(ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY),
+    )
 
-    ctx.set("similarity_lr_curves", LazyJSONLoader(
-        ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY
-    ))
+    ctx.set(
+        "similarity_lr_curves",
+        LazyJSONLoader(
+            ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY
+        ),
+    )
 
     return ctx
 
@@ -121,17 +135,25 @@ def install_continuous_data(ctx):
         conn.create_bucket(Bucket=TAAR_SIMILARITY_BUCKET)
     except Exception:
         pass
-    conn.Object(TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY).put(Body=cts_data)
+    conn.Object(TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY).put(
+        Body=cts_data
+    )
 
-    conn.Object(TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY).put(Body=lrs_data)
+    conn.Object(TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY).put(
+        Body=lrs_data
+    )
 
-    ctx.set("similarity_donors_pool", LazyJSONLoader(
-        ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY
-    ))
+    ctx.set(
+        "similarity_donors_pool",
+        LazyJSONLoader(ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY),
+    )
 
-    ctx.set("similarity_lr_curves", LazyJSONLoader(
-        ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY
-    ))
+    ctx.set(
+        "similarity_lr_curves",
+        LazyJSONLoader(
+            ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY
+        ),
+    )
 
     return ctx
 
@@ -139,6 +161,7 @@ def install_continuous_data(ctx):
 def check_matrix_built(caplog):
     msg = "Reconstructed matrices for similarity recommender"
     return sum([msg in str(s) for s in caplog.records]) > 0
+
 
 @mock_s3
 def test_can_pickle(test_ctx):
@@ -149,7 +172,6 @@ def test_can_pickle(test_ctx):
     restored = pickle.loads(pickle.dumps(r))
     assert restored._ctx.get("similarity_donors_pool", None) is not None
     assert restored._ctx.get("similarity_lr_curves", None) is not None
-
 
 
 @mock_s3
@@ -297,12 +319,18 @@ def test_distance_functions(test_ctx):
     assert len(recs) > 0
 
     # Make it a generally poor match for the donors.
-    test_client.update({"total_uri": 10, "bookmark_count": 2, "subsession_length": 10})
+    test_client.update(
+        {"total_uri": 10, "bookmark_count": 2, "subsession_length": 10}
+    )
 
     all_client_values_zero = test_client
     # Make all categorical variables non-matching with any donor.
     all_client_values_zero.update(
-        {key: "zero" for key in test_client.keys() if key in CATEGORICAL_FEATURES}
+        {
+            key: "zero"
+            for key in test_client.keys()
+            if key in CATEGORICAL_FEATURES
+        }
     )
     recs = r.recommend(all_client_values_zero, 10)
     assert len(recs) == 0

@@ -1,6 +1,6 @@
 import boto3
 import json
-from srgutil.interfaces import IMozLogging, IClock
+from srgutil.interfaces import IClock
 from srgutil.log import get_logger
 import threading
 

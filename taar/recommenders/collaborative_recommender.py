@@ -156,7 +156,7 @@ class CollaborativeRecommender(AbstractRecommender):
                     1.0
                     if (entry.get("id") in installed_addons_as_hashes)
                     else 0.0
-                    for entry in self.raw_item_matrix # vng This line craps out!!!
+                    for entry in self.raw_item_matrix  # vng This line craps out!!!
                 ]
             )
 
@@ -208,7 +208,7 @@ class CollaborativeRecommender(AbstractRecommender):
                 recommendations = self._recommend(
                     client_data, limit, extra_data
                 )
-            except Exception as e:
+            except Exception:
                 recommendations = []
 
                 self._addon_mapping.force_expiry()

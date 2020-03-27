@@ -6,6 +6,7 @@
 Test cases for the TAAR CollaborativeRecommender
 """
 
+import json
 import numpy
 
 from moto import mock_s3
@@ -20,8 +21,6 @@ from taar.recommenders.collaborative_recommender import (
 
 from taar.recommenders.collaborative_recommender import CollaborativeRecommender
 from taar.recommenders.collaborative_recommender import positive_hash
-import json
-import pytest
 
 
 """
@@ -65,7 +64,10 @@ def install_mock_data(ctx):
 
     fake_addon_matrix = []
     for i, addon in enumerate(addon_space):
-        row = {"id": positive_hash(addon["id"]), "features": [0, 0.2, 0.0, 0.1, 0.15]}
+        row = {
+            "id": positive_hash(addon["id"]),
+            "features": [0, 0.2, 0.0, 0.1, 0.15],
+        }
         row["features"][i] = 1.0
         fake_addon_matrix.append(row)
 
@@ -98,14 +100,14 @@ def test_cant_recommend(test_ctx):
     assert not r.can_recommend({})
     assert not r.can_recommend({"installed_addons": []})
 
+
 @mock_s3
 def test_can_pickle(test_ctx):
     ctx = install_mock_data(test_ctx)
     r = CollaborativeRecommender(ctx)
 
     r_pickle = pickle.dumps(r)
-    r2 = pickle.loads(r_pickle)
-
+    pickle.loads(r_pickle)
 
 
 @mock_s3
@@ -116,7 +118,10 @@ def test_can_recommend(test_ctx):
     # For some reason, moto doesn't like to play nice with this call
     # Check that we can recommend if we the user has at least an addon.
     assert r.can_recommend(
-        {"installed_addons": ["uBlock0@raymondhill.net"], "client_id": "test-client"}
+        {
+            "installed_addons": ["uBlock0@raymondhill.net"],
+            "client_id": "test-client",
+        }
     )
 
 
@@ -128,7 +133,9 @@ def test_can_recommend_no_model(test_ctx):
     # We should never be able to recommend if something went wrong with the model.
     assert not r.can_recommend({})
     assert not r.can_recommend({"installed_addons": []})
-    assert not r.can_recommend({"installed_addons": ["uBlock0@raymondhill.net"]})
+    assert not r.can_recommend(
+        {"installed_addons": ["uBlock0@raymondhill.net"]}
+    )
 
 
 @mock_s3

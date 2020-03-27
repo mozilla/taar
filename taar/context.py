@@ -15,7 +15,6 @@ chain.
 
 # Clobber the Context name to prevent messy name collisions
 from srgutil.context import default_context as _default_context
-import os
 from taar.recommenders.s3config import AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
 
 

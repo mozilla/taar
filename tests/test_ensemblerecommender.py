@@ -20,6 +20,7 @@ from .mocks import MockRecommender
 
 EXPECTED = {"collaborative": 1000, "similarity": 100, "locale": 10}
 
+
 @pytest.fixture
 def recommender_map_ctx(test_ctx):
     mock_locale = MockRecommender(
@@ -41,6 +42,7 @@ def recommender_map_ctx(test_ctx):
     test_ctx.set("mock_recommender_map", mock_recommender_map)
     return test_ctx
 
+
 def install_mock_ensemble_data(ctx):
     DATA = {"ensemble_weights": EXPECTED}
 
@@ -56,7 +58,6 @@ def install_mock_ensemble_data(ctx):
     )
 
     return ctx
-
 
 
 @mock_s3
@@ -98,7 +99,7 @@ def test_preinstalled_guids(recommender_map_ctx):
         ("klm", 409.99999999999994),
         ("abc", 23.0),
     ]
-    
+
     r = EnsembleRecommender(ctx)
 
     # 'hij' should be excluded from the suggestions list
