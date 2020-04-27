@@ -81,17 +81,13 @@ hashes.
 RecommendationManager:
   * s3://telemetry-parquet/telemetry-ml/addon_recommender/top_200_whitelist.json
 
-Hybrid Recommender:
-  * s3://telemetry-parquet/taar/ensemble/ensemble_weight.json
-  * s3://telemetry-parquet/telemetry-ml/addon_recommender/top_200_whitelist.json
-
 Similarity Recommender:
   * s3://telemetry-parquet/taar/similarity/donors.json
   * s3://telemetry-parquet/taar/similarity/lr_curves.json
 
 CollaborativeRecommender:
-  * s3://telemetry-public-analysis-2/telemetry-ml/addon_recommender/item_matrix.json
-  * s3://telemetry-public-analysis-2/telemetry-ml/addon_recommender/addon_mapping.json
+  * s3://telemetry-parquet/telemetry-ml/addon_recommender/item_matrix.json
+  * s3://telemetry-parquet/telemetry-ml/addon_recommender/addon_mapping.json
 
 LocaleRecommender:
   * s3://telemetry-parquet/taar/locale/top10_dict.json
@@ -110,20 +106,16 @@ Production enviroment variables required for TAAR
 
 Collaborative Recommender ::
 
-    TAAR_ITEM_MATRIX_BUCKET = "telemetry-public-analysis-2"
+    TAAR_ITEM_MATRIX_BUCKET = "telemetry-parquet"
     TAAR_ITEM_MATRIX_KEY = "telemetry-ml/addon_recommender/item_matrix.json"
-    TAAR_ADDON_MAPPING_BUCKET = "telemetry-public-analysis-2"
+
+    TAAR_ADDON_MAPPING_BUCKET = "telemetry-parquet"
     TAAR_ADDON_MAPPING_KEY = "telemetry-ml/addon_recommender/addon_mapping.json"
 
 Ensemble Recommender ::
 
     TAAR_ENSEMBLE_BUCKET = "telemetry-parquet"
     TAAR_ENSEMBLE_KEY = "taar/ensemble/ensemble_weight.json"
-
-Hybrid Recommender ::
-
-    TAAR_WHITELIST_BUCKET = "telemetry-parquet"
-    TAAR_WHITELIST_KEY = "telemetry-ml/addon_recommender/only_guids_top_200.json"
 
 Locale Recommender ::
 
