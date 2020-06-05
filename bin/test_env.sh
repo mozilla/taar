@@ -14,5 +14,3 @@ export TAAR_SIMILARITY_BUCKET=telemetry-parquet
 export TAAR_SIMILARITY_DONOR_KEY=taar/similarity/donors.json
 export TAAR_SIMILARITY_LRCURVES_KEY=taar/similarity/lr_curves.json
 export TAAR_MAX_RESULTS=4
-export DYNAMO_REGION=us-west-2
-export DYNAMO_TABLE_NAME=taar_addon_data_20180206
