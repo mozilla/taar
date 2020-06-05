@@ -296,8 +296,8 @@ def test_client_addon_lookup_no_client(client, profile_enabled_rm):
     )
     res = client.get(url, follow_redirects=True)
 
-    expected = {"results": False}
-    assert res.json['results'] == False
+    _ = {"results": False}
+    assert res.json['results'] is False
 
 
 def test_client_has_addon(client, profile_enabled_rm):
@@ -330,4 +330,4 @@ def test_client_has_no_addon(client, profile_enabled_rm):
     )
     res = client.get(url, follow_redirects=True)
 
-    assert res.json['results'] == False
+    assert res.json['results'] is False

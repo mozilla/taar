@@ -41,7 +41,7 @@ def clean_promoted_guids(raw_promoted_guids):
             break
 
         if not (
-            (isinstance(row[0], str) or isinstance(row[0], unicode))
+            (isinstance(row[0], str))
             and (isinstance(row[1], int) or isinstance(row[1], float))  # noqa
         ):
             valid = False
@@ -74,7 +74,8 @@ def configure_plugin(app):  # noqa: C901
     """
 
     @app.route(
-        "/v1/api/client_has_addon/<hashed_client_id>/<addon_id>/", methods=["GET"]
+        "/v1/api/client_has_addon/<hashed_client_id>/<addon_id>/",
+        methods=["GET"],
     )
     def client_has_addon(hashed_client_id, addon_id):
         # Use the module global PROXY_MANAGER
@@ -86,19 +87,25 @@ def configure_plugin(app):  # noqa: C901
         if client_meta is None:
             # no valid client metadata was found for the given
             # clientId
-            result = {"results": False, 'error': 'No client found'}
+            result = {"results": False, "error": "No client found"}
             response = app.response_class(
-                response=json.dumps(result), status=200, mimetype="application/json"
+                response=json.dumps(result),
+                status=200,
+                mimetype="application/json",
             )
             return response
 
-        result = {"results": addon_id in client_meta.get("installed_addons", [])}
+        result = {
+            "results": addon_id in client_meta.get("installed_addons", [])
+        }
         response = app.response_class(
             response=json.dumps(result), status=200, mimetype="application/json"
         )
         return response
 
-    @app.route("/v1/api/recommendations/<hashed_client_id>/", methods=["GET", "POST"])
+    @app.route(
+        "/v1/api/recommendations/<hashed_client_id>/", methods=["GET", "POST"]
+    )
     def recommendations(hashed_client_id):
         """Return a list of recommendations provided a telemetry client_id."""
         # Use the module global PROXY_MANAGER
@@ -130,7 +137,9 @@ def configure_plugin(app):  # noqa: C901
             jdata["results"] = []
             jdata["error"] = "Invalid JSON in POST: {}".format(e)
             return app.response_class(
-                response=json.dumps(jdata, status=400, mimetype="application/json")
+                response=json.dumps(
+                    jdata, status=400, mimetype="application/json"
+                )
             )
 
         # Coerce the uuid.UUID type into a string
