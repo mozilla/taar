@@ -3,7 +3,7 @@ from setuptools import find_packages, setup
 setup(
     name="mozilla-taar3",
     use_scm_version=False,
-    version="0.4.5",
+    version="0.5.0",
     setup_requires=["setuptools_scm", "pytest-runner"],
     tests_require=["pytest"],
     include_package_data=True,
@@ -21,7 +21,7 @@ setup(
         "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.7",
         "Topic :: Internet :: WWW/HTTP",
         "Topic :: Scientific/Engineering :: Information Analysis",
     ],
