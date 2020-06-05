@@ -9,8 +9,6 @@ import json
 import zlib
 
 
-DYNAMO_REGION = config('DYNAMO_REGION', default='us-west-2')
-DYNAMO_TABLE_NAME = config('DYNAMO_TABLE_NAME', default='taar_addon_data_20180206')
 
 
 class ProfileController:
