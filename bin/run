@@ -30,21 +30,20 @@ wait_for() {
 
 case $1 in
   web)
-    exec newrelic-admin run-program gunicorn taar.flask_app:app -b 0.0.0.0:${PORT} --workers ${WORKERS} --threads ${THREADS} --access-logfile -
+    . /opt/conda/etc/profile.d/conda.sh && conda activate taar-37 && gunicorn taar.flask_app:app --bind 0.0.0.0:${PORT} --workers ${WORKERS} --threads ${THREADS} --access-logfile -
     ;;
   web-dev)
     exec python taar/flask_app.py --host=0.0.0.0 --port=${PORT}
     ;;
   test)
-    coverage erase
-    tox
-    coverage report -m
-    if [[ ! -z ${CI+check} ]]; then
-      # submit coverage
-      coverage xml
-      env
-      bash <(curl -s https://codecov.io/bash) -s /tmp
-    fi
+    . /opt/conda/etc/profile.d/conda.sh && \
+        conda activate taar-37 && \
+        rm -f coverage.xml &&\
+        coverage erase && \
+        pytest --cov && \
+        # submit coverage
+        coverage xml
+        bash <(curl -s https://codecov.io/bash)
     ;;
   *)
     exec "$@"
