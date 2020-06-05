@@ -15,17 +15,15 @@ jobs:
       - run: ./bin/build
       - run: ./bin/deploy
   integration_test:
-    machine:
-      enable: true
+    docker:
+      - image: continuumio/miniconda3
     steps:
       - checkout
-      - run:
-          name: Install Docker Compose
-          command: |
-            curl -L https://github.com/docker/compose/releases/download/1.19.0/docker-compose-`uname -s`-`uname -m` > ~/docker-compose
-            chmod +x ~/docker-compose
-            sudo mv ~/docker-compose /usr/local/bin/docker-compose
-      - run: ./bin/test
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run: apt-get update; apt-get install make -y
+      - run: . /opt/conda/etc/profile.d/conda.sh && conda env create -n taar-37 --file enviroment.yml
+      - run: . /opt/conda/etc/profile.d/conda.sh && conda activate taar-37 && python setup.py install && make pytest
 
 workflows:
   version: 2
