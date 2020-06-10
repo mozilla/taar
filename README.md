@@ -21,17 +21,63 @@ This is the ordered list of the currently supported models:
 
 | Order | Model | Description | Conditions | Generator job |
 |-------|-------|-------------|------------|---------------|
-| 1 | [Legacy](taar/recommenders/legacy_recommender.py) | recommends WebExtensions based on the reported and disabled legacy add-ons | Telemetry data is available for the user and the user has at least one disabled add-on|[source](https://github.com/mozilla/python_mozetl/blob/master/mozetl/taar/taar_legacy.py)|
-| 2 | [Collaborative](taar/recommenders/collaborative_recommender.py) | recommends add-ons based on add-ons installed by other users (i.e. [collaborative filtering](https://en.wikipedia.org/wiki/Collaborative_filtering))|Telemetry data is available for the user and the user has at least one enabled add-on|[source](https://github.com/mozilla/telemetry-batch-view/blob/master/src/main/scala/com/mozilla/telemetry/ml/AddonRecommender.scala)|
-| 3 | [Similarity](taar/recommenders/similarity_recommender.py) &#42;| recommends add-ons based on add-ons installed by similar representative users|Telemetry data is available for the user and a suitable representative donor can be found|[source](https://github.com/mozilla/python_mozetl/blob/master/mozetl/taar/taar_similarity.py)|
-| 4 | [Locale](taar/recommenders/locale_recommender.py) |recommends add-ons based on the top addons for the user's locale|Telemetry data is available for the user and the locale has enough users|[source](https://github.com/mozilla/python_mozetl/blob/master/mozetl/taar/taar_locale.py)|
-| 5 | [Ensemble](taar/recommenders/ensemble_recommender.py) &#42;|recommends add-ons based on the combined (by [stacked generalization](https://en.wikipedia.org/wiki/Ensemble_learning#Stacking)) recomendations of other available recommender modules.|More than one of the other Models are available to provide recommendations.|[source](https://github.com/mozilla/python_mozetl/blob/master/mozetl/taar/taar_ensemble.py)|
+| 1 | [Collaborative](taar/recommenders/collaborative_recommender.py) | recommends add-ons based on add-ons installed by other users (i.e. [collaborative filtering](https://en.wikipedia.org/wiki/Collaborative_filtering))|Telemetry data is available for the user and the user has at least one enabled add-on|[source](https://github.com/mozilla/telemetry-batch-view/blob/master/src/main/scala/com/mozilla/telemetry/ml/AddonRecommender.scala)|
+| 2 | [Similarity](taar/recommenders/similarity_recommender.py) &#42;| recommends add-ons based on add-ons installed by similar representative users|Telemetry data is available for the user and a suitable representative donor can be found|[source](https://github.com/mozilla/python_mozetl/blob/master/mozetl/taar/taar_similarity.py)|
+| 3 | [Locale](taar/recommenders/locale_recommender.py) |recommends add-ons based on the top addons for the user's locale|Telemetry data is available for the user and the locale has enough users|[source](https://github.com/mozilla/python_mozetl/blob/master/mozetl/taar/taar_locale.py)|
+| 4 | [Ensemble](taar/recommenders/ensemble_recommender.py) &#42;|recommends add-ons based on the combined (by [stacked generalization](https://en.wikipedia.org/wiki/Ensemble_learning#Stacking)) recomendations of other available recommender modules.|More than one of the other Models are available to provide recommendations.|[source](https://github.com/mozilla/python_mozetl/blob/master/mozetl/taar/taar_ensemble.py)|
 
-&#42; In order to ensure stable/repeatable testing and prevent unecessary computation, these jobs are not scheduled on [Airflow](https://github.com/mozilla/telemetry-airflow), rather run manually when fresh models are desired.
+&#42; All jobs are scheduled in Mozilla's instance of [Airflow](https://github.com/mozilla/telemetry-airflow).  The Collaborative, Similarity and Locale jobs are executed on a [daily](https://github.com/mozilla/telemetry-airflow/blob/master/dags/taar_daily.py) schedule, while the ensemble job is scheduled on a [weekly](https://github.com/mozilla/telemetry-airflow/blob/master/dags/taar_weekly.py) schedule.
 
 ## Instructions for releasing updates
-New releases can be shipped by using the normal [github workflow](https://help.github.com/articles/creating-releases/). Once a new release is created, it will be automatically uploaded to `pypi`.
+Releases for TAAR are split across ETL jobs for Airflow and the
+webservice that handles traffic coming from addons.mozilla.org.
 
+ETL releases are subdivided further into 3 categories:
+
+ 1. Scala code that requires deployment by Java JAR file to a Dataproc environment
+ 2. PySpark code that requires deployment by a single monolithic script in the
+    Dataproc enviroment.  These are stored in [telemetry-airflow/jobs]
+and are autodeployed to gs://moz-fx-data-prod-airflow-dataproc-artifacts/jobs
+ 3. Python code that executes in a Google Kubernetes Engine (GKE)
+    enviroment using a docker container image.
+
+GKEPodOperator jobs:
+
+    * [taar_etl_.taar_amodump](https://github.com/mozilla/taar_gcp_etl/blob/master/taar_etl/taar_amodump.py)
+    * [taar_etl.taar_amowhitelist](https://github.com/mozilla/taar_gcp_etl/blob/master/taar_etl/taar_amowhitelist.py)
+    * [taar_etl.taar_update_whitelist](https://github.com/mozilla/taar_gcp_etl/blob/master/taar_etl/taar_update_whitelist.py)
+
+PySpark jobs for Dataproc: 
+
+    * [telemetry-airflow/jobs/taar_locale.py](https://github.com/mozilla/telemetry-airflow/blob/master/jobs/taar_locale.py)
+    * [telemetry-airflow/jobs/taar_similarity.py](https://github.com/mozilla/telemetry-airflow/blob/master/jobs/taar_similarity.py)
+    * [telemetry-airflow/jobs/taar_lite_guidguid.py](https://github.com/mozilla/telemetry-airflow/blob/master/jobs/taar_lite_guidguid.py)
+
+Scala jobs for Dataproc
+    * [com.mozilla.telemetry.ml.AddonRecommender](https://github.com/mozilla/telemetry-batch-view/blob/master/src/main/scala/com/mozilla/telemetry/ml/AddonRecommender.scala) from telemetry-batch-view.jar
+
+
+Jobs are scheduled in two separate DAGs in Airflow.
+
+* [taar_daily](https://github.com/mozilla/telemetry-airflow/blob/master/dags/taar_daily.py)
+* [taar_weekly](https://github.com/mozilla/telemetry-airflow/blob/master/dags/taar_weekly.py)
+
+GKEPodOperator jobs must have code packaged up as containers for
+execution in GKE.  Code can be found in the taar_gcp_etl repository.
+Details to push containers into the GCP cloud repositories can be
+found in the
+[README.md](https://github.com/mozilla/taar_gcp_etl/blob/master/README.md)
+in that repository.
+
+PySpark jobs are maintained in the telemetry-airflow repository.  You
+must take care to update the code in that repository and have it
+merged to master for code to autodeploy.  Airflow execution will
+always copy jobs out of the [jobs](https://github.com/mozilla/telemetry-airflow/tree/master/jobs)
+into `gs://moz-fx-data-prod-airflow-dataproc-artifacts/`
+
+The sole scala job remaining is part of the telemetry-batch-view
+repository. Airflow will automatically use the latest code in the
+master branch of `telemetry-batch-view`.
 
 ## A note on cdist optimization. 
 cdist can speed up distance computation by a factor of 10 for the computations we're doing.
