@@ -96,30 +96,22 @@ so we can just apply the function `distance.hamming` to our array manually and g
 performance.
 
 ## Build and run tests
-You should be able to build taar using Python 2.7 or Python 3.5. To
-run the testsuite, execute ::
+You should be able to build taar using Python 3.5 or 3.7. 
+To run the testsuite, execute ::
 
 ```python
 $ python setup.py develop
 $ python setup.py test
 ```
 
-Alternately, if you've got GNUMake installed, you can just run `make test` which will do all of that for you and run flake8 on the codebase.
-
-
-There are additional integration tests and a microbenchmark available
-in `tests/test_integration.py`.  See the source code for more
-information.
-
+Alternately, if you've got GNUMake installed, you can just run `make build; make tests` which will build a complete Docker container and run the test suite inside the container.
 
 ## Pinning dependencies
 
-TAAR uses hashin (https://pypi.org/project/hashin/) to pin SHA256
-hashes for each dependency.  To update the hashes, you will need to
-remove the run `make freeze` which forces all packages in the current
-virtualenv to be written out to requirement.txt with versions and SHA
-hashes.
+TAAR uses miniconda and a enviroment.yml file to manage versioning.
 
+To update versions, edit the enviroment.yml with the new dependency
+you need.
 
 ## Required S3 dependencies
 
@@ -140,7 +132,6 @@ LocaleRecommender:
 
 EnsembleRecommender:
   * s3://telemetry-parquet/taar/ensemble/ensemble_weight.json
-
 
 
 TAAR breaks out all S3 data load configuration into enviroment
@@ -173,3 +164,23 @@ Similarity Recommender ::
     TAAR_SIMILARITY_BUCKET = "telemetry-parquet"
     TAAR_SIMILARITY_DONOR_KEY = "taar/similarity/donors.json"
     TAAR_SIMILARITY_LRCURVES_KEY = "taar/similarity/lr_curves.json"
+
+
+
+Google Cloud BigQuery resourcs:
+TODO:
+
+Google Cloud BigTable resources:
+TODO:
+
+
+------
+
+
+Deleting individual user data from all TAAR resources
+-----------------------------------------------------
+
+
+TODO:
+
+
