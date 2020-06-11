@@ -167,11 +167,17 @@ Similarity Recommender ::
 
 
 
-Google Cloud BigQuery resourcs:
-TODO:
+Google Cloud BigQuery resources ::
 
-Google Cloud BigTable resources:
-TODO:
+    TODO:
+
+Google Cloud Storage resources ::
+
+    TODO:
+
+Google Cloud BigTable resources ::
+
+    TODO:
 
 
 ------
