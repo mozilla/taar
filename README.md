@@ -134,6 +134,20 @@ EnsembleRecommender:
   * s3://telemetry-parquet/taar/ensemble/ensemble_weight.json
 
 
+## Google Cloud Platform resources
+
+Google Cloud BigQuery ::
+
+    TODO:
+
+Google Cloud Storage ::
+
+    TODO:
+
+Google Cloud BigTable ::
+
+    TODO:
+
 TAAR breaks out all S3 data load configuration into enviroment
 variables.  This ensures that running under test has no chance of
 clobbering the production data in the event that a developer has AWS
@@ -167,19 +181,6 @@ Similarity Recommender ::
 
 
 
-Google Cloud BigQuery resources ::
-
-    TODO:
-
-Google Cloud Storage resources ::
-
-    TODO:
-
-Google Cloud BigTable resources ::
-
-    TODO:
-
-
 ------
 
 
@@ -187,6 +188,15 @@ Deleting individual user data from all TAAR resources
 -----------------------------------------------------
 
 
-TODO:
+Deletion of records in TAAR is fairly straight forward.  Once a user
+disables telemetry from Firefox, all that is required is to delete
+records from TAAR.
 
+Deletion of records from the TAAR BigTable instance will remove the
+client's list of addons from TAAR.  No further work is required.
 
+Removal of the records from BigTable will cause JSON model updates to
+no longer take the deleted record into account.  JSON models are
+updated on a daily basis via the
+[`taar_daily`](https://github.com/mozilla/telemetry-airflow/blob/master/dags/taar_daily.py)
+DAG in Airflow.
