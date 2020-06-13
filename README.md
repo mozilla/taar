@@ -180,13 +180,18 @@ Similarity Recommender ::
     TAAR_SIMILARITY_LRCURVES_KEY = "taar/similarity/lr_curves.json"
 
 
+------
+
+Production Configuration Settings
+---------------------------------
+
+Production enviroment settings are stored in a [private repository](https://github.com/mozilla-services/cloudops-deployment/blob/master/projects/data/puppet/yaml/type/data.api.prod.taar.yaml).
 
 ------
 
 
 Deleting individual user data from all TAAR resources
 -----------------------------------------------------
-
 
 Deletion of records in TAAR is fairly straight forward.  Once a user
 disables telemetry from Firefox, all that is required is to delete
