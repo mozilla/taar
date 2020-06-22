@@ -205,3 +205,15 @@ no longer take the deleted record into account.  JSON models are
 updated on a daily basis via the
 [`taar_daily`](https://github.com/mozilla/telemetry-airflow/blob/master/dags/taar_daily.py)
 DAG in Airflow.
+=======
+
+Google Cloud Platform
+Stage enviroment
+
+curl https://stage:fancyfork38@stage.taar.nonprod.dataops.mozgcp.net/v1/api/recommendations/<hashed_telemetry_id>
+
+Airflow variables for BigTable and GCS Avro storage
+
+    `taar_bigtable_instance_id`
+    `taar_etl_storage_bucket`
+    `taar_gcp_project_id`
