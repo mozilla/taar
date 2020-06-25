@@ -104,7 +104,16 @@ $ python setup.py develop
 $ python setup.py test
 ```
 
-Alternately, if you've got GNUMake installed, you can just run `make build; make tests` which will build a complete Docker container and run the test suite inside the container.
+Alternately, if you've got GNUMake installed, a Makefile is included
+with
+[`build`](https://github.com/mozilla/taar/blob/more_docs/Makefile#L20)
+and
+[`test-container`](https://github.com/mozilla/taar/blob/more_docs/Makefile#L55)
+targets.
+
+You can just run `make
+build; make test-container` which will build a complete Docker
+container and run the test suite inside the container.
 
 ## Pinning dependencies
 
