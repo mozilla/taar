@@ -143,38 +143,40 @@ EnsembleRecommender:
   * s3://telemetry-parquet/taar/ensemble/ensemble_weight.json
 
 
-## Google Cloud Platform resources
+### Google Cloud Platform resources
 
-Google Cloud BigQuery ::
+## Google Cloud BigQuery
 
-    Cloud BigQuery uses the GCP project defined in Airflow in the
-    variable `taar_gcp_project_id`.
+Cloud BigQuery uses the GCP project defined in Airflow in the
+variable `taar_gcp_project_id`.
 
-    Dataset  : `taar_tmp`
-    Table ID : `taar_tmp_profile`
+Dataset  
+* `taar_tmp`
 
-    Note that this table only exists for the duration of the
-    taar_weekly job, so there should be no need to manually manage this
-    table.
+Table ID 
+* `taar_tmp_profile`
 
+Note that this table only exists for the duration of the taar_weekly
+job, so there should be no need to manually manage this table.
 
-Google Cloud Storage ::
+## Google Cloud Storage 
 
-    The taar user profile extraction puts Avro format files into 
-    a GCS bucket defined by the following two variables in Airflow:
+The taar user profile extraction puts Avro format files into 
+a GCS bucket defined by the following two variables in Airflow:
 
-    `taar_gcp_project_id`.`taar_etl_storage_bucket`
+* `taar_gcp_project_id`
+* `taar_etl_storage_bucket`
 
-    The bucket is automatically cleared at the *start* and *end* of
-    the TAAR weekly ETL job.
+The bucket is automatically cleared at the *start* and *end* of
+the TAAR weekly ETL job.
 
-Google Cloud BigTable ::
+## Google Cloud BigTable 
 
-    The final TAAR user profile data is stored in a Cloud BigTable
+The final TAAR user profile data is stored in a Cloud BigTable
 instance defined by the following two variables in Airflow:
 
-    * `taar_gcp_project_id`
-    * `taar_bigtable_instance_id`
+* `taar_gcp_project_id`
+* `taar_bigtable_instance_id`
 
 The table ID for user profile information is `taar_profile`.
 
@@ -187,13 +189,14 @@ configuration keys installed locally in `~/.aws/`
 
 Production enviroment variables required for TAAR
 
-Collaborative Recommender ::
+Collaborative Recommender
 
-    TAAR_ITEM_MATRIX_BUCKET = "telemetry-parquet"
-    TAAR_ITEM_MATRIX_KEY = "telemetry-ml/addon_recommender/item_matrix.json"
-
-    TAAR_ADDON_MAPPING_BUCKET = "telemetry-parquet"
-    TAAR_ADDON_MAPPING_KEY = "telemetry-ml/addon_recommender/addon_mapping.json"
+Env Variable | Value 
+------- | --- 
+TAAR_ITEM_MATRIX_BUCKET | "telemetry-parquet"
+TAAR_ITEM_MATRIX_KEY  | "telemetry-ml/addon_recommender/item_matrix.json"
+TAAR_ADDON_MAPPING_BUCKET | "telemetry-parquet"
+TAAR_ADDON_MAPPING_KEY | "telemetry-ml/addon_recommender/addon_mapping.json"
 
 Ensemble Recommender ::
 
