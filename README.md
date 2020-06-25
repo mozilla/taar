@@ -43,18 +43,18 @@ and are autodeployed to gs://moz-fx-data-prod-airflow-dataproc-artifacts/jobs
 
 GKEPodOperator jobs:
 
-    * [taar_etl_.taar_amodump](https://github.com/mozilla/taar_gcp_etl/blob/master/taar_etl/taar_amodump.py)
-    * [taar_etl.taar_amowhitelist](https://github.com/mozilla/taar_gcp_etl/blob/master/taar_etl/taar_amowhitelist.py)
-    * [taar_etl.taar_update_whitelist](https://github.com/mozilla/taar_gcp_etl/blob/master/taar_etl/taar_update_whitelist.py)
+* [taar_etl_.taar_amodump](https://github.com/mozilla/taar_gcp_etl/blob/master/taar_etl/taar_amodump.py)
+* [taar_etl.taar_amowhitelist](https://github.com/mozilla/taar_gcp_etl/blob/master/taar_etl/taar_amowhitelist.py)
+* [taar_etl.taar_update_whitelist](https://github.com/mozilla/taar_gcp_etl/blob/master/taar_etl/taar_update_whitelist.py)
 
 PySpark jobs for Dataproc: 
 
-    * [telemetry-airflow/jobs/taar_locale.py](https://github.com/mozilla/telemetry-airflow/blob/master/jobs/taar_locale.py)
-    * [telemetry-airflow/jobs/taar_similarity.py](https://github.com/mozilla/telemetry-airflow/blob/master/jobs/taar_similarity.py)
-    * [telemetry-airflow/jobs/taar_lite_guidguid.py](https://github.com/mozilla/telemetry-airflow/blob/master/jobs/taar_lite_guidguid.py)
+* [telemetry-airflow/jobs/taar_locale.py](https://github.com/mozilla/telemetry-airflow/blob/master/jobs/taar_locale.py)
+* [telemetry-airflow/jobs/taar_similarity.py](https://github.com/mozilla/telemetry-airflow/blob/master/jobs/taar_similarity.py)
+* [telemetry-airflow/jobs/taar_lite_guidguid.py](https://github.com/mozilla/telemetry-airflow/blob/master/jobs/taar_lite_guidguid.py)
 
 Scala jobs for Dataproc
-    * [com.mozilla.telemetry.ml.AddonRecommender](https://github.com/mozilla/telemetry-batch-view/blob/master/src/main/scala/com/mozilla/telemetry/ml/AddonRecommender.scala) from telemetry-batch-view.jar
+* [com.mozilla.telemetry.ml.AddonRecommender](https://github.com/mozilla/telemetry-batch-view/blob/master/src/main/scala/com/mozilla/telemetry/ml/AddonRecommender.scala) from telemetry-batch-view.jar
 
 
 Jobs are scheduled in two separate DAGs in Airflow.
