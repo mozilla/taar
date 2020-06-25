@@ -182,6 +182,8 @@ The table ID for user profile information is `taar_profile`.
 
 ----
 
+### TAAR S3 Data
+
 TAAR breaks out all S3 data load configuration into enviroment
 variables.  This ensures that running under test has no chance of
 clobbering the production data in the event that a developer has AWS
@@ -189,7 +191,7 @@ configuration keys installed locally in `~/.aws/`
 
 Production enviroment variables required for TAAR
 
-Collaborative Recommender
+## Collaborative Recommender
 
 Env Variable | Value 
 ------- | --- 
@@ -198,35 +200,39 @@ TAAR_ITEM_MATRIX_KEY  | "telemetry-ml/addon_recommender/item_matrix.json"
 TAAR_ADDON_MAPPING_BUCKET | "telemetry-parquet"
 TAAR_ADDON_MAPPING_KEY | "telemetry-ml/addon_recommender/addon_mapping.json"
 
-Ensemble Recommender ::
+## Ensemble Recommender
 
-    TAAR_ENSEMBLE_BUCKET = "telemetry-parquet"
-    TAAR_ENSEMBLE_KEY = "taar/ensemble/ensemble_weight.json"
+Env Variable | Value
+--- | --- 
+TAAR_ENSEMBLE_BUCKET  | "telemetry-parquet"
+TAAR_ENSEMBLE_KEY | "taar/ensemble/ensemble_weight.json"
 
-Locale Recommender ::
+## Locale Recommender
 
-    TAAR_LOCALE_BUCKET = "telemetry-parquet"
-    TAAR_LOCALE_KEY = "taar/locale/top10_dict.json"
+Env Variable | Value
+--- | --- 
+TAAR_LOCALE_BUCKET | "telemetry-parquet"
+TAAR_LOCALE_KEY | "taar/locale/top10_dict.json"
 
-Similarity Recommender ::
+## Similarity Recommender
 
-    TAAR_SIMILARITY_BUCKET = "telemetry-parquet"
-    TAAR_SIMILARITY_DONOR_KEY = "taar/similarity/donors.json"
-    TAAR_SIMILARITY_LRCURVES_KEY = "taar/similarity/lr_curves.json"
+Env Variable | Value
+--- | --- 
+TAAR_SIMILARITY_BUCKET | "telemetry-parquet"
+TAAR_SIMILARITY_DONOR_KEY | "taar/similarity/donors.json"
+TAAR_SIMILARITY_LRCURVES_KEY | "taar/similarity/lr_curves.json"
 
 
 ------
 
-Production Configuration Settings
----------------------------------
+### Production Configuration Settings
 
 Production enviroment settings are stored in a [private repository](https://github.com/mozilla-services/cloudops-deployment/blob/master/projects/data/puppet/yaml/type/data.api.prod.taar.yaml).
 
 ------
 
 
-Deleting individual user data from all TAAR resources
------------------------------------------------------
+## Deleting individual user data from all TAAR resources
 
 Deletion of records in TAAR is fairly straight forward.  Once a user
 disables telemetry from Firefox, all that is required is to delete
@@ -264,15 +270,9 @@ curl https://stage.taar.nonprod.dataops.mozgcp.net/v1/api/recommendations/<hashe
 
 Airflow variables for BigTable and GCS Avro storage
 
-<dl>
-    <dt>taar_gcp_project_id</dt>
-    <dd> The Google Cloud Platform project where BigQuery temporary tables, Cloud Storage buckets for Avro files and BigTable reside for TAAR.  </dd>
-    <dt>taar_etl_storage_bucket</dt>
-    <dd>The Cloud Storage bucket name where temporary Avro files will reside when transferring data from BigQuery to BigTable.  </dd>
-    <dt>taar_bigtable_instance_id</dt>
-    <dd>The BigTable instance ID for TAAR user profile information</dd>
-    <dt>taar_dataflow_subnetwork</dt>
-    <dd>The subnetwork required to communicate between Cloud Dataflow </dd>
-</dl>
-
-
+Airflow Variable | Value 
+--- | ---
+taar_gcp_project_id | The Google Cloud Platform project where BigQuery temporary tables, Cloud Storage buckets for Avro files and BigTable reside for TAAR.
+taar_etl_storage_bucket | The Cloud Storage bucket name where temporary Avro files will reside when transferring data from BigQuery to BigTable. 
+taar_bigtable_instance_id | The BigTable instance ID for TAAR user profile information
+taar_dataflow_subnetwork | The subnetwork required to communicate between Cloud Dataflow
