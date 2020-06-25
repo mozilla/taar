@@ -227,16 +227,40 @@ Removal of the records from BigTable will cause JSON model updates to
 no longer take the deleted record into account.  JSON models are
 updated on a daily basis via the
 [`taar_daily`](https://github.com/mozilla/telemetry-airflow/blob/master/dags/taar_daily.py)
-DAG in Airflow.
-=======
+
+Updates in the weekly Airflow job in 
+[`taar_weekly`](https://github.com/mozilla/telemetry-airflow/blob/master/dags/taar_weekly.py) only update the ensemble weights and the user profile information.
+
+If the user profile information in `clients_last_seen` continues to
+have data for the user's telemetry-id, TAAR will repopulate the user
+profile data.  
+
+Users who wish to remove their data from TAAR need to: 
+1. Disable telemetry in Firefox
+2. Have user telemetry data removed from all telemetry storage systems
+   in GCP
+3. Have user data removed from BigTable.
+
+
+DAG in Airflow
+==============
 
 Google Cloud Platform
 Stage enviroment
 
-curl https://stage:fancyfork38@stage.taar.nonprod.dataops.mozgcp.net/v1/api/recommendations/<hashed_telemetry_id>
+curl https://stage.taar.nonprod.dataops.mozgcp.net/v1/api/recommendations/<hashed_telemetry_id>
 
 Airflow variables for BigTable and GCS Avro storage
 
-    `taar_bigtable_instance_id`
-    `taar_etl_storage_bucket`
-    `taar_gcp_project_id`
+<dl>
+    <dt>taar_gcp_project_id</dt>
+    <dd> The Google Cloud Platform project where BigQuery temporary tables, Cloud Storage buckets for Avro files and BigTable reside for TAAR.  </dd>
+    <dt>taar_etl_storage_bucket</dt>
+    <dd>The Cloud Storage bucket name where temporary Avro files will reside when transferring data from BigQuery to BigTable.  </dd>
+    <dt>taar_bigtable_instance_id</dt>
+    <dd>The BigTable instance ID for TAAR user profile information</dd>
+    <dt>taar_dataflow_subnetwork</dt>
+    <dd>The subnetwork required to communicate between Cloud Dataflow </dd>
+</dl>
+
+
