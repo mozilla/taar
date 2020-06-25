@@ -6,8 +6,6 @@ from flask import url_for
 
 import pytest
 
-from taar import ProfileFetcher
-from taar import recommenders
 from taar.context import default_context
 
 try:

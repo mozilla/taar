@@ -4,7 +4,6 @@
 
 from taar import ProfileFetcher
 from taar.profile_fetcher import BigTableProfileController
-import boto3
 from google.cloud import bigtable
 import copy
 import json

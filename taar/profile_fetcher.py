@@ -7,7 +7,6 @@ from srgutil.interfaces import IMozLogging
 from google.cloud import bigtable
 from google.cloud.bigtable import column_family
 from google.cloud.bigtable import row_filters
-import boto3
 import json
 import zlib
 import datetime
@@ -81,7 +80,7 @@ class BigTableProfileController:
             cell = row.cells[self._column_family_id][self._column_name][0]
             jdata = json.loads(zlib.decompress(cell.value).decode("utf-8"))
             return jdata
-        except Exception as e:
+        except Exception:
             logger = self._ctx[IMozLogging].get_logger("taar")
             logger.warning(f"Error loading client profile for {client_id}")
             return None
