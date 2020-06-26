@@ -3,6 +3,7 @@ Telemetry-Aware Addon Recommender
 
 [![CircleCI](https://circleci.com/gh/mozilla/taar.svg?style=svg)](https://circleci.com/gh/mozila/taar)
 
+
 Table of Contents
 =================
 
@@ -19,15 +20,15 @@ Table of Contents
   * [Ensemble Recommender](#ensemble-recommender)
   * [Locale Recommender](#locale-recommender)
   * [Similarity Recommender](#similarity-recommender)
-    * [Google Cloud Platform resources](#google-cloud-platform-resources)
-      * [Google Cloud BigQuery](#google-cloud-bigquery)
-      * [Google Cloud Storage](#google-cloud-storage)
-      * [Google Cloud BigTable](#google-cloud-bigtable)
+  * [Google Cloud Platform resources](#google-cloud-platform-resources)
+    * [Google Cloud BigQuery](#google-cloud-bigquery)
+    * [Google Cloud Storage](#google-cloud-storage)
+    * [Google Cloud BigTable](#google-cloud-bigtable)
   * [Production Configuration Settings](#production-configuration-settings)
   * [Deleting individual user data from all TAAR resources](#deleting-individual-user-data-from-all-taar-resources)
   * [Airflow enviroment configuration](#airflow-enviroment-configuration)
   * [Staging Enviroment](#staging-enviroment)
-    * [A note on cdist optimization\.](#a-note-on-cdist-optimization)
+  * [A note on cdist optimization\.](#a-note-on-cdist-optimization)
 
 
 ## How does it work?
@@ -254,7 +255,7 @@ curl.
 curl https://user@pass:stage.taar.nonprod.dataops.mozgcp.net/v1/api/recommendations/<hashed_telemetry_id>
 ```
 
-### A note on cdist optimization. 
+## A note on cdist optimization. 
 cdist can speed up distance computation by a factor of 10 for the computations we're doing.
 We can use it without problems on the canberra distance calculation.
 
