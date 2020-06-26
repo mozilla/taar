@@ -228,7 +228,8 @@ profile data.
 Users who wish to remove their data from TAAR need to: 
 1. Disable telemetry in Firefox
 2. Have user telemetry data removed from all telemetry storage systems
-   in GCP
+   in GCP. Primarily this means the `clients_last_seen` table in
+   BigQuery.
 3. Have user data removed from BigTable.
 
 
