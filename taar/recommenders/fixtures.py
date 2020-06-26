@@ -12,13 +12,3 @@ import hashlib
 
 def hasher(client_id):
     return hashlib.new("sha256", client_id.encode("utf8")).hexdigest()
-
-
-# These clients should have suggestions returned
-TEST_CLIENT_IDS = [
-    hasher("00000000-0000-0000-0000-000000000000"),
-    hasher("11111111-1111-1111-1111-111111111111"),
-    hasher("22222222-2222-2222-2222-222222222222"),
-    hasher("33333333-3333-3333-3333-333333333333"),
-]
-

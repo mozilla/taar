@@ -104,13 +104,24 @@ def test_hybrid_recommendations(test_ctx):
         # of recommendations
         assert len(guid_list) == LIMIT
 
+
+@mock_s3
+def test_stable_hybrid_results(test_ctx):
+    # verify that the recommendations mix the curated and
+    # ensemble results
+    ctx = install_mock_curated_data(test_ctx)
+    ctx = install_ensemble_fixtures(ctx)
+
+    r = HybridRecommender(ctx)
     # Test that the results are actually mixed
     guid_list = r.recommend({"client_id": "000000"}, limit=4)
 
-    # A mixed list will have two recommendations with weight > 1.0
-    # (ensemble) and 2 with exactly weight 1.0 from the curated list
+    assert len(guid_list) == 4
 
-    assert guid_list[0][1] > 1.0
-    assert guid_list[1][1] > 1.0
-    assert guid_list[2][1] == 1.0
-    assert guid_list[3][1] == 1.0
+    # A mixed list will have two recommendations with weight = 1.0
+    # (curated) and 2 with exactly weight < 1.0 from the ensemble list
+
+    assert guid_list[0][1] == 1.0
+    assert guid_list[1][1] == 1.0
+    assert guid_list[2][1] < 1.0
+    assert guid_list[3][1] < 1.0

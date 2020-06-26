@@ -12,7 +12,11 @@ from .s3config import TAAR_WHITELIST_KEY
 from .s3config import TAAR_ENSEMBLE_BUCKET
 from .s3config import TAAR_ENSEMBLE_KEY
 
-from .fixtures import TEST_CLIENT_IDS, hasher
+from .fixtures import hasher
+
+
+def is_test_client(client_id):
+    return len(set(client_id.replace("-", ""))) == 1
 
 
 class WeightCache:
@@ -74,7 +78,7 @@ class EnsembleRecommender(AbstractRecommender):
     def recommend(self, client_data, limit, extra_data={}):
         client_id = client_data.get("client_id", "no-client-id")
 
-        if client_id in TEST_CLIENT_IDS:
+        if is_test_client(client_id):
             whitelist = self._whitelist_data.get()[0]
             samples = whitelist[:limit]
             self.logger.info("Test ID detected [{}]".format(client_id))
@@ -136,7 +140,9 @@ class EnsembleRecommender(AbstractRecommender):
 
         # group by the guid, sum up the weights for recurring GUID
         # suggestions across all recommenders
-        guid_grouper = itertools.groupby(flattened_results, lambda item: item[0])
+        guid_grouper = itertools.groupby(
+            flattened_results, lambda item: item[0]
+        )
 
         ensemble_suggestions = []
         for (guid, guid_group) in guid_grouper:

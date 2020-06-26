@@ -6,7 +6,6 @@ import boto3
 import json
 from moto import mock_s3
 from taar.recommenders import RecommendationManager
-from taar.recommenders import TEST_CLIENT_IDS
 from taar.recommenders.base_recommender import AbstractRecommender
 
 from taar.recommenders.ensemble_recommender import (
@@ -111,7 +110,7 @@ def test_fixed_client_id_valid(test_ctx):
     ctx = install_mock_curated_data(ctx)
 
     manager = RecommendationManager(ctx.child())
-    recommendation_list = manager.recommend(TEST_CLIENT_IDS[0], 10)
+    recommendation_list = manager.recommend('111111', 10)
 
     assert len(recommendation_list) == 10
 
@@ -138,14 +137,14 @@ def test_experimental_randomization(test_ctx):
     ctx = install_mock_curated_data(ctx)
 
     manager = RecommendationManager(ctx.child())
-    raw_list = manager.recommend(TEST_CLIENT_IDS[0], 10)
+    raw_list = manager.recommend('111111', 10)
 
     # Clobber the experiment probability to be 100% to force a
     # reordering.
     ctx["TAAR_EXPERIMENT_PROB"] = 1.0
 
     manager = RecommendationManager(ctx.child())
-    rand_list = manager.recommend(TEST_CLIENT_IDS[0], 10)
+    rand_list = manager.recommend('111111', 10)
 
     """
     The two lists should be :
