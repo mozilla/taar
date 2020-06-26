@@ -7,8 +7,12 @@ import itertools
 from .base_recommender import AbstractRecommender
 from .lazys3 import LazyJSONLoader
 
+from .s3config import TAAR_WHITELIST_BUCKET
+from .s3config import TAAR_WHITELIST_KEY
 from .s3config import TAAR_ENSEMBLE_BUCKET
 from .s3config import TAAR_ENSEMBLE_KEY
+
+from .fixtures import TEST_CLIENT_IDS, hasher
 
 
 class WeightCache:
@@ -48,6 +52,10 @@ class EnsembleRecommender(AbstractRecommender):
         for rkey in self.RECOMMENDER_KEYS:
             self._recommender_map[rkey] = recommender_factory.create(rkey)
 
+        self._whitelist_data = LazyJSONLoader(
+            self._ctx, TAAR_WHITELIST_BUCKET, TAAR_WHITELIST_KEY
+        )
+
         self._weight_cache = WeightCache(self._ctx.child())
         self.logger.info("EnsembleRecommender initialized")
 
@@ -64,18 +72,26 @@ class EnsembleRecommender(AbstractRecommender):
         return result
 
     def recommend(self, client_data, limit, extra_data={}):
-        try:
-            results = self._recommend(client_data, limit, extra_data)
-        except Exception as e:
-            results = []
-            self._weight_cache._weights.force_expiry()
-            self.logger.exception(
-                "Ensemble recommender crashed for {}".format(
-                    client_data.get("client_id", "no-client-id")
-                ),
-                e,
-            )
+        client_id = client_data.get("client_id", "no-client-id")
 
+        if client_id in TEST_CLIENT_IDS:
+            whitelist = self._whitelist_data.get()[0]
+            samples = whitelist[:limit]
+            self.logger.info("Test ID detected [{}]".format(client_id))
+
+            # Compute a stable weight for any whitelisted addon based
+            # on the sha256 hash of the GUID
+            p = [(int(hasher(s), 16) % 100) / 100.0 for s in samples]
+            results = list(zip(samples, p))
+        else:
+            try:
+                results = self._recommend(client_data, limit, extra_data)
+            except Exception as e:
+                results = []
+                self._weight_cache._weights.force_expiry()
+                self.logger.exception(
+                    "Ensemble recommender crashed for {}".format(client_id), e
+                )
         return results
 
     def _recommend(self, client_data, limit, extra_data={}):
@@ -141,10 +157,12 @@ class EnsembleRecommender(AbstractRecommender):
 
         log_data = (
             client_data["client_id"],
+            extra_data.get("guid_randomization", False),
             str(ensemble_weights),
             str([r[0] for r in results]),
         )
         self.logger.info(
-            "client_id: [%s], ensemble_weight: [%s], guids: [%s]" % log_data
+            "client_id: [%s], guid_randomization: [%s], ensemble_weight: [%s], guids: [%s]"
+            % log_data
         )
         return results
