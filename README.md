@@ -159,8 +159,8 @@ TAAR_SIMILARITY_DONOR_KEY | "taar/similarity/donors.json"
 TAAR_SIMILARITY_LRCURVES_KEY | "taar/similarity/lr_curves.json"
 
 
-### Google Cloud Platform resources
-#### Google Cloud BigQuery
+## Google Cloud Platform resources
+### Google Cloud BigQuery
 
 Cloud BigQuery uses the GCP project defined in Airflow in the
 variable `taar_gcp_project_id`.
@@ -174,7 +174,7 @@ Table ID
 Note that this table only exists for the duration of the taar_weekly
 job, so there should be no need to manually manage this table.
 
-#### Google Cloud Storage 
+### Google Cloud Storage 
 
 The taar user profile extraction puts Avro format files into 
 a GCS bucket defined by the following two variables in Airflow:
@@ -185,7 +185,7 @@ a GCS bucket defined by the following two variables in Airflow:
 The bucket is automatically cleared at the *start* and *end* of
 the TAAR weekly ETL job.
 
-#### Google Cloud BigTable 
+### Google Cloud BigTable 
 
 The final TAAR user profile data is stored in a Cloud BigTable
 instance defined by the following two variables in Airflow:
