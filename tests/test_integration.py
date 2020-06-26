@@ -6,10 +6,7 @@ from flask import url_for
 
 import pytest
 
-from taar import ProfileFetcher
-from taar import recommenders
 from taar.context import default_context
-from taar.profile_fetcher import ProfileController
 
 try:
     from unittest.mock import MagicMock
@@ -19,17 +16,6 @@ except Exception:
 
 def hasher(uuid):
     return hashlib.new("sha256", str(uuid).encode("utf8")).hexdigest()
-
-
-def create_recommendation_manager():
-    root_ctx = default_context()
-    pf = ProfileFetcher(root_ctx)
-    pf.set_client(ProfileController(root_ctx, "us-west-2", "taar_addon_data_20180206"))
-    root_ctx["profile_fetcher"] = pf
-    r_factory = recommenders.RecommenderFactory(root_ctx.child())
-    root_ctx["recommender_factory"] = r_factory
-    rm = recommenders.RecommendationManager(root_ctx.child())
-    return rm
 
 
 @pytest.fixture
@@ -62,7 +48,11 @@ def test_only_promoted_addons_post(client, app):
     res = client.post(
         "/v1/api/recommendations/not_a_real_hash/",
         json=dict(
-            {"options": {"promoted": [["guid1", 10], ["guid2", 5], ["guid55", 8]]}}
+            {
+                "options": {
+                    "promoted": [["guid1", 10], ["guid2", 5], ["guid55", 8]]
+                }
+            }
         ),
         follow_redirects=True,
     )
@@ -80,7 +70,11 @@ class StaticRecommendationManager(FakeRecommendationManager):
     # Recommenders must return a list of 2-tuple results
     # with (GUID, weight)
     def recommend(self, client_id, limit, extra_data={}):
-        result = [("test-addon-1", 1.0), ("test-addon-2", 1.0), ("test-addon-N", 1.0)]
+        result = [
+            ("test-addon-1", 1.0),
+            ("test-addon-2", 1.0),
+            ("test-addon-N", 1.0),
+        ]
         return result
 
 
@@ -107,7 +101,9 @@ class ProfileFetcherEnabledRecommendationManager(FakeRecommendationManager):
     def __init__(self, *args, **kwargs):
         self._ctx = default_context()
         self._ctx["profile_fetcher"] = kwargs["profile_fetcher"]
-        super(ProfileFetcherEnabledRecommendationManager, self).__init__(args, kwargs)
+        super(ProfileFetcherEnabledRecommendationManager, self).__init__(
+            args, kwargs
+        )
 
 
 @pytest.fixture
@@ -119,7 +115,9 @@ def locale_recommendation_manager(monkeypatch):
 
     import taar.flask_app
 
-    taar.flask_app.APP_WRAPPER.set({"PROXY_RESOURCE": LocaleRecommendationManager()})
+    taar.flask_app.APP_WRAPPER.set(
+        {"PROXY_RESOURCE": LocaleRecommendationManager()}
+    )
 
 
 @pytest.fixture
@@ -131,7 +129,9 @@ def empty_recommendation_manager(monkeypatch):
 
     import taar.flask_app
 
-    taar.flask_app.APP_WRAPPER.set({"PROXY_RESOURCE": EmptyRecommendationManager()})
+    taar.flask_app.APP_WRAPPER.set(
+        {"PROXY_RESOURCE": EmptyRecommendationManager()}
+    )
 
 
 @pytest.fixture
@@ -143,7 +143,9 @@ def platform_recommendation_manager(monkeypatch):
 
     import taar.flask_app
 
-    taar.flask_app.APP_WRAPPER.set({"PROXY_RESOURCE": PlatformRecommendationManager()})
+    taar.flask_app.APP_WRAPPER.set(
+        {"PROXY_RESOURCE": PlatformRecommendationManager()}
+    )
 
 
 @pytest.fixture
@@ -155,7 +157,9 @@ def static_recommendation_manager(monkeypatch):
 
     import taar.flask_app
 
-    taar.flask_app.APP_WRAPPER.set({"PROXY_RESOURCE": StaticRecommendationManager()})
+    taar.flask_app.APP_WRAPPER.set(
+        {"PROXY_RESOURCE": StaticRecommendationManager()}
+    )
 
 
 @pytest.fixture
@@ -231,7 +235,9 @@ def test_simple_request(client, static_recommendation_manager):
     assert response.data == expected
 
 
-def test_mixed_and_promoted_and_taar_adodns(client, static_recommendation_manager):
+def test_mixed_and_promoted_and_taar_adodns(
+    client, static_recommendation_manager
+):
     """
     Test that we can provide addon suggestions that also get clobbered
     by the promoted addon set.
@@ -240,7 +246,11 @@ def test_mixed_and_promoted_and_taar_adodns(client, static_recommendation_manage
     res = client.post(
         url,
         json=dict(
-            {"options": {"promoted": [["guid1", 10], ["guid2", 5], ["guid55", 8]]}}
+            {
+                "options": {
+                    "promoted": [["guid1", 10], ["guid2", 5], ["guid55", 8]]
+                }
+            }
         ),
         follow_redirects=True,
     )
@@ -271,7 +281,11 @@ def test_overlapping_mixed_and_promoted_and_taar_adodns(
         json=dict(
             {
                 "options": {
-                    "promoted": [["test-addon-1", 10], ["guid2", 5], ["guid55", 8]]
+                    "promoted": [
+                        ["test-addon-1", 10],
+                        ["guid2", 5],
+                        ["guid55", 8],
+                    ]
                 }
             }
         ),
@@ -279,7 +293,13 @@ def test_overlapping_mixed_and_promoted_and_taar_adodns(
     )
     # The result should order the GUIDs in descending order of weight
     expected = {
-        "results": ["test-addon-1", "guid55", "guid2", "test-addon-2", "test-addon-N"]
+        "results": [
+            "test-addon-1",
+            "guid55",
+            "guid2",
+            "test-addon-2",
+            "test-addon-N",
+        ]
     }
     assert res.json == expected
 
@@ -297,7 +317,7 @@ def test_client_addon_lookup_no_client(client, profile_enabled_rm):
     res = client.get(url, follow_redirects=True)
 
     _ = {"results": False}
-    assert res.json['results'] is False
+    assert res.json["results"] is False
 
 
 def test_client_has_addon(client, profile_enabled_rm):
@@ -330,4 +350,4 @@ def test_client_has_no_addon(client, profile_enabled_rm):
     )
     res = client.get(url, follow_redirects=True)
 
-    assert res.json['results'] is False
+    assert res.json["results"] is False

@@ -4,10 +4,9 @@
 
 from decouple import config
 from srgutil.interfaces import IMozLogging
+from google.cloud import bigtable
 from google.cloud.bigtable import column_family
 from google.cloud.bigtable import row_filters
-from google.cloud import bigtable
-import boto3
 import json
 import zlib
 import datetime
@@ -74,50 +73,17 @@ class BigTableProfileController:
     def get_client_profile(self, client_id):
         """This fetches a single client record out of GCP BigTable
         """
-        row_key = client_id.encode()
-
-        table = self._instance.table(self._table_id)
-        row_filter = row_filters.CellsColumnLimitFilter(1)
-        row = table.read_row(row_key, row_filter)
-        cell = row.cells[self._column_family_id][self._column_name][0]
-        jdata = json.loads(zlib.decompress(cell.value).decode("utf-8"))
-        return jdata
-
-
-class ProfileController:
-    """
-    This class provides basic read/write access into a AWS DynamoDB
-    backed datastore.  The profile controller and profile fetcher code
-    should eventually be merged as individually they don't "pull their
-    weight".
-    """
-
-    def __init__(self, ctx, region_name, table_name):
-        """
-        Configure access to the DynamoDB instance
-        """
-        self._ctx = ctx
-        self.logger = self._ctx[IMozLogging].get_logger("taar")
-        self._ddb = boto3.resource("dynamodb", region_name=region_name)
-        self._table = self._ddb.Table(table_name)
-
-    def get_client_profile(self, client_id):
-        """This fetches a single client record out of DynamoDB
-        """
         try:
-            response = self._table.get_item(Key={"client_id": client_id})
-            compressed_bytes = response["Item"]["json_payload"].value
-            json_byte_data = zlib.decompress(compressed_bytes)
-            json_str_data = json_byte_data.decode("utf8")
-            return json.loads(json_str_data)
-        except KeyError:
-            # No client ID found - not really an error
-            return None
-        except Exception as e:
-            # Return None on error.  The caller in ProfileFetcher will
-            # handle error logging
-            msg = "Error loading client data for {}.  Error: {}"
-            self.logger.debug(msg.format(client_id, str(e)))
+            row_key = client_id.encode()
+            table = self._instance.table(self._table_id)
+            row_filter = row_filters.CellsColumnLimitFilter(1)
+            row = table.read_row(row_key, row_filter)
+            cell = row.cells[self._column_family_id][self._column_name][0]
+            jdata = json.loads(zlib.decompress(cell.value).decode("utf-8"))
+            return jdata
+        except Exception:
+            logger = self._ctx[IMozLogging].get_logger("taar")
+            logger.warning(f"Error loading client profile for {client_id}")
             return None
 
 
@@ -146,52 +112,44 @@ class ProfileFetcher:
         self.__client = client
 
     def get(self, client_id):
+        try:
+            profile_data = self._client.get_client_profile(client_id)
 
-        if client_id in TEST_CLIENT_IDS or client_id in EMPTY_TEST_CLIENT_IDS:
+            if profile_data is None:
+                self.logger.debug(
+                    "Client profile not found", extra={"client_id": client_id}
+                )
+                return None
+
+            addon_ids = [
+                addon["addon_id"]
+                for addon in profile_data.get("active_addons", [])
+                if not addon.get("is_system", False)
+            ]
+
             return {
                 "client_id": client_id,
-                "geo_city": "Toronto",
-                "subsession_length": 42,
-                "locale": "en-CA",
-                "os": "Linux",
-                "installed_addons": [],
-                "disabled_addons_ids": [],
-                "bookmark_count": 0,
-                "tab_open_count": 0,
-                "total_uri": 0,
-                "unique_tlds": 0,
+                "geo_city": profile_data.get("city", ""),
+                "subsession_length": profile_data.get("subsession_length", 0),
+                "locale": profile_data.get("locale", ""),
+                "os": profile_data.get("os", ""),
+                "installed_addons": addon_ids,
+                "disabled_addons_ids": profile_data.get(
+                    "disabled_addons_ids", []
+                ),
+                "bookmark_count": profile_data.get("places_bookmarks_count", 0),
+                "tab_open_count": profile_data.get(
+                    "scalar_parent_browser_engagement_tab_open_event_count", 0
+                ),
+                "total_uri": profile_data.get(
+                    "scalar_parent_browser_engagement_total_uri_count", 0
+                ),
+                "unique_tlds": profile_data.get(
+                    "scalar_parent_browser_engagement_unique_domains_count", 0
+                ),
             }
-
-        profile_data = self._client.get_client_profile(client_id)
-
-        if profile_data is None:
-            self.logger.debug(
-                "Client profile not found", extra={"client_id": client_id}
-            )
+        except Exception as e:
+            # We just want to catch any kind of error here to make
+            # sure nothing breaks
+            self.logger.error("Error loading client data", e)
             return None
-
-        addon_ids = [
-            addon["addon_id"]
-            for addon in profile_data.get("active_addons", [])
-            if not addon.get("is_system", False)
-        ]
-
-        return {
-            "client_id": client_id,
-            "geo_city": profile_data.get("city", ""),
-            "subsession_length": profile_data.get("subsession_length", 0),
-            "locale": profile_data.get("locale", ""),
-            "os": profile_data.get("os", ""),
-            "installed_addons": addon_ids,
-            "disabled_addons_ids": profile_data.get("disabled_addons_ids", []),
-            "bookmark_count": profile_data.get("places_bookmarks_count", 0),
-            "tab_open_count": profile_data.get(
-                "scalar_parent_browser_engagement_tab_open_event_count", 0
-            ),
-            "total_uri": profile_data.get(
-                "scalar_parent_browser_engagement_total_uri_count", 0
-            ),
-            "unique_tlds": profile_data.get(
-                "scalar_parent_browser_engagement_unique_domains_count", 0
-            ),
-        }

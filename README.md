@@ -1,37 +1,260 @@
 # Taar
 Telemetry-Aware Addon Recommender
 
-[![Build Status](https://travis-ci.org/mozilla/taar.svg?branch=master)](https://travis-ci.org/mozilla/taar)
+[![CircleCI](https://circleci.com/gh/mozilla/taar.svg?style=svg)](https://circleci.com/gh/mozila/taar)
 
-Table of Contents (ToC):
-===========================
 
-* [How does it work?](#how-does-it-work)
-* [Supported models](#supported-models)
-* [Instructions for Releasing Updates](#instructions-for-releasing-updates)
-* [Building and Running tests](#build-and-run-tests)
+Table of Contents
+=================
+
+* [Taar](#taar)
+  * [How does it work?](#how-does-it-work)
+    * [Supported models](#supported-models)
+  * [Build and run tests](#build-and-run-tests)
+  * [Pinning dependencies](#pinning-dependencies)
+  * [Instructions for releasing updates to production](#instructions-for-releasing-updates-to-production)
+  * [Dependencies](#dependencies)
+    * [AWS resources](#aws-resources)
+    * [AWS enviroment configuration](#aws-enviroment-configuration)
+  * [Collaborative Recommender](#collaborative-recommender)
+  * [Ensemble Recommender](#ensemble-recommender)
+  * [Locale Recommender](#locale-recommender)
+  * [Similarity Recommender](#similarity-recommender)
+  * [Google Cloud Platform resources](#google-cloud-platform-resources)
+    * [Google Cloud BigQuery](#google-cloud-bigquery)
+    * [Google Cloud Storage](#google-cloud-storage)
+    * [Google Cloud BigTable](#google-cloud-bigtable)
+  * [Production Configuration Settings](#production-configuration-settings)
+  * [Deleting individual user data from all TAAR resources](#deleting-individual-user-data-from-all-taar-resources)
+  * [Airflow enviroment configuration](#airflow-enviroment-configuration)
+  * [Staging Enviroment](#staging-enviroment)
+  * [A note on cdist optimization\.](#a-note-on-cdist-optimization)
+
 
 ## How does it work?
-The recommendation strategy is implemented through the [RecommendationManager](taar/recommenders/recommendation_manager.py). Once a recommendation is requested for a specific [client id](https://firefox-source-docs.mozilla.org/toolkit/components/telemetry/telemetry/data/common-ping.html), the recommender iterates through all the registered models (e.g. [CollaborativeRecommender](taar/recommenders/collaborative_recommender.py)) linearly in their registered order. Results are returned from the first module that can perform a recommendation.
+The recommendation strategy is implemented through the
+[RecommendationManager](taar/recommenders/recommendation_manager.py).
+Once a recommendation is requested for a specific [client
+id](https://firefox-source-docs.mozilla.org/toolkit/components/telemetry/telemetry/data/common-ping.html),
+the recommender iterates through all the registered models (e.g.
+[CollaborativeRecommender](taar/recommenders/collaborative_recommender.py))
+linearly in their registered order. Results are returned from the
+first module that can perform a recommendation.
 
-Each module specifies its own sets of rules and requirements and thus can decide if it can perform a recommendation independently from the other modules.
+Each module specifies its own sets of rules and requirements and thus
+can decide if it can perform a recommendation independently from the
+other modules.
 
 ### Supported models
 This is the ordered list of the currently supported models:
 
 | Order | Model | Description | Conditions | Generator job |
 |-------|-------|-------------|------------|---------------|
-| 1 | [Legacy](taar/recommenders/legacy_recommender.py) | recommends WebExtensions based on the reported and disabled legacy add-ons | Telemetry data is available for the user and the user has at least one disabled add-on|[source](https://github.com/mozilla/python_mozetl/blob/master/mozetl/taar/taar_legacy.py)|
-| 2 | [Collaborative](taar/recommenders/collaborative_recommender.py) | recommends add-ons based on add-ons installed by other users (i.e. [collaborative filtering](https://en.wikipedia.org/wiki/Collaborative_filtering))|Telemetry data is available for the user and the user has at least one enabled add-on|[source](https://github.com/mozilla/telemetry-batch-view/blob/master/src/main/scala/com/mozilla/telemetry/ml/AddonRecommender.scala)|
-| 3 | [Similarity](taar/recommenders/similarity_recommender.py) &#42;| recommends add-ons based on add-ons installed by similar representative users|Telemetry data is available for the user and a suitable representative donor can be found|[source](https://github.com/mozilla/python_mozetl/blob/master/mozetl/taar/taar_similarity.py)|
-| 4 | [Locale](taar/recommenders/locale_recommender.py) |recommends add-ons based on the top addons for the user's locale|Telemetry data is available for the user and the locale has enough users|[source](https://github.com/mozilla/python_mozetl/blob/master/mozetl/taar/taar_locale.py)|
-| 5 | [Ensemble](taar/recommenders/ensemble_recommender.py) &#42;|recommends add-ons based on the combined (by [stacked generalization](https://en.wikipedia.org/wiki/Ensemble_learning#Stacking)) recomendations of other available recommender modules.|More than one of the other Models are available to provide recommendations.|[source](https://github.com/mozilla/python_mozetl/blob/master/mozetl/taar/taar_ensemble.py)|
+| 1 | [Collaborative](taar/recommenders/collaborative_recommender.py) | recommends add-ons based on add-ons installed by other users (i.e. [collaborative filtering](https://en.wikipedia.org/wiki/Collaborative_filtering))|Telemetry data is available for the user and the user has at least one enabled add-on|[source](https://github.com/mozilla/telemetry-batch-view/blob/master/src/main/scala/com/mozilla/telemetry/ml/AddonRecommender.scala)|
+| 2 | [Similarity](taar/recommenders/similarity_recommender.py) | recommends add-ons based on add-ons installed by similar representative users|Telemetry data is available for the user and a suitable representative donor can be found|[source](https://github.com/mozilla/python_mozetl/blob/master/mozetl/taar/taar_similarity.py)|
+| 3 | [Locale](taar/recommenders/locale_recommender.py) |recommends add-ons based on the top addons for the user's locale|Telemetry data is available for the user and the locale has enough users|[source](https://github.com/mozilla/python_mozetl/blob/master/mozetl/taar/taar_locale.py)|
+| 4 | [Ensemble](taar/recommenders/ensemble_recommender.py) &#42;|recommends add-ons based on the combined (by [stacked generalization](https://en.wikipedia.org/wiki/Ensemble_learning#Stacking)) recomendations of other available recommender modules.|More than one of the other Models are available to provide recommendations.|[source](https://github.com/mozilla/python_mozetl/blob/master/mozetl/taar/taar_ensemble.py)|
 
-&#42; In order to ensure stable/repeatable testing and prevent unecessary computation, these jobs are not scheduled on [Airflow](https://github.com/mozilla/telemetry-airflow), rather run manually when fresh models are desired.
+All jobs are scheduled in Mozilla's instance of
+[Airflow](https://github.com/mozilla/telemetry-airflow).  The
+Collaborative, Similarity and Locale jobs are executed on a
+[daily](https://github.com/mozilla/telemetry-airflow/blob/master/dags/taar_daily.py)
+schedule, while the ensemble job is scheduled on a
+[weekly](https://github.com/mozilla/telemetry-airflow/blob/master/dags/taar_weekly.py)
+schedule.
 
-## Instructions for releasing updates
-New releases can be shipped by using the normal [github workflow](https://help.github.com/articles/creating-releases/). Once a new release is created, it will be automatically uploaded to `pypi`.
 
+## Build and run tests
+You should be able to build taar using Python 3.5 or 3.7. 
+To run the testsuite, execute ::
+
+```python
+$ python setup.py develop
+$ python setup.py test
+```
+
+Alternately, if you've got GNUMake installed, a Makefile is included
+with
+[`build`](https://github.com/mozilla/taar/blob/more_docs/Makefile#L20)
+and
+[`test-container`](https://github.com/mozilla/taar/blob/more_docs/Makefile#L55)
+targets.
+
+You can just run `make
+build; make test-container` which will build a complete Docker
+container and run the test suite inside the container.
+
+## Pinning dependencies
+
+TAAR uses miniconda and a enviroment.yml file to manage versioning.
+
+To update versions, edit the enviroment.yml with the new dependency
+you need.  If you are unfamiliar with using conda, see the [official
+documentation](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html)
+for reference.
+
+## Instructions for releasing updates to production
+
+Building a new release of TAAR is fairly involved.  Documentation to
+create a new release has been split out into separate
+[instructions](https://github.com/mozilla/taar/blob/master/docs/release_instructions.md).
+
+
+## Dependencies
+
+### AWS resources
+
+Recommendation engines load models from Amazon S3.
+
+The following table is a complete list of all resources per
+recommendation engine.
+
+Recommendation Engine |  S3 Resource 
+--- | ---
+RecommendationManager Whitelist | s3://telemetry-parquet/telemetry-ml/addon_recommender/top_200_whitelist.json
+Similarity Recommender | s3://telemetry-parquet/taar/similarity/donors.json <br> s3://telemetry-parquet/taar/similarity/lr_curves.json
+CollaborativeRecommender |  s3://telemetry-parquet/telemetry-ml/addon_recommender/item_matrix.json <br> s3://telemetry-parquet/telemetry-ml/addon_recommender/addon_mapping.json
+LocaleRecommender | s3://telemetry-parquet/taar/locale/top10_dict.json
+EnsembleRecommender | s3://telemetry-parquet/taar/ensemble/ensemble_weight.json
+
+
+
+### AWS enviroment configuration
+
+TAAR breaks out all S3 data load configuration into enviroment
+variables.  This ensures that running under test has no chance of
+clobbering the production data in the event that a developer has AWS
+configuration keys installed locally in `~/.aws/`
+
+Production enviroment variables required for TAAR
+
+## Collaborative Recommender
+
+Env Variable | Value 
+------- | --- 
+TAAR_ITEM_MATRIX_BUCKET | "telemetry-parquet"
+TAAR_ITEM_MATRIX_KEY  | "telemetry-ml/addon_recommender/item_matrix.json"
+TAAR_ADDON_MAPPING_BUCKET | "telemetry-parquet"
+TAAR_ADDON_MAPPING_KEY | "telemetry-ml/addon_recommender/addon_mapping.json"
+
+## Ensemble Recommender
+
+Env Variable | Value
+--- | --- 
+TAAR_ENSEMBLE_BUCKET  | "telemetry-parquet"
+TAAR_ENSEMBLE_KEY | "taar/ensemble/ensemble_weight.json"
+
+## Locale Recommender
+
+Env Variable | Value
+--- | --- 
+TAAR_LOCALE_BUCKET | "telemetry-parquet"
+TAAR_LOCALE_KEY | "taar/locale/top10_dict.json"
+
+## Similarity Recommender
+
+Env Variable | Value
+--- | --- 
+TAAR_SIMILARITY_BUCKET | "telemetry-parquet"
+TAAR_SIMILARITY_DONOR_KEY | "taar/similarity/donors.json"
+TAAR_SIMILARITY_LRCURVES_KEY | "taar/similarity/lr_curves.json"
+
+
+## Google Cloud Platform resources
+### Google Cloud BigQuery
+
+Cloud BigQuery uses the GCP project defined in Airflow in the
+variable `taar_gcp_project_id`.
+
+Dataset  
+* `taar_tmp`
+
+Table ID 
+* `taar_tmp_profile`
+
+Note that this table only exists for the duration of the taar_weekly
+job, so there should be no need to manually manage this table.
+
+### Google Cloud Storage 
+
+The taar user profile extraction puts Avro format files into 
+a GCS bucket defined by the following two variables in Airflow:
+
+* `taar_gcp_project_id`
+* `taar_etl_storage_bucket`
+
+The bucket is automatically cleared at the *start* and *end* of
+the TAAR weekly ETL job.
+
+### Google Cloud BigTable 
+
+The final TAAR user profile data is stored in a Cloud BigTable
+instance defined by the following two variables in Airflow:
+
+* `taar_gcp_project_id`
+* `taar_bigtable_instance_id`
+
+The table ID for user profile information is `taar_profile`.
+
+
+------
+
+## Production Configuration Settings
+
+Production enviroment settings are stored in a [private repository](https://github.com/mozilla-services/cloudops-deployment/blob/master/projects/data/puppet/yaml/type/data.api.prod.taar.yaml).
+
+
+## Deleting individual user data from all TAAR resources
+
+Deletion of records in TAAR is fairly straight forward.  Once a user
+disables telemetry from Firefox, all that is required is to delete
+records from TAAR.
+
+Deletion of records from the TAAR BigTable instance will remove the
+client's list of addons from TAAR.  No further work is required.
+
+Removal of the records from BigTable will cause JSON model updates to
+no longer take the deleted record into account.  JSON models are
+updated on a daily basis via the
+[`taar_daily`](https://github.com/mozilla/telemetry-airflow/blob/master/dags/taar_daily.py)
+
+Updates in the weekly Airflow job in 
+[`taar_weekly`](https://github.com/mozilla/telemetry-airflow/blob/master/dags/taar_weekly.py) only update the ensemble weights and the user profile information.
+
+If the user profile information in `clients_last_seen` continues to
+have data for the user's telemetry-id, TAAR will repopulate the user
+profile data.  
+
+Users who wish to remove their data from TAAR need to: 
+1. Disable telemetry in Firefox
+2. Have user telemetry data removed from all telemetry storage systems
+   in GCP. Primarily this means the `clients_last_seen` table in
+   BigQuery.
+3. Have user data removed from BigTable.
+
+
+
+## Airflow enviroment configuration
+
+TAAR requires some configuration to be stored in Airflow variables for
+the ETL jobs to run to completion correctly.
+
+Airflow Variable | Value 
+--- | ---
+taar_gcp_project_id | The Google Cloud Platform project where BigQuery temporary tables, Cloud Storage buckets for Avro files and BigTable reside for TAAR.
+taar_etl_storage_bucket | The Cloud Storage bucket name where temporary Avro files will reside when transferring data from BigQuery to BigTable. 
+taar_bigtable_instance_id | The BigTable instance ID for TAAR user profile information
+taar_dataflow_subnetwork | The subnetwork required to communicate between Cloud Dataflow
+
+
+## Staging Enviroment
+
+The staging enviroment of the TAAR service in GCP can be reached using
+curl.
+
+```
+curl https://user@pass:stage.taar.nonprod.dataops.mozgcp.net/v1/api/recommendations/<hashed_telemetry_id>
+```
 
 ## A note on cdist optimization. 
 cdist can speed up distance computation by a factor of 10 for the computations we're doing.
@@ -48,82 +271,3 @@ However, when you manually provide a callable to cdist, cdist can not do it's ba
 optimizations (https://github.com/scipy/scipy/blob/v1.0.0/scipy/spatial/distance.py#L2408)
 so we can just apply the function `distance.hamming` to our array manually and get the same
 performance.
-
-## Build and run tests
-You should be able to build taar using Python 2.7 or Python 3.5. To
-run the testsuite, execute ::
-
-```python
-$ python setup.py develop
-$ python setup.py test
-```
-
-Alternately, if you've got GNUMake installed, you can just run `make test` which will do all of that for you and run flake8 on the codebase.
-
-
-There are additional integration tests and a microbenchmark available
-in `tests/test_integration.py`.  See the source code for more
-information.
-
-
-## Pinning dependencies
-
-TAAR uses hashin (https://pypi.org/project/hashin/) to pin SHA256
-hashes for each dependency.  To update the hashes, you will need to
-remove the run `make freeze` which forces all packages in the current
-virtualenv to be written out to requirement.txt with versions and SHA
-hashes.
-
-
-## Required S3 dependencies
-
-
-RecommendationManager:
-  * s3://telemetry-parquet/telemetry-ml/addon_recommender/top_200_whitelist.json
-
-Similarity Recommender:
-  * s3://telemetry-parquet/taar/similarity/donors.json
-  * s3://telemetry-parquet/taar/similarity/lr_curves.json
-
-CollaborativeRecommender:
-  * s3://telemetry-parquet/telemetry-ml/addon_recommender/item_matrix.json
-  * s3://telemetry-parquet/telemetry-ml/addon_recommender/addon_mapping.json
-
-LocaleRecommender:
-  * s3://telemetry-parquet/taar/locale/top10_dict.json
-
-EnsembleRecommender:
-  * s3://telemetry-parquet/taar/ensemble/ensemble_weight.json
-
-
-
-TAAR breaks out all S3 data load configuration into enviroment
-variables.  This ensures that running under test has no chance of
-clobbering the production data in the event that a developer has AWS
-configuration keys installed locally in `~/.aws/`
-
-Production enviroment variables required for TAAR
-
-Collaborative Recommender ::
-
-    TAAR_ITEM_MATRIX_BUCKET = "telemetry-parquet"
-    TAAR_ITEM_MATRIX_KEY = "telemetry-ml/addon_recommender/item_matrix.json"
-
-    TAAR_ADDON_MAPPING_BUCKET = "telemetry-parquet"
-    TAAR_ADDON_MAPPING_KEY = "telemetry-ml/addon_recommender/addon_mapping.json"
-
-Ensemble Recommender ::
-
-    TAAR_ENSEMBLE_BUCKET = "telemetry-parquet"
-    TAAR_ENSEMBLE_KEY = "taar/ensemble/ensemble_weight.json"
-
-Locale Recommender ::
-
-    TAAR_LOCALE_BUCKET = "telemetry-parquet"
-    TAAR_LOCALE_KEY = "taar/locale/top10_dict.json"
-
-Similarity Recommender ::
-
-    TAAR_SIMILARITY_BUCKET = "telemetry-parquet"
-    TAAR_SIMILARITY_DONOR_KEY = "taar/similarity/donors.json"
-    TAAR_SIMILARITY_LRCURVES_KEY = "taar/similarity/lr_curves.json"

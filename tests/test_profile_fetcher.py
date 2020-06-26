@@ -3,12 +3,12 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from taar import ProfileFetcher
-from taar.profile_fetcher import ProfileController
-import boto3
+from taar.profile_fetcher import BigTableProfileController
 from google.cloud import bigtable
 import copy
 import json
 import zlib
+from mock import MagicMock
 
 
 class MockProfileController:
@@ -87,83 +87,53 @@ def test_dont_crash_without_active_addons(test_ctx):
 
 
 def test_crashy_profile_controller(test_ctx, monkeypatch):
-    def mock_boto3_resource(*args, **kwargs):
-        class ExceptionRaisingMockTable:
-            def __init__(self, tbl_name):
+    def mock_bigtable_client(*args, **kwargs):
+        class MockClient:
+            def __init__(self, *args, **kwargs):
                 pass
 
-            def get_item(self, *args, **kwargs):
-                raise Exception
+            def instance(self, *args, **kwargs):
+                return MagicMock()
 
-        class MockDDB:
-            pass
+        return MockClient
 
-        mock_ddb = MockDDB()
-        mock_ddb.Table = ExceptionRaisingMockTable
-        return mock_ddb
+    monkeypatch.setattr(bigtable, "Client", mock_bigtable_client)
 
-    monkeypatch.setattr(boto3, "resource", mock_boto3_resource)
-
-    pc = ProfileController(test_ctx, "us-west-2", "taar_addon_data_20180206")
+    pc = BigTableProfileController(
+        test_ctx, "mock_project_id", "mock_instance_id", "mock_table_id"
+    )
     assert pc.get_client_profile("exception_raising_client_id") is None
 
 
 def test_profile_controller(test_ctx, monkeypatch):
-    def mock_boto3_resource(*args, **kwargs):
-        some_bytes = zlib.compress(
-            json.dumps({"key": "with_some_data"}).encode("utf8")
-        )
+    class MockCell:
+        client_profile = {"key": "with_some_data"}
+        value = zlib.compress(json.dumps(client_profile).encode("utf8"))
 
-        class ValueObj:
-            value = some_bytes
+    mc = MockCell()
 
-        class MockTable:
-            def __init__(self, tbl_name):
-                pass
-
-            def get_item(self, *args, **kwargs):
-                value_obj = ValueObj()
-                response = {"Item": {"json_payload": value_obj}}
-                return response
-
-        class MockDDB:
-            pass
-
-        mock_ddb = MockDDB()
-        mock_ddb.Table = MockTable
-        return mock_ddb
-
-    monkeypatch.setattr(boto3, "resource", mock_boto3_resource)
-
-    pc = ProfileController(test_ctx, "us-west-2", "taar_addon_data_20180206")
-    jdata = pc.get_client_profile("exception_raising_client_id")
-    assert jdata == {"key": "with_some_data"}
-
-
-def test_bigtable_profile_controller(test_ctx, monkeypatch):
     def mock_bigtable_client(*args, **kwargs):
-        some_bytes = zlib.compress(
-            json.dumps({"key": "with_some_data"}).encode("utf8")
-        )
-
-        class MockCell:
-            value = some_bytes
-
-        class MockRow:
-            cells = {"profile": {b"payload": [MockCell(), ]}}
-
         class MockTable:
             def __init__(self, table_id):
                 pass
 
-            def read_row(self, row_key, row_filter):
+            def read_row(self, *args, **kwargs):
+                class MockRow:
+                    @property
+                    def cells(self):
+                        magic_cn = MagicMock()
+                        magic_cn.__getitem__.return_value = mc
+
+                        magic_cf = MagicMock()
+                        magic_cf.__getitem__.return_value = magic_cn
+
+                        mm = MagicMock()
+                        mm.__getitem__.return_value = magic_cf
+                        return mm
 
                 return MockRow()
 
         class MockInstance:
-            def __init__(self, *args, **kwargs):
-                pass
-
             def table(self, table_id):
                 return MockTable(table_id)
 
@@ -171,20 +141,40 @@ def test_bigtable_profile_controller(test_ctx, monkeypatch):
             def instance(self, *args, **kwargs):
                 return MockInstance(*args, **kwargs)
 
-        return MockClient()
-
-    from taar.profile_fetcher import BigTableProfileController
+        return MockClient
 
     monkeypatch.setattr(bigtable, "Client", mock_bigtable_client)
-    from taar.profile_fetcher import (
-        BIGTABLE_PROJECT_ID,
-        BIGTABLE_INSTANCE_ID,
-        BIGTABLE_TABLE_ID,
-    )
 
     pc = BigTableProfileController(
-        test_ctx, BIGTABLE_PROJECT_ID, BIGTABLE_INSTANCE_ID, BIGTABLE_TABLE_ID
+        test_ctx, "mock_project_id", "mock_instance_id", "mock_table_id"
     )
-
-    jdata = pc.get_client_profile("exception_raising_client_id")
+    jdata = pc.get_client_profile("a_mock_client")
     assert jdata == {"key": "with_some_data"}
+
+
+def test_profile_controller_no_user(test_ctx, monkeypatch):
+    def mock_bigtable_client(*args, **kwargs):
+        class MockTable:
+            def __init__(self, table_id):
+                pass
+
+            def read_row(self, *args, **kwargs):
+                return None
+
+        class MockInstance:
+            def table(self, table_id):
+                return MockTable(table_id)
+
+        class MockClient:
+            def instance(self, *args, **kwargs):
+                return MockInstance(*args, **kwargs)
+
+        return MockClient
+
+    monkeypatch.setattr(bigtable, "Client", mock_bigtable_client)
+
+    pc = BigTableProfileController(
+        test_ctx, "mock_project_id", "mock_instance_id", "mock_table_id"
+    )
+    jdata = pc.get_client_profile("a_mock_client")
+    assert jdata is None
