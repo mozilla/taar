@@ -30,7 +30,7 @@ wait_for() {
 
 case $1 in
   web)
-    . /opt/conda/etc/profile.d/conda.sh && conda activate taar-37 && gunicorn taar.flask_app:app --bind 0.0.0.0:${PORT} --workers ${WORKERS} --threads ${THREADS} --access-logfile -
+    . /opt/conda/etc/profile.d/conda.sh && conda activate taar-37 && exec newrelic-admin run-program gunicorn taar.flask_app:app --bind 0.0.0.0:${PORT} --workers ${WORKERS} --threads ${THREADS} --access-logfile -
     ;;
   web-dev)
     exec python taar/flask_app.py --host=0.0.0.0 --port=${PORT}
