@@ -11,7 +11,6 @@ import json
 import zlib
 import datetime
 
-
 BIGTABLE_PROJECT_ID = config(
     "BIGTABLE_PROJECT_ID", default="cfr-personalization-experiment"
 )

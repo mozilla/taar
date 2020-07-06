@@ -58,6 +58,7 @@ class CuratedRecommender(AbstractRecommender):
     def recommend(self, client_data, limit, extra_data={}):
         """
         Curated recommendations are just random selections
+        from the whitelist and we explicitly set the weighting to 1.0
         """
         guids = self._curated_wl.get_randomized_guid_sample(limit)
 
