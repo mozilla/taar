@@ -73,6 +73,48 @@ def configure_plugin(app):  # noqa: C901
     flask given a particular library.
     """
 
+###     @app.route('/taarlite/api/v1/addon_recommendations/<string:guid>/')
+###     def recommendations(guid):
+###         """Return a list of recommendations provided a telemetry client_id."""
+###         # Use the module global PROXY_MANAGER
+###         global PROXY_MANAGER
+### 
+###         if PROXY_MANAGER.getResource() is None:
+###             ctx = default_context()
+### 
+###             # Lock the context down after we've got basic bits installed
+###             root_ctx = ctx.child()
+### 
+###             instance = recommenders.GuidBasedRecommender(root_ctx)
+###             PROXY_MANAGER.setResource(instance)
+### 
+###         instance = PROXY_MANAGER.getResource()
+### 
+### 
+###         cdict = {'guid': guid}
+###         normalization_type = request.args.get('normalize', None)
+###         if normalization_type is not None:
+###             cdict['normalize'] = normalization_type
+### 
+###         recommendations = instance.recommend(client_data=cdict,
+###                                              limit=TAAR_MAX_RESULTS)
+### 
+###         if len(recommendations) != TAAR_MAX_RESULTS:
+###             recommendations = []
+### 
+###         # Strip out weights from TAAR results to maintain compatibility
+###         # with TAAR 1.0
+###         jdata = {"results": [x[0] for x in recommendations]}
+### 
+###         response = app.response_class(
+###                 response=json.dumps(jdata),
+###                 status=200,
+###                 mimetype='application/json'
+###                 )
+###         return response
+
+
+
     @app.route(
         "/v1/api/client_has_addon/<hashed_client_id>/<addon_id>/",
         methods=["GET"],

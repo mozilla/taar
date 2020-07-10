@@ -12,7 +12,8 @@ from .s3config import TAAR_WHITELIST_KEY
 from .s3config import TAAR_ENSEMBLE_BUCKET
 from .s3config import TAAR_ENSEMBLE_KEY
 
-from .fixtures import hasher
+from taar.utils import hasher
+
 
 
 def is_test_client(client_id):

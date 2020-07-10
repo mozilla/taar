@@ -14,10 +14,6 @@ from .s3config import TAAR_WHITELIST_BUCKET
 from .s3config import TAAR_WHITELIST_KEY
 from .s3config import TAAR_EXPERIMENT_PROB
 
-# We need to build a default logger for the schema validation as there
-# is no class to bind to yet.
-ctx = default_context()
-
 
 class RecommenderFactory:
     """
