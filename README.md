@@ -256,6 +256,13 @@ curl.
 curl https://user@pass:stage.taar.nonprod.dataops.mozgcp.net/v1/api/recommendations/<hashed_telemetry_id>
 ```
 
+Requests for a TAAR-lite recommendation can be made using curl as
+well:
+
+```
+curl https://user@pass:stage.taar.nonprod.dataops.mozgcp.net/taarlite/api/v1/addon_recommendations/<addon_guid>/
+```
+
 ## A note on cdist optimization. 
 cdist can speed up distance computation by a factor of 10 for the computations we're doing.
 We can use it without problems on the canberra distance calculation.
