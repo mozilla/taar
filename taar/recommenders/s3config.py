@@ -38,7 +38,7 @@ TAAR_SIMILARITY_LRCURVES_KEY = config(
 TAAR_EXPERIMENT_PROB = config("TAAR_EXPERIMENT_PROB", default=0.0)
 
 
-### TAAR-lite configuration below
+# TAAR-lite configuration below
 
 TAARLITE_GUID_COINSTALL_BUCKET = config(
     "TAARLITE_GUID_COINSTALL_BUCKET", "telemetry-parquet"

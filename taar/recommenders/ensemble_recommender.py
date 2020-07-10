@@ -15,7 +15,6 @@ from .s3config import TAAR_ENSEMBLE_KEY
 from taar.utils import hasher
 
 
-
 def is_test_client(client_id):
     return len(set(client_id.replace("-", ""))) == 1
 

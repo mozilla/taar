@@ -5,11 +5,7 @@
 from taar.recommenders.ensemble_recommender import EnsembleRecommender
 from taar.recommenders.randomizer import in_experiment, reorder_guids
 from srgutil.interfaces import IMozLogging
-
-from taar.context import default_context
-
 from .lazys3 import LazyJSONLoader
-
 from .s3config import TAAR_WHITELIST_BUCKET
 from .s3config import TAAR_WHITELIST_KEY
 from .s3config import TAAR_EXPERIMENT_PROB
