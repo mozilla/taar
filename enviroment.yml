@@ -80,6 +80,7 @@ dependencies:
     - jsonschema==3.2.0
     - junit-xml==1.9
     - mccabe==0.6.1
+    - markus[datadog]==2.2.0
     - mock==2.0.0
     - more-itertools==4.2.0
     - moto==1.3.14
