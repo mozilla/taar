@@ -27,7 +27,7 @@ def app():
 
     # Clobber the default recommendation manager with a MagicMock
     mock_recommender = MagicMock()
-    PROXY_MANAGER.setResource(mock_recommender)
+    PROXY_MANAGER.setTaarRM(mock_recommender)
 
     configure_plugin(flask_app)
 

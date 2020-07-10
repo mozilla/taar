@@ -18,12 +18,19 @@ TAAR_MAX_RESULTS = config("TAAR_MAX_RESULTS", default=10, cast=int)
 class ResourceProxy(object):
     def __init__(self):
         self._resource = None
+        self._taarlite_resource = None
 
-    def setResource(self, rsrc):
+    def setTaarRM(self, rsrc):
         self._resource = rsrc
 
-    def getResource(self):
+    def getTaarRM(self):
         return self._resource
+
+    def setTaarLite(self, rsrc):
+        self._taarlite_resource = rsrc
+
+    def getTaarLite(self):
+        return self._taarlite_resource
 
 
 PROXY_MANAGER = ResourceProxy()
@@ -73,47 +80,33 @@ def configure_plugin(app):  # noqa: C901
     flask given a particular library.
     """
 
-###     @app.route('/taarlite/api/v1/addon_recommendations/<string:guid>/')
-###     def recommendations(guid):
-###         """Return a list of recommendations provided a telemetry client_id."""
-###         # Use the module global PROXY_MANAGER
-###         global PROXY_MANAGER
-### 
-###         if PROXY_MANAGER.getResource() is None:
-###             ctx = default_context()
-### 
-###             # Lock the context down after we've got basic bits installed
-###             root_ctx = ctx.child()
-### 
-###             instance = recommenders.GuidBasedRecommender(root_ctx)
-###             PROXY_MANAGER.setResource(instance)
-### 
-###         instance = PROXY_MANAGER.getResource()
-### 
-### 
-###         cdict = {'guid': guid}
-###         normalization_type = request.args.get('normalize', None)
-###         if normalization_type is not None:
-###             cdict['normalize'] = normalization_type
-### 
-###         recommendations = instance.recommend(client_data=cdict,
-###                                              limit=TAAR_MAX_RESULTS)
-### 
-###         if len(recommendations) != TAAR_MAX_RESULTS:
-###             recommendations = []
-### 
-###         # Strip out weights from TAAR results to maintain compatibility
-###         # with TAAR 1.0
-###         jdata = {"results": [x[0] for x in recommendations]}
-### 
-###         response = app.response_class(
-###                 response=json.dumps(jdata),
-###                 status=200,
-###                 mimetype='application/json'
-###                 )
-###         return response
+    @app.route("/taarlite/api/v1/addon_recommendations/<string:guid>/")
+    def taarlite_recommendations(guid):
+        """Return a list of recommendations provided a telemetry client_id."""
+        # Use the module global PROXY_MANAGER
+        global PROXY_MANAGER
+        taarlite_recommender = acquire_taarlite_singleton(PROXY_MANAGER)
 
+        cdict = {"guid": guid}
+        normalization_type = request.args.get("normalize", None)
+        if normalization_type is not None:
+            cdict["normalize"] = normalization_type
 
+        recommendations = taarlite_recommender.recommend(
+            client_data=cdict, limit=TAAR_MAX_RESULTS
+        )
+
+        if len(recommendations) != TAAR_MAX_RESULTS:
+            recommendations = []
+
+        # Strip out weights from TAAR results to maintain compatibility
+        # with TAAR 1.0
+        jdata = {"results": [x[0] for x in recommendations]}
+
+        response = app.response_class(
+            response=json.dumps(jdata), status=200, mimetype="application/json"
+        )
+        return response
 
     @app.route(
         "/v1/api/client_has_addon/<hashed_client_id>/<addon_id>/",
@@ -122,7 +115,7 @@ def configure_plugin(app):  # noqa: C901
     def client_has_addon(hashed_client_id, addon_id):
         # Use the module global PROXY_MANAGER
         global PROXY_MANAGER
-        recommendation_manager = check_proxy_manager(PROXY_MANAGER)
+        recommendation_manager = acquire_taar_singleton(PROXY_MANAGER)
         pf = recommendation_manager._ctx["profile_fetcher"]
 
         client_meta = pf.get(hashed_client_id)
@@ -195,7 +188,7 @@ def configure_plugin(app):  # noqa: C901
         if platform is not None:
             extra_data["platform"] = platform
 
-        recommendation_manager = check_proxy_manager(PROXY_MANAGER)
+        recommendation_manager = acquire_taar_singleton(PROXY_MANAGER)
         recommendations = recommendation_manager.recommend(
             client_id=client_id, limit=TAAR_MAX_RESULTS, extra_data=extra_data
         )
@@ -212,8 +205,16 @@ def configure_plugin(app):  # noqa: C901
         )
         return response
 
-    def check_proxy_manager(PROXY_MANAGER):
-        if PROXY_MANAGER.getResource() is None:
+    def acquire_taarlite_singleton(PROXY_MANAGER):
+        if PROXY_MANAGER.getTaarLite() is None:
+            ctx = default_context()
+            root_ctx = ctx.child()
+            instance = recommenders.GuidBasedRecommender(root_ctx)
+            PROXY_MANAGER.setTaarLite(instance)
+        return PROXY_MANAGER.getTaarLite()
+
+    def acquire_taar_singleton(PROXY_MANAGER):
+        if PROXY_MANAGER.getTaarRM() is None:
             ctx = default_context()
             profile_fetcher = ProfileFetcher(ctx)
 
@@ -224,8 +225,8 @@ def configure_plugin(app):  # noqa: C901
             r_factory = recommenders.RecommenderFactory(root_ctx)
             root_ctx["recommender_factory"] = r_factory
             instance = recommenders.RecommendationManager(root_ctx.child())
-            PROXY_MANAGER.setResource(instance)
-        return PROXY_MANAGER.getResource()
+            PROXY_MANAGER.setTaarRM(instance)
+        return PROXY_MANAGER.getTaarRM()
 
     class MyPlugin:
         def set(self, config_options):
