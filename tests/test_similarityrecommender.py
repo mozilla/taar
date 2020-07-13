@@ -22,6 +22,9 @@ from taar.recommenders.similarity_recommender import (
 from .similarity_data import CONTINUOUS_FEATURE_FIXTURE_DATA
 from .similarity_data import CATEGORICAL_FEATURE_FIXTURE_DATA
 
+from markus import TIMING
+from markus.testing import MetricsMock
+
 from taar.recommenders.s3config import (
     TAAR_SIMILARITY_BUCKET,
     TAAR_SIMILARITY_DONOR_KEY,
@@ -75,11 +78,11 @@ def install_no_data(ctx):
     conn.Object(TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY).put(Body="")
 
     ctx["similarity_donors_pool"] = LazyJSONLoader(
-        ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY
+        ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY, "similarity_donor",
     )
 
     ctx["similarity_lr_curves"] = LazyJSONLoader(
-        ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY
+        ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY, "similarity_curves",
     )
 
     return ctx
@@ -102,11 +105,11 @@ def install_categorical_data(ctx):
     )
 
     ctx["similarity_donors_pool"] = LazyJSONLoader(
-        ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY
+        ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY, "similarity_donor",
     )
 
     ctx["similarity_lr_curves"] = LazyJSONLoader(
-        ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY
+        ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY, "similarity_curves",
     )
 
     return ctx
@@ -128,11 +131,11 @@ def install_continuous_data(ctx):
     conn.Object(TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY).put(Body=lrs_data)
 
     ctx["similarity_donors_pool"] = LazyJSONLoader(
-        ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY
+        ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY, "similarity_donor",
     )
 
     ctx["similarity_lr_curves"] = LazyJSONLoader(
-        ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY
+        ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY, "similarity_curves",
     )
 
     return ctx
@@ -187,20 +190,25 @@ def test_can_recommend(test_ctx, caplog):
 
 @mock_s3
 def test_recommendations(test_ctx):
-    # Create a new instance of a SimilarityRecommender.
-    ctx = install_continuous_data(test_ctx)
-    r = SimilarityRecommender(ctx)
+    with MetricsMock() as mm:
+        # Create a new instance of a SimilarityRecommender.
+        ctx = install_continuous_data(test_ctx)
+        r = SimilarityRecommender(ctx)
 
-    recommendation_list = r.recommend(generate_a_fake_taar_client(), 1)
+        recommendation_list = r.recommend(generate_a_fake_taar_client(), 1)
 
-    assert isinstance(recommendation_list, list)
-    assert len(recommendation_list) == 1
+        assert isinstance(recommendation_list, list)
+        assert len(recommendation_list) == 1
 
-    recommendation, weight = recommendation_list[0]
+        recommendation, weight = recommendation_list[0]
 
-    # Make sure that the reported addons are the expected ones from the most similar donor.
-    assert "{test-guid-1}" == recommendation
-    assert type(weight) == np.float64
+        # Make sure that the reported addons are the expected ones from the most similar donor.
+        assert "{test-guid-1}" == recommendation
+        assert type(weight) == np.float64
+
+        assert mm.has_record(TIMING, stat="taar.similarity_donor")
+        assert mm.has_record(TIMING, stat="taar.similarity_curves")
+        assert mm.has_record(TIMING, stat="taar.similarity_recommend")
 
 
 @mock_s3

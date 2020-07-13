@@ -16,6 +16,9 @@ from taar.recommenders.lazys3 import LazyJSONLoader
 
 from taar.recommenders.ua_parser import parse_ua, OSNAME_TO_ID
 
+from markus import TIMING
+from markus.testing import MetricsMock
+
 # The different kinds of results we can expect from TAARlite are
 # listed below.  Note that the ordering of GUIDs returned, and even
 # the set of GUIDs returned may be altered by the different weight
@@ -86,19 +89,25 @@ def install_mock_data(TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING, test_ctx):
 
     conn.create_bucket(Bucket=TAARLITE_GUID_COINSTALL_BUCKET)
 
-    conn.Object(
-        TAARLITE_GUID_COINSTALL_BUCKET, TAARLITE_GUID_COINSTALL_KEY
-    ).put(Body=json.dumps(TAARLITE_MOCK_DATA))
+    conn.Object(TAARLITE_GUID_COINSTALL_BUCKET, TAARLITE_GUID_COINSTALL_KEY).put(
+        Body=json.dumps(TAARLITE_MOCK_DATA)
+    )
     conn.Object(TAARLITE_GUID_COINSTALL_BUCKET, TAARLITE_GUID_RANKING_KEY).put(
         Body=json.dumps(TAARLITE_MOCK_GUID_RANKING)
     )
 
     coinstall_loader = LazyJSONLoader(
-        test_ctx, TAARLITE_GUID_COINSTALL_BUCKET, TAARLITE_GUID_COINSTALL_KEY
+        test_ctx,
+        TAARLITE_GUID_COINSTALL_BUCKET,
+        TAARLITE_GUID_COINSTALL_KEY,
+        "guid_coinstall",
     )
 
     ranking_loader = LazyJSONLoader(
-        test_ctx, TAARLITE_GUID_COINSTALL_BUCKET, TAARLITE_GUID_RANKING_KEY
+        test_ctx,
+        TAARLITE_GUID_COINSTALL_BUCKET,
+        TAARLITE_GUID_RANKING_KEY,
+        "guid_ranking",
     )
 
     test_ctx["coinstall_loader"] = coinstall_loader
@@ -107,19 +116,26 @@ def install_mock_data(TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING, test_ctx):
 
 @mock_s3
 def test_recommender_nonormal(test_ctx, TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING):
-    EXPECTED_RESULTS = RESULTS["default"]
-    install_mock_data(TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING, test_ctx)
+    with MetricsMock() as mm:
+        EXPECTED_RESULTS = RESULTS["default"]
+        install_mock_data(TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING, test_ctx)
 
-    recommender = GuidBasedRecommender(test_ctx)
+        recommender = GuidBasedRecommender(test_ctx)
 
-    guid = "guid-1"
+        guid = "guid-1"
 
-    actual = recommender.recommend({"guid": guid, "normalize": "none"})
-    assert actual == EXPECTED_RESULTS
+        actual = recommender.recommend({"guid": guid, "normalize": "none"})
+        assert actual == EXPECTED_RESULTS
+
+        mm.has_record(TIMING, "taar.guid_coinstall")
+        mm.has_record(TIMING, "taar.guid_ranking")
+        mm.has_record(TIMING, "taar.guid_recommendation")
 
 
 @mock_s3
-def test_row_count_recommender(test_ctx, TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING):
+def test_row_count_recommender(
+    test_ctx, TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING
+):
     EXPECTED_RESULTS = RESULTS["row_count"]
     install_mock_data(TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING, test_ctx)
 
@@ -203,7 +219,9 @@ def test_guidception(test_ctx, TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING):
 
 
 @mock_s3
-def test_rownorm_sum_tiebreak(test_ctx, TAARLITE_TIE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING):
+def test_rownorm_sum_tiebreak(
+    test_ctx, TAARLITE_TIE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING
+):
     EXPECTED_RESULTS = RESULTS["rownorm_sum_tiebreak"]
     install_mock_data(TAARLITE_TIE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING, test_ctx)
 

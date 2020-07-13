@@ -10,6 +10,11 @@ from .s3config import TAAR_WHITELIST_BUCKET
 from .s3config import TAAR_WHITELIST_KEY
 from .s3config import TAAR_EXPERIMENT_PROB
 
+import markus
+
+
+metrics = markus.get_metrics("taar")
+
 
 class RecommenderFactory:
     """
@@ -51,13 +56,12 @@ class RecommendationManager:
         # The whitelist data is only used for test client IDs
 
         self._whitelist_data = LazyJSONLoader(
-            self._ctx, TAAR_WHITELIST_BUCKET, TAAR_WHITELIST_KEY
+            self._ctx, TAAR_WHITELIST_BUCKET, TAAR_WHITELIST_KEY, "whitelist"
         )
 
-        self._experiment_prob = ctx.get(
-            "TAAR_EXPERIMENT_PROB", TAAR_EXPERIMENT_PROB
-        )
+        self._experiment_prob = ctx.get("TAAR_EXPERIMENT_PROB", TAAR_EXPERIMENT_PROB)
 
+    @metrics.timer_decorator("profile_recommendation")
     def recommend(self, client_id, limit, extra_data={}):
         """Return recommendations for the given client.
 

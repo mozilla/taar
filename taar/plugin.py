@@ -6,6 +6,8 @@ from decouple import config
 from flask import request
 import json
 
+import markus
+
 # TAAR specific libraries
 from taar.context import default_context
 from taar.profile_fetcher import ProfileFetcher
@@ -13,6 +15,9 @@ from taar import recommenders
 
 # These are configurations that are specific to the TAAR library
 TAAR_MAX_RESULTS = config("TAAR_MAX_RESULTS", default=10, cast=int)
+
+STATSD_HOST = config("STATSD_HOST", default="localhost", cast=str)
+STATSD_PORT = config("STATSD_PORT", default=8125, cast=int)
 
 
 class ResourceProxy(object):
@@ -80,6 +85,21 @@ def configure_plugin(app):  # noqa: C901
     flask given a particular library.
     """
 
+    markus.configure(
+        backends=[
+            {
+                # Log metrics to local instance of statsd
+                # server. Use DatadogMetrics client
+                "class": "markus.backends.datadog.DatadogMetrics",
+                "options": {
+                    "statsd_host": STATSD_HOST,
+                    "statsd_port": STATSD_PORT,
+                    "statsd_namespace": "",
+                },
+            }
+        ]
+    )
+
     @app.route("/taarlite/api/v1/addon_recommendations/<string:guid>/")
     def taarlite_recommendations(guid):
         """Return a list of recommendations provided a telemetry client_id."""
@@ -109,8 +129,7 @@ def configure_plugin(app):  # noqa: C901
         return response
 
     @app.route(
-        "/v1/api/client_has_addon/<hashed_client_id>/<addon_id>/",
-        methods=["GET"],
+        "/v1/api/client_has_addon/<hashed_client_id>/<addon_id>/", methods=["GET"],
     )
     def client_has_addon(hashed_client_id, addon_id):
         # Use the module global PROXY_MANAGER
@@ -124,23 +143,17 @@ def configure_plugin(app):  # noqa: C901
             # clientId
             result = {"results": False, "error": "No client found"}
             response = app.response_class(
-                response=json.dumps(result),
-                status=200,
-                mimetype="application/json",
+                response=json.dumps(result), status=200, mimetype="application/json",
             )
             return response
 
-        result = {
-            "results": addon_id in client_meta.get("installed_addons", [])
-        }
+        result = {"results": addon_id in client_meta.get("installed_addons", [])}
         response = app.response_class(
             response=json.dumps(result), status=200, mimetype="application/json"
         )
         return response
 
-    @app.route(
-        "/v1/api/recommendations/<hashed_client_id>/", methods=["GET", "POST"]
-    )
+    @app.route("/v1/api/recommendations/<hashed_client_id>/", methods=["GET", "POST"])
     def recommendations(hashed_client_id):
         """Return a list of recommendations provided a telemetry client_id."""
         # Use the module global PROXY_MANAGER
@@ -172,9 +185,7 @@ def configure_plugin(app):  # noqa: C901
             jdata["results"] = []
             jdata["error"] = "Invalid JSON in POST: {}".format(e)
             return app.response_class(
-                response=json.dumps(
-                    jdata, status=400, mimetype="application/json"
-                )
+                response=json.dumps(jdata, status=400, mimetype="application/json")
             )
 
         # Coerce the uuid.UUID type into a string

@@ -9,6 +9,10 @@ from .lazys3 import LazyJSONLoader
 from .s3config import TAAR_LOCALE_BUCKET
 from .s3config import TAAR_LOCALE_KEY
 
+import markus
+
+metrics = markus.get_metrics("taar")
+
 
 class LocaleRecommender(AbstractRecommender):
     """ A recommender class that returns top N addons based on the client geo-locale.
@@ -27,7 +31,7 @@ class LocaleRecommender(AbstractRecommender):
         self.logger = self._ctx[IMozLogging].get_logger("taar")
 
         self._top_addons_per_locale = LazyJSONLoader(
-            self._ctx, TAAR_LOCALE_BUCKET, TAAR_LOCALE_KEY
+            self._ctx, TAAR_LOCALE_BUCKET, TAAR_LOCALE_KEY, "locale"
         )
 
         self._init_from_ctx()
@@ -69,12 +73,14 @@ class LocaleRecommender(AbstractRecommender):
 
         return True
 
+    @metrics.timer_decorator("locale_recommend")
     def recommend(self, client_data, limit, extra_data={}):
         try:
             result_list = self._recommend(client_data, limit, extra_data)
         except Exception as e:
             result_list = []
             self._top_addons_per_locale.force_expiry()
+            metrics.incr("error_locale", value=1)
             self.logger.exception(
                 "Locale recommender crashed for {}".format(
                     client_data.get("client_id", "no-client-id")

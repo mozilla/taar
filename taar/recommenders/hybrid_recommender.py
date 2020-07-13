@@ -10,6 +10,10 @@ import random
 from .s3config import TAAR_WHITELIST_BUCKET
 from .s3config import TAAR_WHITELIST_KEY
 
+import markus
+
+metrics = markus.get_metrics("taar")
+
 
 class CuratedWhitelistCache:
     """
@@ -19,7 +23,7 @@ class CuratedWhitelistCache:
     def __init__(self, ctx):
         self._ctx = ctx
         self._data = LazyJSONLoader(
-            self._ctx, TAAR_WHITELIST_BUCKET, TAAR_WHITELIST_KEY
+            self._ctx, TAAR_WHITELIST_BUCKET, TAAR_WHITELIST_KEY, "whitelist",
         )
 
     def get_whitelist(self):
@@ -55,6 +59,7 @@ class CuratedRecommender(AbstractRecommender):
         self.logger.info("Curated can_recommend: {}".format(True))
         return True
 
+    @metrics.timer_decorator("hybrid_recommend")
     def recommend(self, client_data, limit, extra_data={}):
         """
         Curated recommendations are just random selections
@@ -162,7 +167,10 @@ class HybridRecommender(AbstractRecommender):
             list(merged_results), key=op.itemgetter(1), reverse=True
         )
 
-        log_data = (client_data["client_id"], str([r[0] for r in sorted_results]))
+        log_data = (
+            client_data["client_id"],
+            str([r[0] for r in sorted_results]),
+        )
 
         self.logger.info(
             "Hybrid recommendations client_id: [%s], guids: [%s]" % log_data

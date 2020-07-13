@@ -6,15 +6,21 @@ import json
 import threading
 import time
 
+import markus
+
+
+metrics = markus.get_metrics("taar")
+
 
 class LazyJSONLoader:
-    def __init__(self, ctx, s3_bucket, s3_key, ttl=14400):
+    def __init__(self, ctx, s3_bucket, s3_key, metric_name="", ttl=14400):
         self._ctx = ctx
         self.logger = self._ctx[IMozLogging].get_logger("taar")
         self._clock = self._ctx[IClock]
 
         self._s3_bucket = s3_bucket
         self._s3_key = s3_key
+        self._metric_name = metric_name
         self._ttl = int(ttl)
         self._expiry_time = 0
 
@@ -54,6 +60,7 @@ class LazyJSONLoader:
         return self._refresh_cache(transform), True
 
     def _refresh_cache(self, transform=None):
+
         with self._lock:
             # If some requests get stale data while the S3 bucket is
             # being reloaded - it's not the end of the world.
@@ -70,6 +77,7 @@ class LazyJSONLoader:
 
             raw_data = None
             raw_bytes = None
+
             try:
                 # We need to force a data reload from S3
                 config = Config(connect_timeout=10, retries={"max_attempts": 3})
@@ -95,6 +103,15 @@ class LazyJSONLoader:
                     if transform is not None:
                         tmp = transform(tmp)
                     self._cached_copy = tmp
+                    metrics.timing(
+                        self._metric_name,
+                        value=load_time * 1000,
+                        tags=[
+                            f"store:s3",
+                            f"bucket:{self._s3_bucket}",
+                            f"key:{self._s3_key}",
+                        ],
+                    )
                 except ValueError:
                     # In the event of an error, we want to try to reload
                     # the data so force the expiry to 0, but leave the

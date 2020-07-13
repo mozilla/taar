@@ -7,12 +7,17 @@ import numpy as np
 from .lazys3 import LazyJSONLoader
 from srgutil.interfaces import IMozLogging
 
+import markus
+
+
 from .s3config import (
     TAARLITE_GUID_COINSTALL_BUCKET,
     TAARLITE_GUID_COINSTALL_KEY,
     TAARLITE_GUID_RANKING_KEY,
 )
 
+
+metrics = markus.get_metrics("taar")
 
 ADDON_DL_ERR = (
     f"Cannot download addon coinstallation file {TAARLITE_GUID_COINSTALL_KEY}"
@@ -64,6 +69,7 @@ class GuidBasedRecommender:
                 self._ctx,
                 TAARLITE_GUID_COINSTALL_BUCKET,
                 TAARLITE_GUID_COINSTALL_KEY,
+                "guid_coinstall",
             )
 
         if "ranking_loader" in self._ctx:
@@ -73,6 +79,7 @@ class GuidBasedRecommender:
                 self._ctx,
                 TAARLITE_GUID_COINSTALL_BUCKET,
                 TAARLITE_GUID_RANKING_KEY,
+                "guid_ranking",
             )
 
         self._init_from_ctx()
@@ -154,9 +161,7 @@ class GuidBasedRecommender:
 
                 if coinstall_guid not in guid_row_norm:
                     guid_row_norm[coinstall_guid] = []
-                guid_row_norm[coinstall_guid].append(
-                    1.0 * coinstall_count / rowsum
-                )
+                guid_row_norm[coinstall_guid].append(1.0 * coinstall_count / rowsum)
 
         self._guid_maps = {
             "count_map": guid_count_map,
@@ -184,6 +189,7 @@ class GuidBasedRecommender:
 
         return True
 
+    @metrics.timer_decorator("guid_recommendation")
     def recommend(self, client_data, limit=4):
         """
         TAAR lite will yield 4 recommendations for the AMO page
@@ -244,15 +250,11 @@ class GuidBasedRecommender:
         # the addon but is zero padded.
         result_dict = {}
         for k, v in tmp_result_dict.items():
-            lex_value = "{0:020.10f}.{1:010d}".format(
-                v, self._guid_rankings.get(k, 0)
-            )
+            lex_value = "{0:020.10f}.{1:010d}".format(v, self._guid_rankings.get(k, 0))
             result_dict[k] = lex_value
 
         # Sort the result dictionary in descending order by weight
-        result_list = sorted(
-            result_dict.items(), key=lambda x: x[1], reverse=True
-        )
+        result_list = sorted(result_dict.items(), key=lambda x: x[1], reverse=True)
 
         log_data = (str(addon_guid), [str(r) for r in result_list[:limit]])
         self.logger.info(
@@ -313,9 +315,7 @@ class GuidBasedRecommender:
             norm_sum = sum(guid_row_norm_list)
             if norm_sum == 0:
                 self.logger.warning(
-                    "Sum of GUID_ROW_NORM data for [{}] is zero.".format(
-                        output_guid
-                    )
+                    "Sum of GUID_ROW_NORM data for [{}] is zero.".format(output_guid)
                 )
                 continue
             output_dict[output_guid] = output_guid_weight / norm_sum
@@ -342,9 +342,7 @@ class GuidBasedRecommender:
         """ Return a factor to apply to the weight for a guid
         recommendation.
         """
-        dampener = 1.0 - (
-            1.0 * (self.RECURSION_LEVELS - level) / self.RECURSION_LEVELS
-        )
+        dampener = 1.0 - (1.0 * (self.RECURSION_LEVELS - level) / self.RECURSION_LEVELS)
         dampener *= dampener
         return dampener
 
@@ -379,10 +377,7 @@ class GuidBasedRecommender:
                 next_level_results = self._compute_recursive_results(
                     next_level_coinstalls, level
                 )
-                for (
-                    next_level_guid,
-                    next_level_weight,
-                ) in next_level_results.items():
+                for (next_level_guid, next_level_weight,) in next_level_results.items():
                     weight = consolidated_coinstall_dict.get(guid, 0)
                     weight += next_level_weight
                     consolidated_coinstall_dict[guid] = weight
