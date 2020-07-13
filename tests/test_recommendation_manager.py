@@ -20,6 +20,9 @@ from .test_hybrid_recommender import install_mock_curated_data
 import operator
 from functools import reduce
 
+from markus import TIMING
+from markus.testing import MetricsMock
+
 
 class StubRecommender(AbstractRecommender):
     """ A shared, stub recommender that can be used for testing.
@@ -50,18 +53,12 @@ def install_mocks(ctx, mock_fetcher=None):
     ctx["recommender_factory"] = MockRecommenderFactory()
 
     DATA = {
-        "ensemble_weights": {
-            "collaborative": 1000,
-            "similarity": 100,
-            "locale": 10,
-        }
+        "ensemble_weights": {"collaborative": 1000, "similarity": 100, "locale": 10,}
     }
 
     conn = boto3.resource("s3", region_name="us-west-2")
     conn.create_bucket(Bucket=TAAR_ENSEMBLE_BUCKET)
-    conn.Object(TAAR_ENSEMBLE_BUCKET, TAAR_ENSEMBLE_KEY).put(
-        Body=json.dumps(DATA)
-    )
+    conn.Object(TAAR_ENSEMBLE_BUCKET, TAAR_ENSEMBLE_KEY).put(Body=json.dumps(DATA))
 
     return ctx
 
@@ -97,11 +94,15 @@ def test_simple_recommendation(test_ctx):
         ("efg", 21.0),
     ]
 
-    manager = RecommendationManager(ctx.child())
-    recommendation_list = manager.recommend("some_ignored_id", 10)
+    with MetricsMock() as mm:
+        manager = RecommendationManager(ctx.child())
+        recommendation_list = manager.recommend("some_ignored_id", 10)
 
-    assert isinstance(recommendation_list, list)
-    assert recommendation_list == EXPECTED_RESULTS
+        assert isinstance(recommendation_list, list)
+        assert recommendation_list == EXPECTED_RESULTS
+
+        assert mm.has_record(TIMING, stat="taar.ensemble")
+        assert mm.has_record(TIMING, stat="taar.profile_recommendation")
 
 
 @mock_s3
@@ -110,7 +111,7 @@ def test_fixed_client_id_valid(test_ctx):
     ctx = install_mock_curated_data(ctx)
 
     manager = RecommendationManager(ctx.child())
-    recommendation_list = manager.recommend('111111', 10)
+    recommendation_list = manager.recommend("111111", 10)
 
     assert len(recommendation_list) == 10
 
@@ -137,14 +138,14 @@ def test_experimental_randomization(test_ctx):
     ctx = install_mock_curated_data(ctx)
 
     manager = RecommendationManager(ctx.child())
-    raw_list = manager.recommend('111111', 10)
+    raw_list = manager.recommend("111111", 10)
 
     # Clobber the experiment probability to be 100% to force a
     # reordering.
     ctx["TAAR_EXPERIMENT_PROB"] = 1.0
 
     manager = RecommendationManager(ctx.child())
-    rand_list = manager.recommend('111111', 10)
+    rand_list = manager.recommend("111111", 10)
 
     """
     The two lists should be :
@@ -162,4 +163,5 @@ def test_experimental_randomization(test_ctx):
         )
         is False
     )
+
     assert len(rand_list) == len(raw_list)

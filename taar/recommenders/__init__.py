@@ -1,15 +1,15 @@
 from .collaborative_recommender import CollaborativeRecommender
+from .guid_based_recommender import GuidBasedRecommender
 from .locale_recommender import LocaleRecommender
-from .similarity_recommender import SimilarityRecommender
 from .recommendation_manager import RecommendationManager, RecommenderFactory
-from .fixtures import hasher  # noqa
+from .similarity_recommender import SimilarityRecommender
 
 
 __all__ = [
     "CollaborativeRecommender",
+    "GuidBasedRecommender",
     "LocaleRecommender",
     "SimilarityRecommender",
     "RecommendationManager",
     "RecommenderFactory",
-    "hasher",
 ]

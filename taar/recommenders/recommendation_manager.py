@@ -5,18 +5,15 @@
 from taar.recommenders.ensemble_recommender import EnsembleRecommender
 from taar.recommenders.randomizer import in_experiment, reorder_guids
 from srgutil.interfaces import IMozLogging
-
-from taar.context import default_context
-
 from .lazys3 import LazyJSONLoader
-
 from .s3config import TAAR_WHITELIST_BUCKET
 from .s3config import TAAR_WHITELIST_KEY
 from .s3config import TAAR_EXPERIMENT_PROB
 
-# We need to build a default logger for the schema validation as there
-# is no class to bind to yet.
-ctx = default_context()
+import markus
+
+
+metrics = markus.get_metrics("taar")
 
 
 class RecommenderFactory:
@@ -59,13 +56,12 @@ class RecommendationManager:
         # The whitelist data is only used for test client IDs
 
         self._whitelist_data = LazyJSONLoader(
-            self._ctx, TAAR_WHITELIST_BUCKET, TAAR_WHITELIST_KEY
+            self._ctx, TAAR_WHITELIST_BUCKET, TAAR_WHITELIST_KEY, "whitelist"
         )
 
-        self._experiment_prob = ctx.get(
-            "TAAR_EXPERIMENT_PROB", TAAR_EXPERIMENT_PROB
-        )
+        self._experiment_prob = ctx.get("TAAR_EXPERIMENT_PROB", TAAR_EXPERIMENT_PROB)
 
+    @metrics.timer_decorator("profile_recommendation")
     def recommend(self, client_id, limit, extra_data={}):
         """Return recommendations for the given client.
 

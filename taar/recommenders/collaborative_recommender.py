@@ -16,6 +16,10 @@ from .s3config import TAAR_ITEM_MATRIX_KEY
 from .s3config import TAAR_ADDON_MAPPING_BUCKET
 from .s3config import TAAR_ADDON_MAPPING_KEY
 
+import markus
+
+metrics = markus.get_metrics("taar")
+
 
 def synchronized(wrapped):
     """ Synchronization decorator. """
@@ -55,11 +59,14 @@ class CollaborativeRecommender(AbstractRecommender):
         self._lock = threading.RLock()
 
         self._addon_mapping = LazyJSONLoader(
-            self._ctx, TAAR_ADDON_MAPPING_BUCKET, TAAR_ADDON_MAPPING_KEY
+            self._ctx,
+            TAAR_ADDON_MAPPING_BUCKET,
+            TAAR_ADDON_MAPPING_KEY,
+            "addon_mapping",
         )
 
         self._raw_item_matrix = LazyJSONLoader(
-            self._ctx, TAAR_ITEM_MATRIX_BUCKET, TAAR_ITEM_MATRIX_KEY
+            self._ctx, TAAR_ITEM_MATRIX_BUCKET, TAAR_ITEM_MATRIX_KEY, "item_matrix",
         )
 
         self.logger = self._ctx[IMozLogging].get_logger("taar")
@@ -166,6 +173,7 @@ class CollaborativeRecommender(AbstractRecommender):
         recommendations = [(s[0], s[1]) for s in sorted_dists[:limit]]
         return recommendations
 
+    @metrics.timer_decorator("collaborative_recommend")
     def recommend(self, client_data, limit, extra_data={}):
         # Addons identifiers are stored as positive hash values within the model.
         with self._lock:
@@ -177,6 +185,7 @@ class CollaborativeRecommender(AbstractRecommender):
                 self._addon_mapping.force_expiry()
                 self._raw_item_matrix.force_expiry()
 
+                metrics.incr("error_collaborative", value=1)
                 self.logger.exception(
                     "Collaborative recommender crashed for {}".format(
                         client_data.get("client_id", "no-client-id")
@@ -184,7 +193,10 @@ class CollaborativeRecommender(AbstractRecommender):
                     e,
                 )
 
-        log_data = (client_data["client_id"], str([r[0] for r in recommendations]))
+        log_data = (
+            client_data["client_id"],
+            str([r[0] for r in recommendations]),
+        )
         self.logger.info(
             "collaborative_recommender_triggered, "
             "client_id: [%s], "

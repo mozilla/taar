@@ -21,6 +21,9 @@ from taar.recommenders.collaborative_recommender import CollaborativeRecommender
 from taar.recommenders.collaborative_recommender import positive_hash
 import json
 
+from markus import TIMING
+from markus.testing import MetricsMock
+
 
 """
 We need to generate a synthetic list of addons and relative weights
@@ -134,30 +137,36 @@ def test_empty_recommendations(test_ctx):
 
 @mock_s3
 def test_best_recommendation(test_ctx):
-    # Make sure the structure of the recommendations is correct and that we
-    # recommended the the right addon.
-    ctx = install_mock_data(test_ctx)
-    r = CollaborativeRecommender(ctx)
+    with MetricsMock() as mm:
 
-    # An non-empty set of addons should give a list of recommendations
-    fixture_client_data = {
-        "installed_addons": ["addon4.id"],
-        "client_id": "test_client",
-    }
-    assert r.can_recommend(fixture_client_data)
-    recommendations = r.recommend(fixture_client_data, 1)
+        # Make sure the structure of the recommendations is correct and that we
+        # recommended the the right addon.
+        ctx = install_mock_data(test_ctx)
+        r = CollaborativeRecommender(ctx)
 
-    assert isinstance(recommendations, list)
-    assert len(recommendations) == 1
+        # An non-empty set of addons should give a list of recommendations
+        fixture_client_data = {
+            "installed_addons": ["addon4.id"],
+            "client_id": "test_client",
+        }
+        assert r.can_recommend(fixture_client_data)
+        recommendations = r.recommend(fixture_client_data, 1)
 
-    # Verify that addon2 - the most heavy weighted addon was
-    # recommended
-    result = recommendations[0]
-    assert type(result) is tuple
-    assert len(result) == 2
-    assert result[0] == "addon2.id"
-    assert type(result[1]) is numpy.float64
-    assert numpy.isclose(result[1], numpy.float64("0.3225"))
+        assert isinstance(recommendations, list)
+        assert len(recommendations) == 1
+
+        # Verify that addon2 - the most heavy weighted addon was
+        # recommended
+        result = recommendations[0]
+        assert type(result) is tuple
+        assert len(result) == 2
+        assert result[0] == "addon2.id"
+        assert type(result[1]) is numpy.float64
+        assert numpy.isclose(result[1], numpy.float64("0.3225"))
+
+        assert mm.has_record(TIMING, stat="taar.item_matrix")
+        assert mm.has_record(TIMING, stat="taar.addon_mapping")
+        assert mm.has_record(TIMING, stat="taar.collaborative_recommend")
 
 
 @mock_s3

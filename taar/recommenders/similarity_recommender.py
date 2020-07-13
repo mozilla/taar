@@ -13,6 +13,9 @@ from .s3config import TAAR_SIMILARITY_BUCKET
 from .s3config import TAAR_SIMILARITY_DONOR_KEY
 from .s3config import TAAR_SIMILARITY_LRCURVES_KEY
 
+import markus
+
+metrics = markus.get_metrics("taar")
 
 FLOOR_DISTANCE_ADJUSTMENT = 0.001
 
@@ -51,14 +54,20 @@ class SimilarityRecommender(AbstractRecommender):
             self._donors_pool = self._ctx["similarity_donors_pool"]
         else:
             self._donors_pool = LazyJSONLoader(
-                self._ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY
+                self._ctx,
+                TAAR_SIMILARITY_BUCKET,
+                TAAR_SIMILARITY_DONOR_KEY,
+                "similarity_donor",
             )
 
         if "similarity_lr_curves" in self._ctx:
             self._lr_curves = self._ctx["similarity_lr_curves"]
         else:
             self._lr_curves = LazyJSONLoader(
-                self._ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY
+                self._ctx,
+                TAAR_SIMILARITY_BUCKET,
+                TAAR_SIMILARITY_LRCURVES_KEY,
+                "similarity_curves",
             )
 
         self.logger = self._ctx[IMozLogging].get_logger("taar")
@@ -196,7 +205,7 @@ class SimilarityRecommender(AbstractRecommender):
 
         # Compute the distances between the user and the cached continuous features.
         cont_features = distance.cdist(
-            self.continuous_features, np.array([client_continuous_feats]), "canberra"
+            self.continuous_features, np.array([client_continuous_feats]), "canberra",
         )
 
         # Compute the distances between the user and the cached categorical features.
@@ -284,6 +293,7 @@ class SimilarityRecommender(AbstractRecommender):
         )
         return recommendations_out
 
+    @metrics.timer_decorator("similarity_recommend")
     def recommend(self, client_data, limit, extra_data={}):
         try:
             recommendations_out = self._recommend(client_data, limit, extra_data)
@@ -292,6 +302,7 @@ class SimilarityRecommender(AbstractRecommender):
             self._donors_pool.force_expiry()
             self._lr_curves.force_expiry()
 
+            metrics.incr("error_similarity", value=1)
             self.logger.exception(
                 "Similarity recommender crashed for {}".format(
                     client_data.get("client_id", "no-client-id")

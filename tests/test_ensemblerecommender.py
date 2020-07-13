@@ -2,7 +2,10 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from taar.recommenders.ensemble_recommender import WeightCache, EnsembleRecommender
+from taar.recommenders.ensemble_recommender import (
+    WeightCache,
+    EnsembleRecommender,
+)
 from taar.recommenders.s3config import (
     TAAR_ENSEMBLE_BUCKET,
     TAAR_ENSEMBLE_KEY,
@@ -11,6 +14,9 @@ from moto import mock_s3
 import boto3
 import json
 from .mocks import MockRecommenderFactory
+
+from markus import TIMING
+from markus.testing import MetricsMock
 
 EXPECTED = {"collaborative": 1000, "similarity": 100, "locale": 10}
 
@@ -35,30 +41,34 @@ def test_weight_cache(test_ctx):
 
 @mock_s3
 def test_recommendations(test_ctx):
-    ctx = install_mock_ensemble_data(test_ctx)
+    with MetricsMock() as mm:
+        ctx = install_mock_ensemble_data(test_ctx)
 
-    EXPECTED_RESULTS = [
-        ("ghi", 3430.0),
-        ("def", 3320.0),
-        ("ijk", 3200.0),
-        ("hij", 3100.0),
-        ("lmn", 420.0),
-    ]
+        EXPECTED_RESULTS = [
+            ("ghi", 3430.0),
+            ("def", 3320.0),
+            ("ijk", 3200.0),
+            ("hij", 3100.0),
+            ("lmn", 420.0),
+        ]
 
-    factory = MockRecommenderFactory()
-    ctx["recommender_factory"] = factory
+        factory = MockRecommenderFactory()
+        ctx["recommender_factory"] = factory
 
-    ctx["recommender_map"] = {
-        "collaborative": factory.create("collaborative"),
-        "similarity": factory.create("similarity"),
-        "locale": factory.create("locale"),
-    }
-    r = EnsembleRecommender(ctx.child())
-    client = {"client_id": "12345"}  # Anything will work here
+        ctx["recommender_map"] = {
+            "collaborative": factory.create("collaborative"),
+            "similarity": factory.create("similarity"),
+            "locale": factory.create("locale"),
+        }
+        r = EnsembleRecommender(ctx.child())
+        client = {"client_id": "12345"}  # Anything will work here
 
-    recommendation_list = r.recommend(client, 5)
-    assert isinstance(recommendation_list, list)
-    assert recommendation_list == EXPECTED_RESULTS
+        recommendation_list = r.recommend(client, 5)
+        assert isinstance(recommendation_list, list)
+        assert recommendation_list == EXPECTED_RESULTS
+
+        assert mm.has_record(TIMING, "taar.ensemble")
+        assert mm.has_record(TIMING, "taar.ensemble_recommend")
 
 
 @mock_s3

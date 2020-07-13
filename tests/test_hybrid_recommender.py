@@ -20,6 +20,9 @@ import json
 from moto import mock_s3
 import boto3
 
+from markus import TIMING
+from markus.testing import MetricsMock
+
 
 def install_no_curated_data(ctx):
     ctx = ctx.child()
@@ -75,17 +78,21 @@ def test_curated_can_recommend(test_ctx):
 
 @mock_s3
 def test_curated_recommendations(test_ctx):
-    ctx = install_mock_curated_data(test_ctx)
-    r = CuratedRecommender(ctx)
+    with MetricsMock() as mm:
+        ctx = install_mock_curated_data(test_ctx)
+        r = CuratedRecommender(ctx)
 
-    # CuratedRecommender will always recommend something no matter
-    # what
+        # CuratedRecommender will always recommend something no matter
+        # what
 
-    for LIMIT in range(1, 5):
-        guid_list = r.recommend({"client_id": "000000"}, limit=LIMIT)
-        # The curated recommendations should always return with some kind
-        # of recommendations
-        assert len(guid_list) == LIMIT
+        for LIMIT in range(1, 5):
+            guid_list = r.recommend({"client_id": "000000"}, limit=LIMIT)
+            # The curated recommendations should always return with some kind
+            # of recommendations
+            assert len(guid_list) == LIMIT
+
+        assert mm.has_record(TIMING, "taar.whitelist")
+        assert mm.has_record(TIMING, "taar.hybrid_recommend")
 
 
 @mock_s3

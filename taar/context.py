@@ -1,3 +1,7 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
 """
 A Context is a customizable namespace.
 
@@ -26,8 +30,10 @@ def default_context():
     # Note that the EnsembleRecommender is *not* in this map as it
     # needs to ensure that the recommender_map key is installed in the
     # context
-    ctx['recommender_factory_map'] = {'collaborative': lambda: CollaborativeRecommender(ctx.child()),
-                                      'similarity': lambda: SimilarityRecommender(ctx.child()),
-                                      'locale': lambda: LocaleRecommender(ctx.child())}
+    ctx["recommender_factory_map"] = {
+        "collaborative": lambda: CollaborativeRecommender(ctx.child()),
+        "similarity": lambda: SimilarityRecommender(ctx.child()),
+        "locale": lambda: LocaleRecommender(ctx.child()),
+    }
 
     return ctx

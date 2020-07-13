@@ -12,10 +12,16 @@ from .s3config import TAAR_WHITELIST_KEY
 from .s3config import TAAR_ENSEMBLE_BUCKET
 from .s3config import TAAR_ENSEMBLE_KEY
 
-from .fixtures import hasher
+from taar.utils import hasher
+
+import markus
+
+metrics = markus.get_metrics("taar")
 
 
 def is_test_client(client_id):
+    """ any client_id where the GUID is composed of a single digit
+    (repeating) is a test id """
     return len(set(client_id.replace("-", ""))) == 1
 
 
@@ -24,7 +30,7 @@ class WeightCache:
         self._ctx = ctx
 
         self._weights = LazyJSONLoader(
-            self._ctx, TAAR_ENSEMBLE_BUCKET, TAAR_ENSEMBLE_KEY
+            self._ctx, TAAR_ENSEMBLE_BUCKET, TAAR_ENSEMBLE_KEY, "ensemble"
         )
 
     def getWeights(self):
@@ -57,7 +63,7 @@ class EnsembleRecommender(AbstractRecommender):
             self._recommender_map[rkey] = recommender_factory.create(rkey)
 
         self._whitelist_data = LazyJSONLoader(
-            self._ctx, TAAR_WHITELIST_BUCKET, TAAR_WHITELIST_KEY
+            self._ctx, TAAR_WHITELIST_BUCKET, TAAR_WHITELIST_KEY, "whitelist"
         )
 
         self._weight_cache = WeightCache(self._ctx.child())
@@ -75,6 +81,7 @@ class EnsembleRecommender(AbstractRecommender):
         self.logger.info("Ensemble can_recommend: {}".format(result))
         return result
 
+    @metrics.timer_decorator("ensemble_recommend")
     def recommend(self, client_data, limit, extra_data={}):
         client_id = client_data.get("client_id", "no-client-id")
 
@@ -89,6 +96,7 @@ class EnsembleRecommender(AbstractRecommender):
             results = list(zip(samples, p))
         else:
             try:
+                metrics.incr("error_ensemble", value=1)
                 results = self._recommend(client_data, limit, extra_data)
             except Exception as e:
                 results = []
@@ -140,9 +148,7 @@ class EnsembleRecommender(AbstractRecommender):
 
         # group by the guid, sum up the weights for recurring GUID
         # suggestions across all recommenders
-        guid_grouper = itertools.groupby(
-            flattened_results, lambda item: item[0]
-        )
+        guid_grouper = itertools.groupby(flattened_results, lambda item: item[0])
 
         ensemble_suggestions = []
         for (guid, guid_group) in guid_grouper:

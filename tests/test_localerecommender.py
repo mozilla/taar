@@ -11,6 +11,8 @@ import json
 from taar.recommenders import LocaleRecommender
 from taar.recommenders.s3config import TAAR_LOCALE_KEY, TAAR_LOCALE_BUCKET
 
+from markus import TIMING
+from markus.testing import MetricsMock
 
 FAKE_LOCALE_DATA = {
     "te-ST": [
@@ -68,21 +70,25 @@ def test_recommendations(test_ctx):
     The JSON output for this recommender should be a list of 2-tuples
     of (GUID, weight).
     """
-    ctx = install_mock_data(test_ctx)
-    r = LocaleRecommender(ctx)
-    recommendations = r.recommend({"locale": "en"}, 10)
+    with MetricsMock() as mm:
+        ctx = install_mock_data(test_ctx)
+        r = LocaleRecommender(ctx)
+        recommendations = r.recommend({"locale": "en"}, 10)
 
-    # Make sure the structure of the recommendations is correct and that we
-    # recommended the the right addon.
-    assert isinstance(recommendations, list)
-    assert len(recommendations) == len(FAKE_LOCALE_DATA["en"])
+        # Make sure the structure of the recommendations is correct and that we
+        # recommended the the right addon.
+        assert isinstance(recommendations, list)
+        assert len(recommendations) == len(FAKE_LOCALE_DATA["en"])
 
-    # Make sure that the reported addons are the one from the fake data.
-    for (addon_id, weight), (expected_id, expected_weight) in zip(
-        recommendations, FAKE_LOCALE_DATA["en"]
-    ):
-        assert addon_id == expected_id
-        assert weight == expected_weight
+        # Make sure that the reported addons are the one from the fake data.
+        for (addon_id, weight), (expected_id, expected_weight) in zip(
+            recommendations, FAKE_LOCALE_DATA["en"]
+        ):
+            assert addon_id == expected_id
+            assert weight == expected_weight
+
+        assert mm.has_record(TIMING, "taar.locale")
+        assert mm.has_record(TIMING, "taar.locale_recommend")
 
 
 @mock_s3
