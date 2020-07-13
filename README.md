@@ -260,7 +260,7 @@ Requests for a TAAR-lite recommendation can be made using curl as
 well:
 
 ```
-curl https://user@pass:stage.taar.nonprod.dataops.mozgcp.net/taarlite/api/v1/addon_recommendations/<addon_guid>/
+curl https://stage.taar.nonprod.dataops.mozgcp.net/taarlite/api/v1/addon_recommendations/<addon_guid>/
 ```
 
 ## A note on cdist optimization. 
