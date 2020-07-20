@@ -1,7 +1,7 @@
 # Taar
 Telemetry-Aware Addon Recommender
 
-[![CircleCI](https://circleci.com/gh/mozilla/taar.svg?style=svg)](https://circleci.com/gh/mozila/taar)
+[![CircleCI](https://circleci.com/gh/mozilla/taar.svg?style=svg)](https://circleci.com/gh/mozilla/taar)
 
 
 Table of Contents
