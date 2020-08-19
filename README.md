@@ -102,6 +102,20 @@ create a new release has been split out into separate
 
 ## Dependencies
 
+### Google Cloud Storage resources
+
+### TODO: put this into a table to be easier to read
+The final TAAR models are stored in:
+
+```gs://moz-fx-data-taar-pr-prod-e0f7-prod-models```
+
+The TAAR production model bucket is defined in Airflow under the
+variable `taar_etl_model_storage_bucket`
+
+Temporary models that the Airflow  ETL jobs require are stored in a
+temporary bucket defined in the Airflow variable `taar_etl_storage_bucket`
+
+
 ### AWS resources
 
 Recommendation engines load models from Amazon S3.

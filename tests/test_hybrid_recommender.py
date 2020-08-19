@@ -10,7 +10,7 @@ from taar.recommenders.hybrid_recommender import CuratedRecommender
 from taar.recommenders.hybrid_recommender import HybridRecommender
 from taar.recommenders.ensemble_recommender import EnsembleRecommender
 
-from taar.recommenders.s3config import TAAR_WHITELIST_BUCKET, TAAR_WHITELIST_KEY
+from taar.settings import TAAR_WHITELIST_BUCKET, TAAR_WHITELIST_KEY
 
 # from taar.recommenders.hybrid_recommender import ENSEMBLE_WEIGHTS
 from .test_ensemblerecommender import install_mock_ensemble_data

@@ -2,7 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from decouple import config
 from flask import request
 import json
 
@@ -13,11 +12,12 @@ from taar.context import default_context
 from taar.profile_fetcher import ProfileFetcher
 from taar import recommenders
 
-# These are configurations that are specific to the TAAR library
-TAAR_MAX_RESULTS = config("TAAR_MAX_RESULTS", default=10, cast=int)
-
-STATSD_HOST = config("STATSD_HOST", default="localhost", cast=str)
-STATSD_PORT = config("STATSD_PORT", default=8125, cast=int)
+from taar.settings import (
+    TAAR_MAX_RESULTS,
+    TAARLITE_MAX_RESULTS,
+    STATSD_HOST,
+    STATSD_PORT,
+)
 
 
 class ResourceProxy(object):
@@ -113,10 +113,10 @@ def configure_plugin(app):  # noqa: C901
             cdict["normalize"] = normalization_type
 
         recommendations = taarlite_recommender.recommend(
-            client_data=cdict, limit=TAAR_MAX_RESULTS
+            client_data=cdict, limit=TAARLITE_MAX_RESULTS
         )
 
-        if len(recommendations) != TAAR_MAX_RESULTS:
+        if len(recommendations) != TAARLITE_MAX_RESULTS:
             recommendations = []
 
         # Strip out weights from TAAR results to maintain compatibility

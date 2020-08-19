@@ -9,9 +9,11 @@ from srgutil.interfaces import IMozLogging
 import numpy as np
 from .lazys3 import LazyJSONLoader
 
-from .s3config import TAAR_SIMILARITY_BUCKET
-from .s3config import TAAR_SIMILARITY_DONOR_KEY
-from .s3config import TAAR_SIMILARITY_LRCURVES_KEY
+from taar.settings import (
+    TAAR_SIMILARITY_BUCKET,
+    TAAR_SIMILARITY_DONOR_KEY,
+    TAAR_SIMILARITY_LRCURVES_KEY,
+)
 
 import markus
 

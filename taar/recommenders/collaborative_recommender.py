@@ -11,10 +11,12 @@ import threading
 
 from .base_recommender import AbstractRecommender
 
-from .s3config import TAAR_ITEM_MATRIX_BUCKET
-from .s3config import TAAR_ITEM_MATRIX_KEY
-from .s3config import TAAR_ADDON_MAPPING_BUCKET
-from .s3config import TAAR_ADDON_MAPPING_KEY
+from taar.settings import (
+    TAAR_ITEM_MATRIX_BUCKET,
+    TAAR_ITEM_MATRIX_KEY,
+    TAAR_ADDON_MAPPING_BUCKET,
+    TAAR_ADDON_MAPPING_KEY,
+)
 
 import markus
 

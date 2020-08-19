@@ -7,8 +7,8 @@ from .lazys3 import LazyJSONLoader
 from srgutil.interfaces import IMozLogging
 import operator as op
 import random
-from .s3config import TAAR_WHITELIST_BUCKET
-from .s3config import TAAR_WHITELIST_KEY
+
+from taar.settings import TAAR_WHITELIST_BUCKET, TAAR_WHITELIST_KEY
 
 import markus
 

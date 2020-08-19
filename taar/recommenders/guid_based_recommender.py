@@ -10,7 +10,7 @@ from srgutil.interfaces import IMozLogging
 import markus
 
 
-from .s3config import (
+from taar.settings import (
     TAARLITE_GUID_COINSTALL_BUCKET,
     TAARLITE_GUID_COINSTALL_KEY,
     TAARLITE_GUID_RANKING_KEY,
