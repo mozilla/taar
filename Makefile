@@ -27,6 +27,9 @@ up:
 		-v ~/.config:/app/.config \
 		-v ~/.aws:/app/.aws \
 		-v ~/.gcp_creds:/app/.gcp_creds \
+		-e WORKERS=1 \
+		-e THREADS=2 \
+		-e LOG_LEVEL=20 \
 		-e GOOGLE_APPLICATION_CREDENTIALS=/app/.gcp_creds/vng-taar-dev-clientinfo-svc.json \
 		-e TAAR_API_PLUGIN=taar.plugin \
 		-e TAAR_ITEM_MATRIX_BUCKET=telemetry-public-analysis-2 \
@@ -43,6 +46,7 @@ up:
 		-e TAAR_SIMILARITY_DONOR_KEY=taar/similarity/donors.json \
 		-e TAAR_SIMILARITY_LRCURVES_KEY=taar/similarity/lr_curves.json \
 		-e TAAR_MAX_RESULTS=10 \
+		-e TAARLITE_MAX_RESULTS=4 \
 		-e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} \
 		-e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \
 		-e BIGTABLE_PROJECT_ID \
