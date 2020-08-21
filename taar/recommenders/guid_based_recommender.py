@@ -365,7 +365,7 @@ class GuidBasedRecommender:
                     tmp_result_dict.items(), key=lambda x: x[1], reverse=True
                 )
                 for k, v in rank_sorted[:TWICE_LIMIT]:
-                    lex_value = "{0:05.5f}.{1:010d}".format(
+                    lex_value = "{0:020.10f}.{1:010d}".format(
                         v, self._guid_rankings.get(k, 0)
                     )
                     result_list.append((k, lex_value))
