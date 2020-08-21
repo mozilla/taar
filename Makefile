@@ -59,5 +59,8 @@ up:
 test-container:
 	docker run -e CODECOV_TOKEN=${CODECOV_TOKEN} -it taar:latest test
 
+run_local:
+	TAAR_API_PLUGIN=taar.plugin python taar/flask_app.py
+
 shell:
 	docker run -it taar:latest bash 
