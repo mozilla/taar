@@ -1,5 +1,15 @@
+import sys
+
+
 def warm_caches():
-    from taar.recommenders.guid_based_recommender import GuidCoinstall, GuidRanking
+    if "pytest" in sys.modules:
+        # Don't warm caches up under test
+        return
+
+    from taar.recommenders.guid_based_recommender import (
+        GuidCoinstall,
+        GuidRanking,
+    )
 
     guid_coinstall = GuidCoinstall.get_instance()
     guid_rank = GuidRanking.get_instance()
