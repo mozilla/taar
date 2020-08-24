@@ -5,6 +5,9 @@
 
 from decouple import config
 
+REDIS_HOST = config("REDIS_HOST", "localhost", cast=str)
+REDIS_PORT = config("REDIS_PORT", 6379, cast=int)
+
 # These are configurations that are specific to the TAAR library
 TAAR_MAX_RESULTS = config("TAAR_MAX_RESULTS", default=10, cast=int)
 
@@ -54,4 +57,8 @@ TAARLITE_GUID_COINSTALL_KEY = config(
     "TAARlLITE_GUID_COINSTALL_KEY", "taar/lite/guid_coinstallation.json"
 )
 
-TAARLITE_GUID_RANKING_KEY = "taar/lite/guid_install_ranking.json"
+TAARLITE_GUID_RANKING_KEY = config(
+    "TAARLITE_GUID_RANKING_KEY", "taar/lite/guid_install_ranking.json"
+)
+
+TAARLITE_TTL = config("TAARLITE_TTL", 60 * 60, cast=int)
