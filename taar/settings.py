@@ -62,3 +62,6 @@ TAARLITE_GUID_RANKING_KEY = config(
 )
 
 TAARLITE_TTL = config("TAARLITE_TTL", 60 * 60, cast=int)
+
+# Set a default TAARLite mutex TTL of 10 minutes (60 * 10)
+TAARLITE_MUTEX_TTL = config("TAARLITE_MUTEX_TTL", 60 * 10, cast=int)
