@@ -31,7 +31,6 @@ FILTERED_COINSTALL_PREFIX = "filtered_coinstall|"
 RANKING_PREFIX = "ranking|"
 MIN_INSTALLS_PREFIX = "min_installs|"
 
-
 # This is a map is guid->sum of coinstall counts
 NORMDATA_COUNT_MAP_PREFIX = "normdata_count_map_prefix|"
 
@@ -68,6 +67,7 @@ class AddonsCoinstallCache:
     def __init__(self, ctx, ttl=TAARLITE_TTL):
         self._ctx = ctx
         self.logger = self._ctx[IMozLogging].get_logger("taar")
+
         self._ttl = ttl
 
         rcon = self.init_redis_connections()
@@ -75,13 +75,15 @@ class AddonsCoinstallCache:
         self._r1 = rcon[1]
         self._r2 = rcon[2]
 
-        # Set (pid, thread_ident) tuple of the first
-        self._ident = f"{os.getpid()}_{threading.get_ident()}"
-
         if self._db() is None:
             self.safe_load_data()
 
         self.wait_for_data()
+
+    @property
+    def _ident(self):
+        """ pid/thread identity """
+        return f"{os.getpid()}_{threading.get_ident()}"
 
     def init_redis_connections(self):
         return {

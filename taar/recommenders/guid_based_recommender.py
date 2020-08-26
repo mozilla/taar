@@ -23,13 +23,13 @@ NORM_MODE_GUIDCEPTION = "guidception"
 
 
 @contextmanager
-def log_timer(msg, logger):
+def log_timer_debug(msg, logger):
     start_time = time.time()
     try:
         yield
     finally:
         end_time = time.time()
-        logger.info(msg + f" Completed in {end_time-start_time} seconds")
+        logger.debug(msg + f" Completed in {end_time-start_time} seconds")
 
 
 @contextmanager
@@ -105,16 +105,16 @@ class GuidBasedRecommender:
         TAAR lite will yield 4 recommendations for the AMO page
         """
 
-        with log_timer_info(f"Results computed", self.logger):
+        with log_timer_debug(f"Results computed", self.logger):
 
-            with log_timer("get client data", self.logger):
+            with log_timer_debug("get client data", self.logger):
                 addon_guid = client_data.get("guid")
 
             # Get the raw co-installation result dictionary
-            with log_timer("Get filtered coinstallations", self.logger):
+            with log_timer_debug("Get filtered coinstallations", self.logger):
                 result_dict = self._redis_cache.get_filtered_coinstall(addon_guid, {})
 
-            with log_timer("acquire normalization method", self.logger):
+            with log_timer_debug("acquire normalization method", self.logger):
                 normalize = client_data.get("normalize", NORM_MODE_ROWNORMSUM)
 
                 norm_dict = {
@@ -136,7 +136,7 @@ class GuidBasedRecommender:
                 # Bind the normalization method
                 norm_method = norm_dict[normalize]
 
-            with log_timer(
+            with log_timer_debug(
                 f"Compute normalization using method:{normalize}", self.logger
             ):
                 # Apply normalization
@@ -151,7 +151,7 @@ class GuidBasedRecommender:
             # the addon but is zero padded.
 
             TWICE_LIMIT = limit * 2
-            with log_timer(
+            with log_timer_debug(
                 f"Augment {TWICE_LIMIT} with installation counts and resorted",
                 self.logger,
             ):
@@ -214,10 +214,10 @@ class GuidBasedRecommender:
         The testcase for this scenario lays out the math more
         explicitly.
         """
-        with log_timer("normalize row weights for coinstall dict", self.logger):
+        with log_timer_debug("normalize row weights for coinstall dict", self.logger):
             tmp_dict = self._normalize_row_weights(input_coinstall_dict)
 
-        with log_timer(
+        with log_timer_debug(
             f"normalizing output_dict of size: {len(tmp_dict)}", self.logger
         ):
             output_dict = {}
