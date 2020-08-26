@@ -1,8 +1,6 @@
 import json
 
-from moto import mock_s3
 import fakeredis
-import boto3
 import pytest
 import mock
 import contextlib
@@ -10,11 +8,7 @@ import contextlib
 from taar.recommenders.guid_based_recommender import GuidBasedRecommender
 from taar.recommenders.redis_cache import AddonsCoinstallCache
 
-from taar.settings import (
-    TAARLITE_GUID_COINSTALL_BUCKET,
-    TAARLITE_GUID_COINSTALL_KEY,
-    TAARLITE_GUID_RANKING_KEY,
-)
+from taar.recommenders.redis_cache import NORMDATA_GUID_ROW_NORM_PREFIX
 
 
 from taar.recommenders.ua_parser import parse_ua, OSNAME_TO_ID
@@ -87,30 +81,19 @@ RESULTS = {
 }
 
 
-def install_mock_data(TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING, test_ctx):
-    conn = boto3.resource("s3", region_name="us-west-2")
-
-    conn.create_bucket(Bucket=TAARLITE_GUID_COINSTALL_BUCKET)
-
-    conn.Object(TAARLITE_GUID_COINSTALL_BUCKET, TAARLITE_GUID_COINSTALL_KEY).put(
-        Body=json.dumps(TAARLITE_MOCK_DATA)
-    )
-    conn.Object(TAARLITE_GUID_COINSTALL_BUCKET, TAARLITE_GUID_RANKING_KEY).put(
-        Body=json.dumps(TAARLITE_MOCK_GUID_RANKING)
-    )
-
-
 @contextlib.contextmanager
 def mock_coinstall_ranking_context(mock_coinstall, mock_ranking):
     with contextlib.ExitStack() as stack:
         stack.enter_context(
             mock.patch.object(
-                AddonsCoinstallCache, "fetch_ranking_data", return_value=mock_coinstall,
+                AddonsCoinstallCache, "fetch_ranking_data", return_value=mock_ranking,
             )
         )
         stack.enter_context(
             mock.patch.object(
-                AddonsCoinstallCache, "fetch_coinstall_data", return_value=mock_ranking
+                AddonsCoinstallCache,
+                "fetch_coinstall_data",
+                return_value=mock_coinstall,
             )
         )
 
@@ -130,34 +113,7 @@ def mock_coinstall_ranking_context(mock_coinstall, mock_ranking):
 
 
 def test_recommender_nonormal(test_ctx, TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING):
-    with contextlib.ExitStack() as stack:
-        stack.enter_context(
-            mock.patch.object(
-                AddonsCoinstallCache,
-                "fetch_ranking_data",
-                return_value=TAARLITE_MOCK_GUID_RANKING,
-            )
-        )
-        stack.enter_context(
-            mock.patch.object(
-                AddonsCoinstallCache,
-                "fetch_coinstall_data",
-                return_value=TAARLITE_MOCK_DATA,
-            )
-        )
-
-        # Patch fakeredis in
-        stack.enter_context(
-            mock.patch.object(
-                AddonsCoinstallCache,
-                "init_redis_connections",
-                return_value={
-                    0: fakeredis.FakeStrictRedis(),
-                    1: fakeredis.FakeStrictRedis(),
-                    2: fakeredis.FakeStrictRedis(),
-                },
-            )
-        )
+    with mock_coinstall_ranking_context(TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING):
 
         with MetricsMock() as mm:
             EXPECTED_RESULTS = RESULTS["default"]
@@ -173,157 +129,161 @@ def test_recommender_nonormal(test_ctx, TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_R
             mm.has_record(TIMING, "taar.guid_recommendation")
 
 
-@mock_s3
 def test_row_count_recommender(
     test_ctx, TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING
 ):
-    EXPECTED_RESULTS = RESULTS["row_count"]
-    install_mock_data(TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING, test_ctx)
+    with mock_coinstall_ranking_context(TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING):
 
-    recommender = GuidBasedRecommender(test_ctx)
-    guid = "guid-2"
+        EXPECTED_RESULTS = RESULTS["row_count"]
 
-    actual = recommender.recommend({"guid": guid, "normalize": "row_count"})
+        recommender = GuidBasedRecommender(test_ctx)
+        guid = "guid-2"
 
-    # Note that guid-9 is not included because it's weight is
-    # decreased 50% to 5
-    assert EXPECTED_RESULTS == actual
+        actual = recommender.recommend({"guid": guid, "normalize": "row_count"})
+
+        # Note that guid-9 is not included because it's weight is
+        # decreased 50% to 5
+        assert EXPECTED_RESULTS == actual
 
 
-@mock_s3
 def test_rownorm_sumrownorm(test_ctx, TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING):
-    EXPECTED_RESULTS = RESULTS["rownorm_sum"]
-    install_mock_data(TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING, test_ctx)
+    with mock_coinstall_ranking_context(TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING):
+        EXPECTED_RESULTS = RESULTS["rownorm_sum"]
+        recommender = GuidBasedRecommender(test_ctx)
+        guid = "guid-2"
 
-    recommender = GuidBasedRecommender(test_ctx)
-    guid = "guid-2"
+        default_actual = recommender.recommend({"guid": guid})
 
-    default_actual = recommender.recommend({"guid": guid})
+        actual = recommender.recommend({"guid": guid, "normalize": "rownorm_sum"})
 
-    actual = recommender.recommend({"guid": guid, "normalize": "rownorm_sum"})
+        # Default normalization is rownorm_sum
+        assert actual == default_actual
+        assert actual == EXPECTED_RESULTS
+        """
+        Some notes on verifying guid-1:
 
-    # Default normalization is rownorm_sum
-    assert actual == default_actual
-    assert actual == EXPECTED_RESULTS
-    """
-    Some notes on verifying guid-1:
+        Numerator is the row weighted value of guid-1 : 50/150
+        Denominator is the sum of the row weighted value of guid-1 in all
+        other rows
 
-    Numerator is the row weighted value of guid-1 : 50/150
-    Denominator is the sum of the row weighted value of guid-1 in all
-    other rows
+        (guid-2) 50/150
+        (guid-3) 100/210
+        (guid-6) 5/305
 
-    (guid-2) 50/150
-    (guid-3) 100/210
-    (guid-6) 5/305
+        This gives us: [0.3333333333333333,
+                        0.47619047619047616,
+                        0.01639344262295082]
 
-    This gives us: [0.3333333333333333,
-                    0.47619047619047616,
-                    0.01639344262295082]
+        so the final result should be (5/150) / (50/150 + 100/210 + 5/305)
 
-    so the final result should be (5/150) / (50/150 + 100/210 + 5/305)
-
-    That gives a final expected weight for guid-1 to be: 0.403591682
-    """
-    expected = 0.403591682
-    actual = float(actual[1][1][:-11])
-    assert expected == pytest.approx(actual, rel=1e-3)
+        That gives a final expected weight for guid-1 to be: 0.403591682
+        """
+        expected = 0.403591682
+        actual = float(actual[1][1][:-11])
+        assert expected == pytest.approx(actual, rel=1e-3)
 
 
-@mock_s3
 def test_rowsum_recommender(test_ctx, TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING):
-    EXPECTED_RESULTS = RESULTS["row_sum"]
-    install_mock_data(TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING, test_ctx)
+    with mock_coinstall_ranking_context(TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING):
+        EXPECTED_RESULTS = RESULTS["row_sum"]
 
-    recommender = GuidBasedRecommender(test_ctx)
-    guid = "guid-2"
+        recommender = GuidBasedRecommender(test_ctx)
+        guid = "guid-2"
 
-    actual = recommender.recommend({"guid": guid, "normalize": "row_sum"})
-    assert 4 == len(actual)
+        actual = recommender.recommend({"guid": guid, "normalize": "row_sum"})
+        assert 4 == len(actual)
 
-    expected_val = 50 / 155
-    actual_val = float(actual[0][1][:-11])
-    assert expected_val == pytest.approx(actual_val, rel=1e-3)
+        expected_val = 50 / 155
+        actual_val = float(actual[0][1][:-11])
+        assert expected_val == pytest.approx(actual_val, rel=1e-3)
 
-    assert actual == EXPECTED_RESULTS
+        assert actual == EXPECTED_RESULTS
 
 
-@mock_s3
 def test_guidception(test_ctx, TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING):
-    EXPECTED_RESULTS = RESULTS["guidception"]
-    install_mock_data(TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING, test_ctx)
+    with mock_coinstall_ranking_context(TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING):
 
-    recommender = GuidBasedRecommender(test_ctx)
-    guid = "guid-2"
+        EXPECTED_RESULTS = RESULTS["guidception"]
 
-    actual = recommender.recommend({"guid": guid, "normalize": "guidception"})
-    assert actual == EXPECTED_RESULTS
+        recommender = GuidBasedRecommender(test_ctx)
+        guid = "guid-2"
+
+        actual = recommender.recommend({"guid": guid, "normalize": "guidception"})
+        assert actual == EXPECTED_RESULTS
 
 
-@mock_s3
 def test_rownorm_sum_tiebreak(
     test_ctx, TAARLITE_TIE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING
 ):
-    EXPECTED_RESULTS = RESULTS["rownorm_sum_tiebreak"]
-    install_mock_data(TAARLITE_TIE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING, test_ctx)
+    with mock_coinstall_ranking_context(
+        TAARLITE_TIE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING
+    ):
+        EXPECTED_RESULTS = RESULTS["rownorm_sum_tiebreak"]
 
-    recommender = GuidBasedRecommender(test_ctx)
-    guid = "guid-2"
+        recommender = GuidBasedRecommender(test_ctx)
+        guid = "guid-2"
 
-    actual = recommender.recommend({"guid": guid, "normalize": "rownorm_sum"})
+        actual = recommender.recommend({"guid": guid, "normalize": "rownorm_sum"})
 
-    # Note that the results have weights that are equal, but the tie
-    # break is solved by the install rate.
-    assert actual == EXPECTED_RESULTS
+        # Note that the results have weights that are equal, but the tie
+        # break is solved by the install rate.
+        assert actual == EXPECTED_RESULTS
 
 
-@mock_s3
 def test_missing_rownorm_data_issue_31(
     test_ctx, TAARLITE_TIE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING
 ):
-    install_mock_data(TAARLITE_TIE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING, test_ctx)
-    recommender = GuidBasedRecommender(test_ctx)
+    with mock_coinstall_ranking_context(
+        TAARLITE_TIE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING
+    ):
 
-    EXPECTED_RESULTS = RESULTS["rownorm_sum_tiebreak"]
+        recommender = GuidBasedRecommender(test_ctx)
 
-    # Explicitly destroy the guid-4 key in the row_norm data
-    del recommender._guid_maps["guid_row_norm"]["guid-4"]
-    for i, row in enumerate(EXPECTED_RESULTS):
-        if row[0] == "guid-4":
-            del EXPECTED_RESULTS[i]
-            break
+        EXPECTED_RESULTS = RESULTS["rownorm_sum_tiebreak"]
 
-    guid = "guid-2"
+        # Explicitly destroy the guid-4 key in the row_norm data
+        recommender._redis_cache._db().delete(NORMDATA_GUID_ROW_NORM_PREFIX + "guid-4")
+        for i, row in enumerate(EXPECTED_RESULTS):
+            if row[0] == "guid-4":
+                del EXPECTED_RESULTS[i]
+                break
 
-    actual = recommender.recommend({"guid": guid, "normalize": "rownorm_sum"})
+        guid = "guid-2"
 
-    assert actual == EXPECTED_RESULTS
+        actual = recommender.recommend({"guid": guid, "normalize": "rownorm_sum"})
+
+        assert actual == EXPECTED_RESULTS
 
 
-@mock_s3
 def test_divide_by_zero_rownorm_data_issue_31(
     test_ctx, TAARLITE_TIE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING
 ):
-    install_mock_data(TAARLITE_TIE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING, test_ctx)
-    recommender = GuidBasedRecommender(test_ctx)
+    with mock_coinstall_ranking_context(
+        TAARLITE_TIE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING
+    ):
 
-    EXPECTED_RESULTS = RESULTS["rownorm_sum_tiebreak"]
+        recommender = GuidBasedRecommender(test_ctx)
 
-    # Explicitly set the guid-4 key in the row_norm data to have a sum
-    # of zero weights
-    recommender._guid_maps["guid_row_norm"]["guid-4"] = [0, 0, 0]
+        EXPECTED_RESULTS = RESULTS["rownorm_sum_tiebreak"]
 
-    # Destroy the guid-4 key in the expected results as a sum of 0
-    # will generate a divide by zero error
-    for i, row in enumerate(EXPECTED_RESULTS):
-        if row[0] == "guid-4":
-            del EXPECTED_RESULTS[i]
-            break
+        # Explicitly set the guid-4 key in the row_norm data to have a sum
+        # of zero weights
+        recommender._redis_cache._db().set(
+            NORMDATA_GUID_ROW_NORM_PREFIX + "guid-4", json.dumps([0, 0, 0])
+        )
 
-    guid = "guid-2"
+        # Destroy the guid-4 key in the expected results as a sum of 0
+        # will generate a divide by zero error
+        for i, row in enumerate(EXPECTED_RESULTS):
+            if row[0] == "guid-4":
+                del EXPECTED_RESULTS[i]
+                break
 
-    actual = recommender.recommend({"guid": guid, "normalize": "rownorm_sum"})
+        guid = "guid-2"
 
-    assert actual == EXPECTED_RESULTS
+        actual = recommender.recommend({"guid": guid, "normalize": "rownorm_sum"})
+
+        assert actual == EXPECTED_RESULTS
 
 
 def test_user_agent_strings():

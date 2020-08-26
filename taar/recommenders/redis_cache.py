@@ -38,7 +38,7 @@ NORMDATA_COUNT_MAP_PREFIX = "normdata_count_map_prefix|"
 # of coinstallation data.
 NORMDATA_ROWCOUNT_PREFIX = "normdata_rowcount_prefix|"
 
-NORMDATA_GUID_ROW_NORM_PREFIX = "normdata_guid_row_norm_prefix"
+NORMDATA_GUID_ROW_NORM_PREFIX = "normdata_guid_row_norm_prefix|"
 
 
 class PrefixStripper:
@@ -69,9 +69,10 @@ class AddonsCoinstallCache:
         self.logger = self._ctx[IMozLogging].get_logger("taar")
         self._ttl = ttl
 
-        self._r0 = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=0)
-        self._r1 = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=1)
-        self._r2 = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=2)
+        rcon = self.init_redis_connections()
+        self._r0 = rcon[0]
+        self._r1 = rcon[1]
+        self._r2 = rcon[2]
 
         # Set (pid, thread_ident) tuple of the first
         self._ident = f"{os.getpid()}_{threading.get_ident()}"
@@ -80,6 +81,13 @@ class AddonsCoinstallCache:
             self.safe_load_data()
 
         self.wait_for_data()
+
+    def init_redis_connections(self):
+        return {
+            0: redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=0),
+            1: redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=1),
+            2: redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=2),
+        }
 
     def safe_load_data(self):
         """
@@ -125,16 +133,11 @@ class AddonsCoinstallCache:
 
         self._copy_data(next_active_db)
 
-        # Once all data is loaded, just precompute a normalized
-        # version
-        self.logger.info("Precomputing normalized data")
-        self._precompute_normalization(next_active_db)
         self.logger.info("Completed precomputing normalized data")
 
         # TODO: should this autoexpire to help indicate that no fresh
         # data has loaded?  Maybe N * update TTL time?
         self._r0.set(ACTIVE_DB, next_active_db)
-
         self.logger.info(f"Active DB is set to {next_active_db}")
 
     def _copy_data(self, next_active_db):
@@ -145,8 +148,8 @@ class AddonsCoinstallCache:
 
         # Clear this database before we do anything with it
         db.flushdb()
-        self._update_coinstall_data(db)
         self._update_rank_data(db)
+        self._update_coinstall_data(db)
 
     def fetch_ranking_data(self):
         return s3_json_loader(TAARLITE_GUID_COINSTALL_BUCKET, TAARLITE_GUID_RANKING_KEY)
@@ -166,68 +169,7 @@ class AddonsCoinstallCache:
 
         min_installs = np.mean(list(data.values())) * 0.05
         db.set(MIN_INSTALLS_PREFIX, min_installs)
-
-    def _precompute_normalization(self, next_active_db):
-
-        if next_active_db == 1:
-            db = self._r1
-        else:
-            db = self._r2
-
-        self.logger.info("Precomputing normalization")
-
-        guid_count_map = {}
-        row_count = {}
-        guid_row_norm = {}
-
-        key_iter_coinstall = PrefixStripper(
-            COINSTALL_PREFIX,
-            db.scan_iter(match=COINSTALL_PREFIX + "*"),
-            cast_to_str=True,
-        )
-        for guidkey in key_iter_coinstall:
-            coinstalls_raw = db.get(COINSTALL_PREFIX + guidkey)
-            if coinstalls_raw is None:
-                continue
-            coinstalls = json.loads(coinstalls_raw.decode("utf8"))
-
-            tmp = dict(
-                [(k, v) for (k, v) in coinstalls.items() if v >= self.min_installs]
-            )
-
-            self._db().set(FILTERED_COINSTALL_PREFIX + guidkey, tmp)
-
-            rowsum = sum(coinstalls.values())
-
-            for coinstall_guid, coinstall_count in coinstalls.items():
-                # Capture the total number of time a GUID was
-                # coinstalled with other guids
-                guid_count_map.setdefault(coinstall_guid, 0)
-                guid_count_map[coinstall_guid] += coinstall_count
-
-                # Capture the unique number of times a GUID is
-                # coinstalled with other guids
-                row_count.setdefault(coinstall_guid, 0)
-                row_count[coinstall_guid] += 1
-
-                if coinstall_guid not in guid_row_norm:
-                    guid_row_norm[coinstall_guid] = []
-                guid_row_norm[coinstall_guid].append(1.0 * coinstall_count / rowsum)
-
-        self.logger.info("guidmaps computed - saving to redis")
-        for guid, guid_count in guid_count_map.items():
-            self._db().set(NORMDATA_COUNT_MAP_PREFIX + guid, json.dumps(guid_count))
-
-        for coinstall_guid, coinstall_count in row_count.items():
-            self._db().set(
-                NORMDATA_COUNT_MAP_PREFIX + coinstall_guid, json.dumps(coinstall_count),
-            )
-
-        for coinstall_guid, norm_val in guid_row_norm.items():
-            self._db().set(
-                NORMDATA_GUID_ROW_NORM_PREFIX + coinstall_guid, json.dumps(norm_val),
-            )
-        self.logger.info("finished saving guidmaps to redis")
+        self.logger.info(f"Updated MIN_INSTALLS: {min_installs}")
 
     def guid_maps_count_map(self, guid, default=None):
         tmp = self._db().get(NORMDATA_COUNT_MAP_PREFIX + guid)
@@ -247,16 +189,15 @@ class AddonsCoinstallCache:
             return json.loads(tmp.decode("utf8"))
         return default
 
-    @property
-    def min_installs(self):
+    def min_installs(self, db):
         """
         Return the floor minimum installed addons that we will
         consider, or 0 if nothing is currently stored in redis
         """
-        result = self._db().get(MIN_INSTALLS_PREFIX)
+        result = db.get(MIN_INSTALLS_PREFIX)
         if result is None:
             return 0
-        return int(result.decode("utf8"))
+        return float(result.decode("utf8"))
 
     def fetch_coinstall_data(self):
         return s3_json_loader(
@@ -269,12 +210,58 @@ class AddonsCoinstallCache:
 
         items = data.items()
         len_items = len(items)
-        for i, (guid, coinstall_map) in enumerate(items):
-            db.set(COINSTALL_PREFIX + guid, json.dumps(coinstall_map))
+
+        guid_count_map = {}
+        row_count = {}
+        guid_row_norm = {}
+
+        for i, (guid, coinstalls) in enumerate(items):
+
+            tmp = dict(
+                [(k, v) for (k, v) in coinstalls.items() if v >= self.min_installs(db)]
+            )
+
+            db.set(FILTERED_COINSTALL_PREFIX + guid, json.dumps(tmp))
+            rowsum = sum(coinstalls.values())
+
+            for coinstall_guid, coinstall_count in coinstalls.items():
+                # Capture the total number of time a GUID was
+                # coinstalled with other guids
+                guid_count_map.setdefault(coinstall_guid, 0)
+                guid_count_map[coinstall_guid] += coinstall_count
+
+                # Capture the unique number of times a GUID is
+                # coinstalled with other guids
+                row_count.setdefault(coinstall_guid, 0)
+                row_count[coinstall_guid] += 1
+
+                if coinstall_guid not in guid_row_norm:
+                    guid_row_norm[coinstall_guid] = []
+                guid_row_norm[coinstall_guid].append(1.0 * coinstall_count / rowsum)
+
+            db.set(COINSTALL_PREFIX + guid, json.dumps(coinstalls))
             if i % 1000 == 0:
                 self.logger.info(
                     f"Loaded {i+1} of {len_items} GUID-GUID coinstall records into redis"
                 )
+
+        self.logger.info("guidmaps computed - saving to redis")
+        for guid, guid_count in guid_count_map.items():
+            db.set(NORMDATA_COUNT_MAP_PREFIX + guid, json.dumps(guid_count))
+
+        for coinstall_guid, coinstall_count in row_count.items():
+            db.set(
+                NORMDATA_ROWCOUNT_PREFIX + coinstall_guid, json.dumps(coinstall_count),
+            )
+
+        for coinstall_guid, norm_val in guid_row_norm.items():
+            db.set(
+                NORMDATA_GUID_ROW_NORM_PREFIX + coinstall_guid, json.dumps(norm_val),
+            )
+            self.logger.info(
+                f"NORMDATA_GUID_ROW_NORM: {db} {coinstall_guid} : {norm_val}"
+            )
+        self.logger.info("finished saving guidmaps to redis")
 
     def get_filtered_coinstall(self, guid, default=None):
         tmp = self._db().get(FILTERED_COINSTALL_PREFIX + guid)
@@ -323,7 +310,7 @@ class AddonsCoinstallCache:
 
     def wait_for_data(self):
         while True:
-            if not self.is_active():
+            if self.is_active():
                 break
             self.logger.info("waiting for data. spinlock active")
             time.sleep(1)

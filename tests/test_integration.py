@@ -331,12 +331,12 @@ def test_taarlite(client, TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING, test_c
     """
     Check that the result size of taarlite is TAARLITE_MAX_RESULTS
     """
-    from .test_guid_based_recommender import install_mock_data
+    from .test_guid_based_recommender import mock_coinstall_ranking_context
 
-    install_mock_data(TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING, test_ctx)
+    with mock_coinstall_ranking_context(TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING):
 
-    url = url_for("taarlite_recommendations", guid="guid-1",)
-    res = client.get(url, follow_redirects=True)
+        url = url_for("taarlite_recommendations", guid="guid-1",)
+        res = client.get(url, follow_redirects=True)
 
-    assert len(res.json["results"]) == TAARLITE_MAX_RESULTS
-    assert res.json["results"] == ["guid-5", "guid-6", "guid-3", "guid-2"]
+        assert len(res.json["results"]) == TAARLITE_MAX_RESULTS
+        assert res.json["results"] == ["guid-5", "guid-6", "guid-3", "guid-2"]
