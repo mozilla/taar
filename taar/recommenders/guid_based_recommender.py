@@ -29,7 +29,7 @@ def log_timer(msg, logger):
         yield
     finally:
         end_time = time.time()
-        logger.debug(msg + f" Completed in {end_time-start_time} seconds")
+        logger.info(msg + f" Completed in {end_time-start_time} seconds")
 
 
 @contextmanager
@@ -136,9 +136,10 @@ class GuidBasedRecommender:
                 # Bind the normalization method
                 norm_method = norm_dict[normalize]
 
-            with log_timer(f"Compute normalization using {normalize}", self.logger):
+            with log_timer(
+                f"Compute normalization using method:{normalize}", self.logger
+            ):
                 # Apply normalization
-                self.logger.info(f"Apply normalization: {time.asctime()}")
                 tmp_result_dict = norm_method(addon_guid, result_dict)
 
             # Augment the result_dict with the installation counts
@@ -213,23 +214,31 @@ class GuidBasedRecommender:
         The testcase for this scenario lays out the math more
         explicitly.
         """
-        tmp_dict = self._normalize_row_weights(input_coinstall_dict)
+        with log_timer("normalize row weights for coinstall dict", self.logger):
+            tmp_dict = self._normalize_row_weights(input_coinstall_dict)
 
-        output_dict = {}
-        for output_guid, output_guid_weight in tmp_dict.items():
-            guid_row_norm_list = self._redis_cache.guid_maps_row_norm(output_guid, [])
-            if len(guid_row_norm_list) == 0:
-                self.logger.warning(
-                    "Can't find GUID_ROW_NORM data for [{}]".format(output_guid)
+        with log_timer(
+            f"normalizing output_dict of size: {len(tmp_dict)}", self.logger
+        ):
+            output_dict = {}
+            for output_guid, output_guid_weight in tmp_dict.items():
+                guid_row_norm_list = self._redis_cache.guid_maps_row_norm(
+                    output_guid, []
                 )
-                continue
-            norm_sum = sum(guid_row_norm_list)
-            if norm_sum == 0:
-                self.logger.warning(
-                    "Sum of GUID_ROW_NORM data for [{}] is zero.".format(output_guid)
-                )
-                continue
-            output_dict[output_guid] = output_guid_weight / norm_sum
+                if len(guid_row_norm_list) == 0:
+                    self.logger.warning(
+                        "Can't find GUID_ROW_NORM data for [{}]".format(output_guid)
+                    )
+                    continue
+                norm_sum = sum(guid_row_norm_list)
+                if norm_sum == 0:
+                    self.logger.warning(
+                        "Sum of GUID_ROW_NORM data for [{}] is zero.".format(
+                            output_guid
+                        )
+                    )
+                    continue
+                output_dict[output_guid] = output_guid_weight / norm_sum
 
         return output_dict
 

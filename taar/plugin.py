@@ -11,7 +11,6 @@ import markus
 from taar.context import default_context
 from taar.profile_fetcher import ProfileFetcher
 from taar import recommenders
-from taar.recommenders.caches import warm_caches
 
 from taar.settings import (
     TAAR_MAX_RESULTS,
@@ -253,5 +252,4 @@ def configure_plugin(app):  # noqa: C901
             if "PROXY_RESOURCE" in config_options:
                 PROXY_MANAGER._resource = config_options["PROXY_RESOURCE"]
 
-    warm_caches()
     return MyPlugin()

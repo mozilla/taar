@@ -4,3 +4,38 @@ services:
     image: "redis:alpine"
     ports:
     - "6379:6379"
+  web:
+    image: "taar:latest"
+    depends_on:
+    - redis
+    environment:
+    - MUSICMATCH_API=${MUSICMATCH_API}
+    - WORKERS=1
+    - THREADS=2
+    - LOG_LEVEL=20
+    - GOOGLE_APPLICATION_CREDENTIALS=/app/.gcp_creds/vng-taar-dev-clientinfo-svc.json
+    - REDIS_HOST=redis
+    - TAAR_API_PLUGIN=taar.plugin
+    - TAAR_ITEM_MATRIX_BUCKET=telemetry-public-analysis-2
+    - TAAR_ITEM_MATRIX_KEY=telemetry-ml/addon_recommender/item_matrix.json
+    - TAAR_ADDON_MAPPING_BUCKET=telemetry-public-analysis-2
+    - TAAR_ADDON_MAPPING_KEY=telemetry-ml/addon_recommender/addon_mapping.json
+    - TAAR_ENSEMBLE_BUCKET=telemetry-parquet
+    - TAAR_ENSEMBLE_KEY=taar/ensemble/ensemble_weight.json
+    - TAAR_WHITELIST_BUCKET=telemetry-parquet
+    - TAAR_WHITELIST_KEY=telemetry-ml/addon_recommender/only_guids_top_200.json
+    - TAAR_LOCALE_BUCKET=telemetry-parquet
+    - TAAR_LOCALE_KEY=taar/locale/top10_dict.json
+    - TAAR_SIMILARITY_BUCKET=telemetry-parquet
+    - TAAR_SIMILARITY_DONOR_KEY=taar/similarity/donors.json
+    - TAAR_SIMILARITY_LRCURVES_KEY=taar/similarity/lr_curves.json
+    - TAAR_MAX_RESULTS=10
+    - TAARLITE_MAX_RESULTS=4
+    - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+    - BIGTABLE_PROJECT_ID=${BIGTABLE_PROJECT_ID}
+    - BIGTABLE_INSTANCE_ID=${BIGTABLE_INSTANCE_ID}
+    - BIGTABLE_TABLE_ID=${BIGTABLE_TABLE_ID}
+    ports:
+    - "8000:8000"
+

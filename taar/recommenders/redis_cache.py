@@ -266,7 +266,10 @@ class AddonsCoinstallCache:
     def get_filtered_coinstall(self, guid, default=None):
         tmp = self._db().get(FILTERED_COINSTALL_PREFIX + guid)
         if tmp:
-            return json.loads(tmp.decode("utf8"))
+            raw_dict = json.loads(tmp.decode("utf8"))
+            # This truncates the size of the coinstall list for
+            # performance reasons
+            return dict(sorted(raw_dict.items(), key=lambda x: x[1], reverse=True)[:10])
         return default
 
     def get_rankings(self, guid, default=None):
