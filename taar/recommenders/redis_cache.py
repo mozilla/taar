@@ -16,6 +16,8 @@ from taar.settings import (
     TAARLITE_GUID_RANKING_KEY,
     TAARLITE_TTL,
     TAARLITE_TRUNCATE,
+    TAARLITE_UPDATE_POLL,
+    TAARLITE_MUTEX_TTL,
 )
 import time
 
@@ -39,6 +41,9 @@ NORMDATA_COUNT_MAP_PREFIX = "normdata_count_map_prefix|"
 NORMDATA_ROWCOUNT_PREFIX = "normdata_rowcount_prefix|"
 
 NORMDATA_GUID_ROW_NORM_PREFIX = "normdata_guid_row_norm_prefix|"
+
+NEXT_UPDATE_MUTEX = "next_update_mutex|"
+NEXT_UPDATE_TIME = "next_update_time|"
 
 
 class PrefixStripper:
@@ -80,6 +85,52 @@ class AddonsCoinstallCache:
 
         self.wait_for_data()
 
+        self.start_update_thread()
+
+    def start_update_thread(self):
+        self._update_thread = threading.Thread(
+            target=self._update_data_target, daemon=True
+        )
+        self._update_thread.start()
+
+    def _update_data_target(self):
+        while True:
+            self.logger.info(f"TAARLite update is alive. ident={self._ident}")
+            try:
+                self.logger.debug(f"Trying to acquire lock {self._ident}")
+                self._r0.set(
+                    NEXT_UPDATE_MUTEX, self._ident, nx=True, ex=TAARLITE_MUTEX_TTL,
+                )
+                tmp = self._r0.get(NEXT_UPDATE_MUTEX)
+
+                if tmp is None:
+                    # Someone else acquired the lock (and released it)
+                    return
+
+                if tmp.decode("utf8") != self._ident:
+                    # Someone else acquired the lock
+                    return
+                self.logger.debug(f"Acquired lock {self._ident}")
+                try:
+                    next_update = self._r0.get(NEXT_UPDATE_TIME)
+                    if next_update is None:
+                        next_update = time.time() + TAARLITE_TTL
+                        self._r0.set(NEXT_UPDATE_TIME, next_update)
+
+                    next_update = float(self._r0.get(NEXT_UPDATE_TIME))
+                    self.logger.info(
+                        f"Next TAARlite refresh is in {next_update - time.time()} seconds"
+                    )
+                    if next_update <= time.time():
+                        # We're past the expiry time
+                        self.safe_load_data()
+                finally:
+                    self._r0.delete(NEXT_UPDATE_MUTEX)
+                    self.logger.debug(f"Released lock {self._ident}")
+            except Exception:
+                self.logger.exception("Error while updating GUID GUID cache")
+            time.sleep(TAARLITE_UPDATE_POLL)
+
     @property
     def _ident(self):
         """ pid/thread identity """
@@ -106,7 +157,7 @@ class AddonsCoinstallCache:
         #
         # The thread barrier will autoexpire in 10 minutes in the
         # event of process termination inside the critical section.
-        self._r0.set(UPDATE_CHECK, self._ident, nx=True, ex=60 * 10)
+        self._r0.set(UPDATE_CHECK, self._ident, nx=True, ex=TAARLITE_MUTEX_TTL)
         self.logger.info(f"UPDATE_CHECK field is set: {self._ident}")
 
         # This is a concurrency barrier to make sure only the pinned

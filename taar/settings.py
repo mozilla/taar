@@ -61,7 +61,16 @@ TAARLITE_GUID_RANKING_KEY = config(
     "TAARLITE_GUID_RANKING_KEY", "taar/lite/guid_install_ranking.json"
 )
 
-TAARLITE_TTL = config("TAARLITE_TTL", 60 * 60, cast=int)
+# 4 hour liviliness for TAARLITE data
+TAARLITE_TTL = config("TAARLITE_TTL", 60 * 60 * 4, cast=int)
+
+
+# TAARlite needs redis backed mutex's to protect critical sections
+TAARLITE_MUTEX_TTL = config("TAARLITE_MUTEX_TTL", 60 * 60, cast=int)
+
+
+# Poll for TTL expiry every 60 seconds
+TAARLITE_UPDATE_POLL = config("TAARLITE_UPDATE_POLL", 60, cast=int)
 
 # Set a default TAARLite mutex TTL of 10 minutes (60 * 10)
 TAARLITE_MUTEX_TTL = config("TAARLITE_MUTEX_TTL", 60 * 10, cast=int)
