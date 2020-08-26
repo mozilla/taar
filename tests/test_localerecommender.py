@@ -9,7 +9,7 @@ import json
 
 
 from taar.recommenders import LocaleRecommender
-from taar.recommenders.s3config import TAAR_LOCALE_KEY, TAAR_LOCALE_BUCKET
+from taar.settings import TAAR_LOCALE_KEY, TAAR_LOCALE_BUCKET
 
 from markus import TIMING
 from markus.testing import MetricsMock

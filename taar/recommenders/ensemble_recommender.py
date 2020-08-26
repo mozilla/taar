@@ -7,10 +7,12 @@ import itertools
 from .base_recommender import AbstractRecommender
 from .lazys3 import LazyJSONLoader
 
-from .s3config import TAAR_WHITELIST_BUCKET
-from .s3config import TAAR_WHITELIST_KEY
-from .s3config import TAAR_ENSEMBLE_BUCKET
-from .s3config import TAAR_ENSEMBLE_KEY
+from taar.settings import (
+    TAAR_WHITELIST_BUCKET,
+    TAAR_WHITELIST_KEY,
+    TAAR_ENSEMBLE_BUCKET,
+    TAAR_ENSEMBLE_KEY,
+)
 
 from taar.utils import hasher
 

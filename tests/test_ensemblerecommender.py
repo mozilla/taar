@@ -6,7 +6,7 @@ from taar.recommenders.ensemble_recommender import (
     WeightCache,
     EnsembleRecommender,
 )
-from taar.recommenders.s3config import (
+from taar.settings import (
     TAAR_ENSEMBLE_BUCKET,
     TAAR_ENSEMBLE_KEY,
 )

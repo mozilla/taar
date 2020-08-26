@@ -10,7 +10,7 @@ import boto3
 from moto import mock_s3
 
 
-from taar.recommenders.s3config import (
+from taar.settings import (
     TAAR_SIMILARITY_BUCKET,
     TAAR_SIMILARITY_DONOR_KEY,
 )
@@ -90,5 +90,5 @@ def test_force_expiry(test_ctx):
 
 
 def check_jdata_status(jdata, status):
-    assert jdata == {'test': 'donor_key'}
+    assert jdata == {"test": "donor_key"}
     assert status

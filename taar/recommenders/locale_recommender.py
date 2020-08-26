@@ -6,8 +6,7 @@ from srgutil.interfaces import IMozLogging
 from .base_recommender import AbstractRecommender
 from .lazys3 import LazyJSONLoader
 
-from .s3config import TAAR_LOCALE_BUCKET
-from .s3config import TAAR_LOCALE_KEY
+from taar.settings import TAAR_LOCALE_BUCKET, TAAR_LOCALE_KEY
 
 import markus
 

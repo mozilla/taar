@@ -25,7 +25,7 @@ from .similarity_data import CATEGORICAL_FEATURE_FIXTURE_DATA
 from markus import TIMING
 from markus.testing import MetricsMock
 
-from taar.recommenders.s3config import (
+from taar.settings import (
     TAAR_SIMILARITY_BUCKET,
     TAAR_SIMILARITY_DONOR_KEY,
     TAAR_SIMILARITY_LRCURVES_KEY,
