@@ -15,6 +15,7 @@ from taar.settings import (
     TAARLITE_GUID_COINSTALL_KEY,
     TAARLITE_GUID_RANKING_KEY,
     TAARLITE_TTL,
+    TAARLITE_TRUNCATE,
 )
 import time
 
@@ -258,9 +259,6 @@ class AddonsCoinstallCache:
             db.set(
                 NORMDATA_GUID_ROW_NORM_PREFIX + coinstall_guid, json.dumps(norm_val),
             )
-            self.logger.info(
-                f"NORMDATA_GUID_ROW_NORM: {db} {coinstall_guid} : {norm_val}"
-            )
         self.logger.info("finished saving guidmaps to redis")
 
     def get_filtered_coinstall(self, guid, default=None):
@@ -269,7 +267,11 @@ class AddonsCoinstallCache:
             raw_dict = json.loads(tmp.decode("utf8"))
             # This truncates the size of the coinstall list for
             # performance reasons
-            return dict(sorted(raw_dict.items(), key=lambda x: x[1], reverse=True)[:10])
+            return dict(
+                sorted(raw_dict.items(), key=lambda x: x[1], reverse=True)[
+                    :TAARLITE_TRUNCATE
+                ]
+            )
         return default
 
     def get_rankings(self, guid, default=None):

@@ -1,8 +1,6 @@
 import hashlib
 import uuid
 
-from moto import mock_s3
-
 from flask import Flask
 from flask import url_for
 
@@ -10,6 +8,7 @@ import pytest
 
 from taar.settings import TAARLITE_MAX_RESULTS
 from taar.context import default_context
+from .test_guid_based_recommender import mock_coinstall_ranking_context
 
 try:
     from unittest.mock import MagicMock
@@ -326,12 +325,10 @@ def test_client_has_no_addon(client, profile_enabled_rm):
     assert res.json["results"] is False
 
 
-@mock_s3
 def test_taarlite(client, TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING, test_ctx):
     """
     Check that the result size of taarlite is TAARLITE_MAX_RESULTS
     """
-    from .test_guid_based_recommender import mock_coinstall_ranking_context
 
     with mock_coinstall_ranking_context(TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING):
 
