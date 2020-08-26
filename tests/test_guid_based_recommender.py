@@ -1,10 +1,14 @@
 import json
 
 from moto import mock_s3
+import fakeredis
 import boto3
 import pytest
+import mock
+import contextlib
 
 from taar.recommenders.guid_based_recommender import GuidBasedRecommender
+from taar.recommenders.redis_cache import AddonsCoinstallCache
 
 from taar.settings import (
     TAARLITE_GUID_COINSTALL_BUCKET,
@@ -12,7 +16,6 @@ from taar.settings import (
     TAARLITE_GUID_RANKING_KEY,
 )
 
-from taar.recommenders.lazys3 import LazyJSONLoader
 
 from taar.recommenders.ua_parser import parse_ua, OSNAME_TO_ID
 
@@ -96,40 +99,78 @@ def install_mock_data(TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING, test_ctx):
         Body=json.dumps(TAARLITE_MOCK_GUID_RANKING)
     )
 
-    coinstall_loader = LazyJSONLoader(
-        test_ctx,
-        TAARLITE_GUID_COINSTALL_BUCKET,
-        TAARLITE_GUID_COINSTALL_KEY,
-        "guid_coinstall",
-    )
 
-    ranking_loader = LazyJSONLoader(
-        test_ctx,
-        TAARLITE_GUID_COINSTALL_BUCKET,
-        TAARLITE_GUID_RANKING_KEY,
-        "guid_ranking",
-    )
+@contextlib.contextmanager
+def mock_coinstall_ranking_context(mock_coinstall, mock_ranking):
+    with contextlib.ExitStack() as stack:
+        stack.enter_context(
+            mock.patch.object(
+                AddonsCoinstallCache, "fetch_ranking_data", return_value=mock_coinstall,
+            )
+        )
+        stack.enter_context(
+            mock.patch.object(
+                AddonsCoinstallCache, "fetch_coinstall_data", return_value=mock_ranking
+            )
+        )
 
-    test_ctx["coinstall_loader"] = coinstall_loader
-    test_ctx["ranking_loader"] = ranking_loader
+        # Patch fakeredis in
+        stack.enter_context(
+            mock.patch.object(
+                AddonsCoinstallCache,
+                "init_redis_connections",
+                return_value={
+                    0: fakeredis.FakeStrictRedis(),
+                    1: fakeredis.FakeStrictRedis(),
+                    2: fakeredis.FakeStrictRedis(),
+                },
+            )
+        )
+        yield stack
 
 
-@mock_s3
 def test_recommender_nonormal(test_ctx, TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING):
-    with MetricsMock() as mm:
-        EXPECTED_RESULTS = RESULTS["default"]
-        install_mock_data(TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING, test_ctx)
+    with contextlib.ExitStack() as stack:
+        stack.enter_context(
+            mock.patch.object(
+                AddonsCoinstallCache,
+                "fetch_ranking_data",
+                return_value=TAARLITE_MOCK_GUID_RANKING,
+            )
+        )
+        stack.enter_context(
+            mock.patch.object(
+                AddonsCoinstallCache,
+                "fetch_coinstall_data",
+                return_value=TAARLITE_MOCK_DATA,
+            )
+        )
 
-        recommender = GuidBasedRecommender(test_ctx)
+        # Patch fakeredis in
+        stack.enter_context(
+            mock.patch.object(
+                AddonsCoinstallCache,
+                "init_redis_connections",
+                return_value={
+                    0: fakeredis.FakeStrictRedis(),
+                    1: fakeredis.FakeStrictRedis(),
+                    2: fakeredis.FakeStrictRedis(),
+                },
+            )
+        )
 
-        guid = "guid-1"
+        with MetricsMock() as mm:
+            EXPECTED_RESULTS = RESULTS["default"]
+            recommender = GuidBasedRecommender(test_ctx)
 
-        actual = recommender.recommend({"guid": guid, "normalize": "none"})
-        assert actual == EXPECTED_RESULTS
+            guid = "guid-1"
 
-        mm.has_record(TIMING, "taar.guid_coinstall")
-        mm.has_record(TIMING, "taar.guid_ranking")
-        mm.has_record(TIMING, "taar.guid_recommendation")
+            actual = recommender.recommend({"guid": guid, "normalize": "none"})
+            assert actual == EXPECTED_RESULTS
+
+            mm.has_record(TIMING, "taar.guid_coinstall")
+            mm.has_record(TIMING, "taar.guid_ranking")
+            mm.has_record(TIMING, "taar.guid_recommendation")
 
 
 @mock_s3
