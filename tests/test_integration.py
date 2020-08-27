@@ -325,12 +325,14 @@ def test_client_has_no_addon(client, profile_enabled_rm):
     assert res.json["results"] is False
 
 
-def test_taarlite(client, TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING, test_ctx):
+def test_taarlite(client, test_ctx, TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING):
     """
     Check that the result size of taarlite is TAARLITE_MAX_RESULTS
     """
 
-    with mock_coinstall_ranking_context(TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING):
+    with mock_coinstall_ranking_context(
+        test_ctx, TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING
+    ):
 
         url = url_for("taarlite_recommendations", guid="guid-1",)
         res = client.get(url, follow_redirects=True)

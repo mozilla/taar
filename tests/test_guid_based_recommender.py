@@ -82,7 +82,8 @@ RESULTS = {
 
 
 @contextlib.contextmanager
-def mock_coinstall_ranking_context(mock_coinstall, mock_ranking):
+def mock_coinstall_ranking_context(ctx, mock_coinstall, mock_ranking):
+
     with contextlib.ExitStack() as stack:
         stack.enter_context(
             mock.patch.object(
@@ -103,18 +104,22 @@ def mock_coinstall_ranking_context(mock_coinstall, mock_ranking):
                 AddonsCoinstallCache,
                 "init_redis_connections",
                 return_value={
-                    0: fakeredis.FakeStrictRedis(),
-                    1: fakeredis.FakeStrictRedis(),
-                    2: fakeredis.FakeStrictRedis(),
+                    0: fakeredis.FakeStrictRedis(db=0),
+                    1: fakeredis.FakeStrictRedis(db=1),
+                    2: fakeredis.FakeStrictRedis(db=2),
                 },
             )
         )
+
+        # Initialize redis
+        AddonsCoinstallCache(ctx).safe_load_data()
         yield stack
 
 
 def test_recommender_nonormal(test_ctx, TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING):
-    with mock_coinstall_ranking_context(TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING):
-
+    with mock_coinstall_ranking_context(
+        test_ctx, TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING
+    ):
         with MetricsMock() as mm:
             EXPECTED_RESULTS = RESULTS["default"]
             recommender = GuidBasedRecommender(test_ctx)
@@ -132,7 +137,9 @@ def test_recommender_nonormal(test_ctx, TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_R
 def test_row_count_recommender(
     test_ctx, TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING
 ):
-    with mock_coinstall_ranking_context(TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING):
+    with mock_coinstall_ranking_context(
+        test_ctx, TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING
+    ):
 
         EXPECTED_RESULTS = RESULTS["row_count"]
 
@@ -147,7 +154,9 @@ def test_row_count_recommender(
 
 
 def test_rownorm_sumrownorm(test_ctx, TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING):
-    with mock_coinstall_ranking_context(TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING):
+    with mock_coinstall_ranking_context(
+        test_ctx, TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING
+    ):
         EXPECTED_RESULTS = RESULTS["rownorm_sum"]
         recommender = GuidBasedRecommender(test_ctx)
         guid = "guid-2"
@@ -184,7 +193,9 @@ def test_rownorm_sumrownorm(test_ctx, TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RAN
 
 
 def test_rowsum_recommender(test_ctx, TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING):
-    with mock_coinstall_ranking_context(TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING):
+    with mock_coinstall_ranking_context(
+        test_ctx, TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING
+    ):
         EXPECTED_RESULTS = RESULTS["row_sum"]
 
         recommender = GuidBasedRecommender(test_ctx)
@@ -201,7 +212,9 @@ def test_rowsum_recommender(test_ctx, TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RAN
 
 
 def test_guidception(test_ctx, TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING):
-    with mock_coinstall_ranking_context(TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING):
+    with mock_coinstall_ranking_context(
+        test_ctx, TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING
+    ):
 
         EXPECTED_RESULTS = RESULTS["guidception"]
 
@@ -216,7 +229,7 @@ def test_rownorm_sum_tiebreak(
     test_ctx, TAARLITE_TIE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING
 ):
     with mock_coinstall_ranking_context(
-        TAARLITE_TIE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING
+        test_ctx, TAARLITE_TIE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING
     ):
         EXPECTED_RESULTS = RESULTS["rownorm_sum_tiebreak"]
 
@@ -234,7 +247,7 @@ def test_missing_rownorm_data_issue_31(
     test_ctx, TAARLITE_TIE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING
 ):
     with mock_coinstall_ranking_context(
-        TAARLITE_TIE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING
+        test_ctx, TAARLITE_TIE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING
     ):
 
         recommender = GuidBasedRecommender(test_ctx)
@@ -259,7 +272,7 @@ def test_divide_by_zero_rownorm_data_issue_31(
     test_ctx, TAARLITE_TIE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING
 ):
     with mock_coinstall_ranking_context(
-        TAARLITE_TIE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING
+        test_ctx, TAARLITE_TIE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING
     ):
 
         recommender = GuidBasedRecommender(test_ctx)
