@@ -9,7 +9,7 @@ set -eo pipefail
 : "${WORKERS:=4}"
 
 usage() {
-  echo "usage: bin/run web|web-dev|test"
+  echo "usage: bin/run web|web-dev|test|python|shell"
   exit 1
 }
 
@@ -44,6 +44,14 @@ case $1 in
         # submit coverage
         coverage xml
         bash <(curl -s https://codecov.io/bash)
+    ;;
+  python)
+    shift
+    . /opt/conda/etc/profile.d/conda.sh && conda activate taar-37 && exec python $@
+    ;;
+  shell)
+    shift
+    . /opt/conda/etc/profile.d/conda.sh && conda activate taar-37 && exec bash $@
     ;;
   *)
     exec "$@"
