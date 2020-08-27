@@ -72,7 +72,8 @@ TAARLITE_MUTEX_TTL = config("TAARLITE_MUTEX_TTL", 60 * 60, cast=int)
 # Poll for TTL expiry every 60 seconds
 TAARLITE_UPDATE_POLL = config("TAARLITE_UPDATE_POLL", 60, cast=int)
 
-# Set a default TAARLite mutex TTL of 10 minutes (60 * 10)
-TAARLITE_MUTEX_TTL = config("TAARLITE_MUTEX_TTL", 60 * 10, cast=int)
+# Set a default TAARLite mutex TTL of 1 hour to fully populate the
+# redis cache
+TAARLITE_MUTEX_TTL = config("TAARLITE_MUTEX_TTL", 60 * 60, cast=int)
 
 TAARLITE_TRUNCATE = config("TAARLITE_TRUNCATE", TAARLITE_MAX_RESULTS * 5, cast=int)
