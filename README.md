@@ -298,7 +298,8 @@ are swapped.
 Running the the taarlite-redis tool inside the container:
 
 ```
-docker run -it taar:latest bin/run python /opt/conda/bin/taarlite-redis.py --help
+$ docker run -it taar:latest bin/run python /opt/conda/bin/taarlite-redis.py --help
+
 Usage: taarlite-redis.py [OPTIONS]
 
   Manage the TAARLite redis cache.
@@ -313,9 +314,6 @@ Options:
   --info   Display information about the cache state
   --help   Show this message and exit.
 ```
-
-A script `taarlite-redis.py` is installed in the container to manage
-the redis cache.
 
 
 ## A note on cdist optimization. 
