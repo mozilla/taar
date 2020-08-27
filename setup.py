@@ -29,5 +29,6 @@ setup(
     [taarapi_app]
     app=taar.plugin:configure_plugin
     """,
+    scripts=["bin/taarlite-redis.py"],
     zip_safe=False,
 )
