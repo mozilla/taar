@@ -277,6 +277,45 @@ well:
 curl https://stage.taar.nonprod.dataops.mozgcp.net/taarlite/api/v1/addon_recommendations/<addon_guid>/
 ```
 
+
+## TAARlite cache tools
+
+There is a taarlite-redis tool to manage the taarlit redis cache.
+
+The cache needs to be populated using the `--load` command or TAARlite
+will return no results.
+
+It is safe to reload new data while TAARlite is running - no
+performance degradation is expected.
+
+The cache contains a 'hot' buffer for reads and a 'cold' buffer to
+write updated data to.
+
+Subsequent invocations to `--load` will update the cache in the cold
+buffer.  After data is successfully loaded, the hot and cold buffers
+are swapped.
+
+Running the the taarlite-redis tool inside the container:
+
+```
+$ docker run -it taar:latest bin/run python /opt/conda/bin/taarlite-redis.py --help
+
+Usage: taarlite-redis.py [OPTIONS]
+
+  Manage the TAARLite redis cache.
+
+  This expecte that the following enviroment variables are set:
+
+  REDIS_HOST REDIS_PORT
+
+Options:
+  --reset  Reset the redis cache to an empty state
+  --load   Load data into redis
+  --info   Display information about the cache state
+  --help   Show this message and exit.
+```
+
+
 ## A note on cdist optimization. 
 cdist can speed up distance computation by a factor of 10 for the computations we're doing.
 We can use it without problems on the canberra distance calculation.
