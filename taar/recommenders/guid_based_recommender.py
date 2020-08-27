@@ -79,6 +79,9 @@ class GuidBasedRecommender:
         self._redis_cache = AddonsCoinstallCache(self._ctx)
         self.logger.info("GUIDBasedRecommender is initialized")
 
+    def cache_ready(self):
+        return self._redis_cache.is_active()
+
     def can_recommend(self, client_data):
         # We can't recommend if we don't have our data files.
         if not self._redis_cache.is_active():
@@ -104,6 +107,9 @@ class GuidBasedRecommender:
         """
         TAAR lite will yield 4 recommendations for the AMO page
         """
+
+        if not self._redis_cache.is_active():
+            return []
 
         with log_timer_debug(f"Results computed", self.logger):
 
