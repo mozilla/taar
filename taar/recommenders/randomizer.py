@@ -13,7 +13,7 @@ def in_experiment(client_id, xp_prob=0.5):
     xp_prob is a probability between 0.0 and 1.0 which is the
     chance that the experimental branch is selected.
     """
-    hex_client = ''.join([c for c in client_id.lower() if c in 'abcdef0123456789'])
+    hex_client = "".join([c for c in client_id.lower() if c in "abcdef0123456789"])
     int_client = int(hex_client, 16)
     return int((int_client % 100) <= (xp_prob * 100))
 
@@ -25,6 +25,9 @@ def reorder_guids(guid_weight_tuples, size=None):
 
     @size denotes the length of the output.
     """
+    if guid_weight_tuples is None or len(guid_weight_tuples) == 0:
+        return []
+
     weight_list = [weight for (guid, weight) in guid_weight_tuples]
     guids = [guid for (guid, weight) in guid_weight_tuples]
     guid_map = dict(zip(guids, guid_weight_tuples))

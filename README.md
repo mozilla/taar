@@ -316,6 +316,22 @@ Options:
 ```
 
 
+## Testing
+
+
+TAARLite will respond with suggestions given an addon GUID.
+
+A sample URL path may look like this:
+
+`/taarlite/api/v1/addon_recommendations/uBlock0%40raymondhill.net/`
+
+TAAR will treat any client ID with only repeating digits (ie: 0000) as
+a test client ID and will return a dummy response.
+
+A URL with the path : `/v1/api/recommendations/0000000000/` will
+return a valid JSON result
+
+
 ## A note on cdist optimization. 
 cdist can speed up distance computation by a factor of 10 for the computations we're doing.
 We can use it without problems on the canberra distance calculation.

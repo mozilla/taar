@@ -22,6 +22,7 @@ def hasher(uuid):
 
 @pytest.fixture
 def app():
+
     from taar.plugin import configure_plugin
     from taar.plugin import PROXY_MANAGER
 
