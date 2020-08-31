@@ -78,7 +78,6 @@ class RecommendationManager:
         :param limit: the maximum number of recommendations to return.
         :param extra_data: a dictionary with extra client data.
         """
-
         results = None
 
         if is_test_client(client_id):
