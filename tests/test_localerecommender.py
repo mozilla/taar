@@ -2,8 +2,12 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from moto import mock_s3
 import boto3
+import mock
+
+import contextlib
+import fakeredis
+from taar.recommenders.redis_cache import AddonsCoinstallCache
 
 import json
 
@@ -13,6 +17,7 @@ from taar.settings import TAAR_LOCALE_KEY, TAAR_LOCALE_BUCKET
 
 from markus import TIMING
 from markus.testing import MetricsMock
+
 
 FAKE_LOCALE_DATA = {
     "te-ST": [
@@ -37,32 +42,74 @@ def install_mock_data(ctx):
     return ctx
 
 
-@mock_s3
+def noop_taarlite_dataload(stack):
+    # no-op the taarlite rankdata
+    stack.enter_context(
+        mock.patch.object(AddonsCoinstallCache, "_update_rank_data", return_value=None)
+    )
+    # no-op the taarlite guidguid data
+    stack.enter_context(
+        mock.patch.object(
+            AddonsCoinstallCache, "_update_coinstall_data", return_value=None,
+        )
+    )
+    return stack
+
+
+@contextlib.contextmanager
+def mock_locale_data(ctx):
+    with contextlib.ExitStack() as stack:
+        stack.enter_context(
+            mock.patch.object(
+                AddonsCoinstallCache,
+                "_fetch_locale_data",
+                return_value=FAKE_LOCALE_DATA,
+            )
+        )
+
+        stack = noop_taarlite_dataload(stack)
+
+        # Patch fakeredis in
+        stack.enter_context(
+            mock.patch.object(
+                AddonsCoinstallCache,
+                "init_redis_connections",
+                return_value={
+                    0: fakeredis.FakeStrictRedis(db=0),
+                    1: fakeredis.FakeStrictRedis(db=1),
+                    2: fakeredis.FakeStrictRedis(db=2),
+                },
+            )
+        )
+
+        # Initialize redis
+        AddonsCoinstallCache(ctx).safe_load_data()
+        yield stack
+
+
 def test_can_recommend(test_ctx):
-    ctx = install_mock_data(test_ctx)
-    r = LocaleRecommender(ctx)
+    with mock_locale_data(test_ctx):
+        r = LocaleRecommender(test_ctx)
 
-    # Test that we can't recommend if we have not enough client info.
-    assert not r.can_recommend({})
-    assert not r.can_recommend({"locale": []})
+        # Test that we can't recommend if we have not enough client info.
+        assert not r.can_recommend({})
+        assert not r.can_recommend({"locale": []})
 
-    # Check that we can recommend if the user has at least an addon.
-    assert r.can_recommend({"locale": "en"})
+        # Check that we can recommend if the user has at least an addon.
+        assert r.can_recommend({"locale": "en"})
 
 
-@mock_s3
 def test_can_recommend_no_model(test_ctx):
-    ctx = install_mock_data(test_ctx)
-    r = LocaleRecommender(ctx)
+    with mock_locale_data(test_ctx):
+        r = LocaleRecommender(test_ctx)
 
-    # We should never be able to recommend if something went
-    # wrong with the model.
-    assert not r.can_recommend({})
-    assert not r.can_recommend({"locale": []})
-    assert not r.can_recommend({"locale": "it"})
+        # We should never be able to recommend if something went
+        # wrong with the model.
+        assert not r.can_recommend({})
+        assert not r.can_recommend({"locale": []})
+        assert not r.can_recommend({"locale": "it"})
 
 
-@mock_s3
 def test_recommendations(test_ctx):
     """Test that the locale recommender returns the correct
     locale dependent addons.
@@ -71,27 +118,26 @@ def test_recommendations(test_ctx):
     of (GUID, weight).
     """
     with MetricsMock() as mm:
-        ctx = install_mock_data(test_ctx)
-        r = LocaleRecommender(ctx)
-        recommendations = r.recommend({"locale": "en"}, 10)
+        with mock_locale_data(test_ctx):
+            r = LocaleRecommender(test_ctx)
 
-        # Make sure the structure of the recommendations is correct and that we
-        # recommended the the right addon.
-        assert isinstance(recommendations, list)
-        assert len(recommendations) == len(FAKE_LOCALE_DATA["en"])
+            recommendations = r.recommend({"locale": "en"}, 10)
 
-        # Make sure that the reported addons are the one from the fake data.
-        for (addon_id, weight), (expected_id, expected_weight) in zip(
-            recommendations, FAKE_LOCALE_DATA["en"]
-        ):
-            assert addon_id == expected_id
-            assert weight == expected_weight
+            # Make sure the structure of the recommendations is correct and that we
+            # recommended the the right addon.
+            assert isinstance(recommendations, list)
+            assert len(recommendations) == len(FAKE_LOCALE_DATA["en"])
 
-        assert mm.has_record(TIMING, "taar.locale")
-        assert mm.has_record(TIMING, "taar.locale_recommend")
+            # Make sure that the reported addons are the one from the fake data.
+            for (addon_id, weight), (expected_id, expected_weight) in zip(
+                recommendations, FAKE_LOCALE_DATA["en"]
+            ):
+                assert addon_id == expected_id
+                assert weight == expected_weight
+
+            assert mm.has_record(TIMING, "taar.locale_recommend")
 
 
-@mock_s3
 def test_recommender_extra_data(test_ctx):
     # Test that the recommender uses locale data from the "extra"
     # section if available.
@@ -109,11 +155,13 @@ def test_recommender_extra_data(test_ctx):
             assert addon_id == expected_id
             assert weight == expected_weight
 
-    ctx = install_mock_data(test_ctx)
-    r = LocaleRecommender(ctx)
-    recommendations = r.recommend({}, 10, extra_data={"locale": "en"})
-    validate_recommendations(recommendations, "en")
+    with mock_locale_data(test_ctx):
+        r = LocaleRecommender(test_ctx)
+        recommendations = r.recommend({}, 10, extra_data={"locale": "en"})
+        validate_recommendations(recommendations, "en")
 
-    # Make sure that we favour client data over the extra data.
-    recommendations = r.recommend({"locale": "en"}, 10, extra_data={"locale": "te-ST"})
-    validate_recommendations(recommendations, "en")
+        # Make sure that we favour client data over the extra data.
+        recommendations = r.recommend(
+            {"locale": "en"}, 10, extra_data={"locale": "te-ST"}
+        )
+        validate_recommendations(recommendations, "en")

@@ -81,22 +81,34 @@ RESULTS = {
 }
 
 
+def noop_taarlocale_dataload(stack):
+    # no-op the taarlite rankdata
+    stack.enter_context(
+        mock.patch.object(
+            AddonsCoinstallCache, "_update_locale_data", return_value=None
+        )
+    )
+    return stack
+
+
 @contextlib.contextmanager
 def mock_coinstall_ranking_context(ctx, mock_coinstall, mock_ranking):
 
     with contextlib.ExitStack() as stack:
         stack.enter_context(
             mock.patch.object(
-                AddonsCoinstallCache, "fetch_ranking_data", return_value=mock_ranking,
+                AddonsCoinstallCache, "_fetch_ranking_data", return_value=mock_ranking,
             )
         )
         stack.enter_context(
             mock.patch.object(
                 AddonsCoinstallCache,
-                "fetch_coinstall_data",
+                "_fetch_coinstall_data",
                 return_value=mock_coinstall,
             )
         )
+
+        stack = noop_taarlocale_dataload(stack)
 
         # Patch fakeredis in
         stack.enter_context(

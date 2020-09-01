@@ -8,37 +8,61 @@ import threading
 import redis
 import numpy as np
 from srgutil.interfaces import IMozLogging
+
 from taar.settings import (
     REDIS_HOST,
     REDIS_PORT,
+)
+
+# TAARLite configuration
+from taar.settings import (
     TAARLITE_GUID_COINSTALL_BUCKET,
     TAARLITE_GUID_COINSTALL_KEY,
     TAARLITE_GUID_RANKING_KEY,
-    TAARLITE_TTL,
     TAARLITE_TRUNCATE,
     TAARLITE_MUTEX_TTL,
 )
 
+# TAARLite configuration
+from taar.settings import TAAR_LOCALE_BUCKET, TAAR_LOCALE_KEY
+
 from jsoncache.loader import s3_json_loader
 
 
+# This marks which of the redis databases is currently
+# active for read
 ACTIVE_DB = "active_db"
+
+# This is a mutex to block multiple writers from redis
 UPDATE_CHECK = "update_mutex|"
 
 
+# taarlite guid guid coinstallation matrix
 COINSTALL_PREFIX = "coinstall|"
+
+# taarlite guid guid coinstallation matrix filtered by
+# minimum installation threshholds
 FILTERED_COINSTALL_PREFIX = "filtered_coinstall|"
+
+# taarlite ranking data
 RANKING_PREFIX = "ranking|"
+
+# taarlite minimum installation threshold
 MIN_INSTALLS_PREFIX = "min_installs|"
 
-# This is a map is guid->sum of coinstall counts
+# taarlite map of guid->(sum of coinstall counts)
 NORMDATA_COUNT_MAP_PREFIX = "normdata_count_map_prefix|"
 
-# Capture the number of times a GUID shows up per row
+# taarlite number of times a GUID shows up per row
 # of coinstallation data.
 NORMDATA_ROWCOUNT_PREFIX = "normdata_rowcount_prefix|"
 
+# taarlite row nownormalization data
 NORMDATA_GUID_ROW_NORM_PREFIX = "normdata_guid_row_norm_prefix|"
+
+
+# TAAR: Locale data
+LOCALE_DATA = "taar_locale_data|"
 
 
 class PrefixStripper:
@@ -64,11 +88,9 @@ class AddonsCoinstallCache:
     GUID->GUID co-installation data
     """
 
-    def __init__(self, ctx, ttl=TAARLITE_TTL):
+    def __init__(self, ctx):
         self._ctx = ctx
         self.logger = self._ctx[IMozLogging].get_logger("taar")
-
-        self._ttl = ttl
 
         rcon = self.init_redis_connections()
         self._r0 = rcon[0]
@@ -136,9 +158,6 @@ class AddonsCoinstallCache:
             self._r0.delete(UPDATE_CHECK)
             self.logger.info("UPDATE_CHECK field is cleared")
 
-    def fetch_ranking_data(self):
-        return s3_json_loader(TAARLITE_GUID_COINSTALL_BUCKET, TAARLITE_GUID_RANKING_KEY)
-
     def guid_maps_count_map(self, guid, default=None):
         tmp = self._db().get(NORMDATA_COUNT_MAP_PREFIX + guid)
         if tmp:
@@ -166,11 +185,6 @@ class AddonsCoinstallCache:
         if result is None:
             return 0
         return float(result.decode("utf8"))
-
-    def fetch_coinstall_data(self):
-        return s3_json_loader(
-            TAARLITE_GUID_COINSTALL_BUCKET, TAARLITE_GUID_COINSTALL_KEY
-        )
 
     def get_filtered_coinstall(self, guid, default=None):
         tmp = self._db().get(FILTERED_COINSTALL_PREFIX + guid)
@@ -224,7 +238,19 @@ class AddonsCoinstallCache:
         # Any value in ACTIVE_DB indicates that data is live
         return self._r0.get(ACTIVE_DB) is not None
 
-    # Private methods below
+    def top_addons_per_locale(self):
+        tmp = self._db().get(LOCALE_DATA)
+        if tmp:
+            return json.loads(tmp.decode("utf8"))
+        return None
+
+    """
+
+    ################################
+
+    Private methods below
+
+    """
 
     def _db(self):
         """
@@ -244,9 +270,34 @@ class AddonsCoinstallCache:
         """ pid/thread identity """
         return f"{os.getpid()}_{threading.get_ident()}"
 
-    def _update_coinstall_data(self, db):
+    def _fetch_coinstall_data(self):
+        return s3_json_loader(
+            TAARLITE_GUID_COINSTALL_BUCKET, TAARLITE_GUID_COINSTALL_KEY
+        )
 
-        data = self.fetch_coinstall_data()
+    def _fetch_ranking_data(self):
+        return s3_json_loader(TAARLITE_GUID_COINSTALL_BUCKET, TAARLITE_GUID_RANKING_KEY)
+
+    def _fetch_locale_data(self):
+        return s3_json_loader(TAAR_LOCALE_BUCKET, TAAR_LOCALE_KEY)
+
+    def _update_locale_data(self, db):
+        """
+        Load the TAAR locale data
+        """
+        data = self._fetch_locale_data()
+        result = {}
+        for locale, guid_list in data.items():
+            result[locale] = sorted(guid_list, key=lambda x: x[1], reverse=True)
+
+        db.set(LOCALE_DATA, json.dumps(result))
+
+    def _update_coinstall_data(self, db):
+        """
+        Load the TAAR Lite GUID GUID coinstallation data
+        """
+
+        data = self._fetch_coinstall_data()
 
         items = data.items()
         len_items = len(items)
@@ -302,7 +353,7 @@ class AddonsCoinstallCache:
 
     def _update_rank_data(self, db):
 
-        data = self.fetch_ranking_data()
+        data = self._fetch_ranking_data()
 
         items = data.items()
         len_items = len(items)
@@ -332,8 +383,6 @@ class AddonsCoinstallCache:
 
         self.logger.info("Completed precomputing normalized data")
 
-        # TODO: should this autoexpire to help indicate that no fresh
-        # data has loaded?  Maybe N * update TTL time?
         self._r0.set(ACTIVE_DB, next_active_db)
         self.logger.info(f"Active DB is set to {next_active_db}")
 
@@ -347,3 +396,4 @@ class AddonsCoinstallCache:
         db.flushdb()
         self._update_rank_data(db)
         self._update_coinstall_data(db)
+        self._update_locale_data(db)
