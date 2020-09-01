@@ -13,15 +13,31 @@ from taar.recommenders.ensemble_recommender import (
     TAAR_ENSEMBLE_KEY,
 )
 
+from taar.settings import TAAR_WHITELIST_BUCKET, TAAR_WHITELIST_KEY
 
 from .mocks import MockRecommenderFactory
-from .test_hybrid_recommender import install_mock_curated_data
 
 import operator
 from functools import reduce
 
 from markus import TIMING
 from markus.testing import MetricsMock
+
+
+def install_mock_curated_data(ctx):
+    mock_data = []
+    for i in range(20):
+        mock_data.append(str(i) * 16)
+
+    ctx = ctx.child()
+    conn = boto3.resource("s3", region_name="us-west-2")
+
+    conn.create_bucket(Bucket=TAAR_WHITELIST_BUCKET)
+    conn.Object(TAAR_WHITELIST_BUCKET, TAAR_WHITELIST_KEY).put(
+        Body=json.dumps(mock_data)
+    )
+
+    return ctx
 
 
 class StubRecommender(AbstractRecommender):
