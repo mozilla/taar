@@ -3,36 +3,16 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from srgutil.interfaces import IMozLogging
-from .lazys3 import LazyJSONLoader
 import numpy as np
 import operator as op
-import functools
-import threading
 
 from .base_recommender import AbstractRecommender
 
-from taar.settings import (
-    TAAR_ITEM_MATRIX_BUCKET,
-    TAAR_ITEM_MATRIX_KEY,
-    TAAR_ADDON_MAPPING_BUCKET,
-    TAAR_ADDON_MAPPING_KEY,
-)
+from taar.recommenders.redis_cache import AddonsCoinstallCache
 
 import markus
 
 metrics = markus.get_metrics("taar")
-
-
-def synchronized(wrapped):
-    """ Synchronization decorator. """
-
-    @functools.wraps(wrapped)
-    def wrapper(*args, **kwargs):
-        self = args[0]
-        with self._lock:
-            return wrapped(*args, **kwargs)
-
-    return wrapper
 
 
 def java_string_hashcode(s):
@@ -58,31 +38,20 @@ class CollaborativeRecommender(AbstractRecommender):
     def __init__(self, ctx):
         self._ctx = ctx
 
-        self._lock = threading.RLock()
-
-        self._addon_mapping = LazyJSONLoader(
-            self._ctx,
-            TAAR_ADDON_MAPPING_BUCKET,
-            TAAR_ADDON_MAPPING_KEY,
-            "addon_mapping",
-        )
-
-        self._raw_item_matrix = LazyJSONLoader(
-            self._ctx, TAAR_ITEM_MATRIX_BUCKET, TAAR_ITEM_MATRIX_KEY, "item_matrix",
-        )
-
         self.logger = self._ctx[IMozLogging].get_logger("taar")
+
+        self._redis_cache = AddonsCoinstallCache(self._ctx)
 
         self.model = None
 
     @property
     def addon_mapping(self):
-        return self._addon_mapping.get()[0]
+        return self._redis_cache.collab_addon_mapping()
 
     @property
     def raw_item_matrix(self):
-        val, new_copy = self._raw_item_matrix.get()
-        if val is not None and new_copy:
+        val = self._redis_cache.collab_raw_item_matrix()
+        if val not in (None, ""):
             # Build a dense numpy matrix out of it.
             num_rows = len(val)
             num_cols = len(val[0]["features"])
@@ -90,27 +59,10 @@ class CollaborativeRecommender(AbstractRecommender):
             self.model = np.zeros(shape=(num_rows, num_cols))
             for index, row in enumerate(val):
                 self.model[index, :] = row["features"]
-        elif val is None and new_copy:
+        else:
             self.model = None
         return val
 
-    def _load_json_models(self):
-        # Download the addon mappings.
-        if self.addon_mapping is None:
-            self.logger.error(
-                "Cannot download the addon mapping file {} {}".format(
-                    TAAR_ADDON_MAPPING_BUCKET, TAAR_ADDON_MAPPING_KEY
-                )
-            )
-
-        if self.addon_mapping is None:
-            self.logger.error(
-                "Cannot download the model file {} {}".format(
-                    TAAR_ITEM_MATRIX_BUCKET, TAAR_ITEM_MATRIX_KEY
-                )
-            )
-
-    @synchronized
     def can_recommend(self, client_data, extra_data={}):
         # We can't recommend if we don't have our data files.
         if (
@@ -178,22 +130,18 @@ class CollaborativeRecommender(AbstractRecommender):
     @metrics.timer_decorator("collaborative_recommend")
     def recommend(self, client_data, limit, extra_data={}):
         # Addons identifiers are stored as positive hash values within the model.
-        with self._lock:
-            try:
-                recommendations = self._recommend(client_data, limit, extra_data)
-            except Exception as e:
-                recommendations = []
+        try:
+            recommendations = self._recommend(client_data, limit, extra_data)
+        except Exception as e:
+            recommendations = []
 
-                self._addon_mapping.force_expiry()
-                self._raw_item_matrix.force_expiry()
-
-                metrics.incr("error_collaborative", value=1)
-                self.logger.exception(
-                    "Collaborative recommender crashed for {}".format(
-                        client_data.get("client_id", "no-client-id")
-                    ),
-                    e,
-                )
+            metrics.incr("error_collaborative", value=1)
+            self.logger.exception(
+                "Collaborative recommender crashed for {}".format(
+                    client_data.get("client_id", "no-client-id")
+                ),
+                e,
+            )
 
         log_data = (
             client_data["client_id"],

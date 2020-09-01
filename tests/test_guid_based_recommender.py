@@ -5,6 +5,8 @@ import pytest
 import mock
 import contextlib
 
+from .noop_fixtures import noop_taarlocale_dataload, noop_taarcollab_dataload
+
 from taar.recommenders.guid_based_recommender import GuidBasedRecommender
 from taar.recommenders.redis_cache import AddonsCoinstallCache
 
@@ -81,16 +83,6 @@ RESULTS = {
 }
 
 
-def noop_taarlocale_dataload(stack):
-    # no-op the taarlite rankdata
-    stack.enter_context(
-        mock.patch.object(
-            AddonsCoinstallCache, "_update_locale_data", return_value=None
-        )
-    )
-    return stack
-
-
 @contextlib.contextmanager
 def mock_coinstall_ranking_context(ctx, mock_coinstall, mock_ranking):
 
@@ -109,6 +101,7 @@ def mock_coinstall_ranking_context(ctx, mock_coinstall, mock_ranking):
         )
 
         stack = noop_taarlocale_dataload(stack)
+        stack = noop_taarcollab_dataload(stack)
 
         # Patch fakeredis in
         stack.enter_context(

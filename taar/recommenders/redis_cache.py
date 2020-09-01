@@ -24,7 +24,14 @@ from taar.settings import (
 )
 
 # TAARLite configuration
-from taar.settings import TAAR_LOCALE_BUCKET, TAAR_LOCALE_KEY
+from taar.settings import (
+    TAAR_LOCALE_BUCKET,
+    TAAR_LOCALE_KEY,
+    TAAR_ADDON_MAPPING_BUCKET,
+    TAAR_ADDON_MAPPING_KEY,
+    TAAR_ITEM_MATRIX_BUCKET,
+    TAAR_ITEM_MATRIX_KEY,
+)
 
 from jsoncache.loader import s3_json_loader
 
@@ -63,6 +70,10 @@ NORMDATA_GUID_ROW_NORM_PREFIX = "normdata_guid_row_norm_prefix|"
 
 # TAAR: Locale data
 LOCALE_DATA = "taar_locale_data|"
+
+# TAAR: collaborative data
+COLLAB_MAPPING_DATA = "taar_collab_mapping|"
+COLLAB_ITEM_MATRIX = "taar_collab_item_matrix|"
 
 
 class PrefixStripper:
@@ -239,7 +250,28 @@ class AddonsCoinstallCache:
         return self._r0.get(ACTIVE_DB) is not None
 
     def top_addons_per_locale(self):
+        """
+        Get locale data
+        """
         tmp = self._db().get(LOCALE_DATA)
+        if tmp:
+            return json.loads(tmp.decode("utf8"))
+        return None
+
+    def collab_raw_item_matrix(self):
+        """
+        Get the taar collaborative item matrix
+        """
+        tmp = self._db().get(COLLAB_ITEM_MATRIX)
+        if tmp:
+            return json.loads(tmp.decode("utf8"))
+        return None
+
+    def collab_addon_mapping(self):
+        """
+        Get the taar collaborative addon mappin
+        """
+        tmp = self._db().get(COLLAB_MAPPING_DATA)
         if tmp:
             return json.loads(tmp.decode("utf8"))
         return None
@@ -280,6 +312,25 @@ class AddonsCoinstallCache:
 
     def _fetch_locale_data(self):
         return s3_json_loader(TAAR_LOCALE_BUCKET, TAAR_LOCALE_KEY)
+
+    def _fetch_collaborative_mapping_data(self):
+        return s3_json_loader(TAAR_ADDON_MAPPING_BUCKET, TAAR_ADDON_MAPPING_KEY)
+
+    def _fetch_collaborative_item_matrix(self):
+        return s3_json_loader(TAAR_ITEM_MATRIX_BUCKET, TAAR_ITEM_MATRIX_KEY)
+
+    def _update_collab_data(self, db):
+        """
+        Load the TAAR collaborative data.  This is two parts: an item
+        matrix and a mapping of GUIDs
+        """
+        # Load the item matrix into redis
+        item_matrix = self._fetch_collaborative_item_matrix()
+        db.set(COLLAB_ITEM_MATRIX, json.dumps(item_matrix))
+
+        # Load the taar collaborative mapping data
+        mapping_data = self._fetch_collaborative_mapping_data()
+        db.set(COLLAB_MAPPING_DATA, json.dumps(mapping_data))
 
     def _update_locale_data(self, db):
         """
@@ -395,5 +446,8 @@ class AddonsCoinstallCache:
         # Clear this database before we do anything with it
         db.flushdb()
         self._update_rank_data(db)
+
         self._update_coinstall_data(db)
+
         self._update_locale_data(db)
+        self._update_collab_data(db)

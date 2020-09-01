@@ -8,21 +8,20 @@ Test cases for the TAAR CollaborativeRecommender
 
 import numpy
 
-from moto import mock_s3
-import boto3
-from taar.recommenders.collaborative_recommender import (
-    TAAR_ITEM_MATRIX_BUCKET,
-    TAAR_ITEM_MATRIX_KEY,
-    TAAR_ADDON_MAPPING_BUCKET,
-    TAAR_ADDON_MAPPING_KEY,
-)
+import fakeredis
+import mock
+import contextlib
+from taar.recommenders.redis_cache import AddonsCoinstallCache
+
 
 from taar.recommenders.collaborative_recommender import CollaborativeRecommender
 from taar.recommenders.collaborative_recommender import positive_hash
-import json
 
 from markus import TIMING
 from markus.testing import MetricsMock
+
+from .test_localerecommender import noop_taarlite_dataload
+from .noop_fixtures import noop_taarlocale_dataload
 
 
 """
@@ -33,29 +32,51 @@ the Java hash function.
 """
 
 
-def install_none_mock_data(ctx):
+@contextlib.contextmanager
+def mock_install_none_mock_data(ctx):
     """
     Overload the 'real' addon model and mapping URLs responses so that
     we always get 404 errors.
     """
-    conn = boto3.resource("s3", region_name="us-west-2")
+    with contextlib.ExitStack() as stack:
+        stack.enter_context(
+            mock.patch.object(
+                AddonsCoinstallCache,
+                "_fetch_collaborative_item_matrix",
+                return_value="",
+            )
+        )
+        stack.enter_context(
+            mock.patch.object(
+                AddonsCoinstallCache,
+                "_fetch_collaborative_mapping_data",
+                return_value="",
+            )
+        )
 
-    conn.create_bucket(Bucket=TAAR_ITEM_MATRIX_BUCKET)
-    conn.Object(TAAR_ITEM_MATRIX_BUCKET, TAAR_ITEM_MATRIX_KEY).put(Body="")
+        stack = noop_taarlocale_dataload(stack)
+        stack = noop_taarlite_dataload(stack)
 
-    # Don't reuse connections with moto.  badness happens
-    conn = boto3.resource("s3", region_name="us-west-2")
-    conn.create_bucket(Bucket=TAAR_ADDON_MAPPING_BUCKET)
-    conn.Object(TAAR_ADDON_MAPPING_BUCKET, TAAR_ADDON_MAPPING_KEY).put(Body="")
-    return ctx
+        # Patch fakeredis in
+        stack.enter_context(
+            mock.patch.object(
+                AddonsCoinstallCache,
+                "init_redis_connections",
+                return_value={
+                    0: fakeredis.FakeStrictRedis(db=0),
+                    1: fakeredis.FakeStrictRedis(db=1),
+                    2: fakeredis.FakeStrictRedis(db=2),
+                },
+            )
+        )
+
+        # Initialize redis
+        AddonsCoinstallCache(ctx).safe_load_data()
+        yield stack
 
 
-def install_mock_data(ctx):
-    """
-    Overload the 'real' addon model and mapping URLs responses so that
-    we always the fixture data at the top of this test module.
-    """
-
+@contextlib.contextmanager
+def mock_install_mock_data(ctx):
     addon_space = [
         {"id": "addon1.id", "name": "addon1.name", "isWebextension": True},
         {"id": "addon2.id", "name": "addon2.name", "isWebextension": True},
@@ -66,7 +87,10 @@ def install_mock_data(ctx):
 
     fake_addon_matrix = []
     for i, addon in enumerate(addon_space):
-        row = {"id": positive_hash(addon["id"]), "features": [0, 0.2, 0.0, 0.1, 0.15]}
+        row = {
+            "id": positive_hash(addon["id"]),
+            "features": [0, 0.2, 0.0, 0.1, 0.15],
+        }
         row["features"][i] = 1.0
         fake_addon_matrix.append(row)
 
@@ -75,74 +99,124 @@ def install_mock_data(ctx):
         java_hash = positive_hash(addon["id"])
         fake_mapping[str(java_hash)] = addon
 
-    conn = boto3.resource("s3", region_name="us-west-2")
-    conn.create_bucket(Bucket=TAAR_ITEM_MATRIX_BUCKET)
-    conn.Object(TAAR_ITEM_MATRIX_BUCKET, TAAR_ITEM_MATRIX_KEY).put(
-        Body=json.dumps(fake_addon_matrix)
-    )
+    with contextlib.ExitStack() as stack:
+        stack.enter_context(
+            mock.patch.object(
+                AddonsCoinstallCache,
+                "_fetch_collaborative_item_matrix",
+                return_value=fake_addon_matrix,
+            )
+        )
+        stack.enter_context(
+            mock.patch.object(
+                AddonsCoinstallCache,
+                "_fetch_collaborative_mapping_data",
+                return_value=fake_mapping,
+            )
+        )
 
-    conn = boto3.resource("s3", region_name="us-west-2")
-    conn.create_bucket(Bucket=TAAR_ADDON_MAPPING_BUCKET)
-    conn.Object(TAAR_ADDON_MAPPING_BUCKET, TAAR_ADDON_MAPPING_KEY).put(
-        Body=json.dumps(fake_mapping)
-    )
+        stack = noop_taarlocale_dataload(stack)
+        stack = noop_taarlite_dataload(stack)
 
-    return ctx
+        # Patch fakeredis in
+        stack.enter_context(
+            mock.patch.object(
+                AddonsCoinstallCache,
+                "init_redis_connections",
+                return_value={
+                    0: fakeredis.FakeStrictRedis(db=0),
+                    1: fakeredis.FakeStrictRedis(db=1),
+                    2: fakeredis.FakeStrictRedis(db=2),
+                },
+            )
+        )
+
+        # Initialize redis
+        AddonsCoinstallCache(ctx).safe_load_data()
+        yield stack
 
 
-@mock_s3
 def test_cant_recommend(test_ctx):
-    ctx = install_mock_data(test_ctx)
-    r = CollaborativeRecommender(ctx)
+    with mock_install_mock_data(test_ctx):
+        r = CollaborativeRecommender(test_ctx)
 
-    # Test that we can't recommend if we have not enough client info.
-    assert not r.can_recommend({})
-    assert not r.can_recommend({"installed_addons": []})
+        # Test that we can't recommend if we have not enough client info.
+        assert not r.can_recommend({})
+        assert not r.can_recommend({"installed_addons": []})
 
 
-@mock_s3
 def test_can_recommend(test_ctx):
-    ctx = install_mock_data(test_ctx)
-    r = CollaborativeRecommender(ctx)
+    with mock_install_mock_data(test_ctx):
+        r = CollaborativeRecommender(test_ctx)
 
-    # For some reason, moto doesn't like to play nice with this call
-    # Check that we can recommend if we the user has at least an addon.
-    assert r.can_recommend(
-        {"installed_addons": ["uBlock0@raymondhill.net"], "client_id": "test-client"}
-    )
+        # For some reason, moto doesn't like to play nice with this call
+        # Check that we can recommend if we the user has at least an addon.
+        assert r.can_recommend(
+            {
+                "installed_addons": ["uBlock0@raymondhill.net"],
+                "client_id": "test-client",
+            }
+        )
 
 
-@mock_s3
 def test_can_recommend_no_model(test_ctx):
-    ctx = install_none_mock_data(test_ctx)
-    r = CollaborativeRecommender(ctx)
+    with mock_install_none_mock_data(test_ctx):
+        r = CollaborativeRecommender(test_ctx)
 
-    # We should never be able to recommend if something went wrong with the model.
-    assert not r.can_recommend({})
-    assert not r.can_recommend({"installed_addons": []})
-    assert not r.can_recommend({"installed_addons": ["uBlock0@raymondhill.net"]})
+        # We should never be able to recommend if something went wrong with the model.
+        assert not r.can_recommend({})
+        assert not r.can_recommend({"installed_addons": []})
+        assert not r.can_recommend({"installed_addons": ["uBlock0@raymondhill.net"]})
 
 
-@mock_s3
 def test_empty_recommendations(test_ctx):
     # Tests that the empty recommender always recommends an empty list
     # of addons if we have no addons
-    ctx = install_none_mock_data(test_ctx)
-    r = CollaborativeRecommender(ctx)
-    assert not r.can_recommend({})
+    with mock_install_none_mock_data(test_ctx):
+        r = CollaborativeRecommender(test_ctx)
+        assert not r.can_recommend({})
 
-    # Note that calling recommend() if can_recommend has failed is not
-    # defined.
+        # Note that calling recommend() if can_recommend has failed is not
+        # defined.
 
 
-@mock_s3
 def test_best_recommendation(test_ctx):
     with MetricsMock() as mm:
 
         # Make sure the structure of the recommendations is correct and that we
         # recommended the the right addon.
-        ctx = install_mock_data(test_ctx)
-        r = CollaborativeRecommender(ctx)
+        with mock_install_mock_data(test_ctx):
+            r = CollaborativeRecommender(test_ctx)
+
+            # An non-empty set of addons should give a list of recommendations
+            fixture_client_data = {
+                "installed_addons": ["addon4.id"],
+                "client_id": "test_client",
+            }
+            assert r.can_recommend(fixture_client_data)
+            recommendations = r.recommend(fixture_client_data, 1)
+
+            assert isinstance(recommendations, list)
+            assert len(recommendations) == 1
+
+            # Verify that addon2 - the most heavy weighted addon was
+            # recommended
+            result = recommendations[0]
+            assert type(result) is tuple
+            assert len(result) == 2
+            assert result[0] == "addon2.id"
+            assert type(result[1]) is numpy.float64
+            assert numpy.isclose(result[1], numpy.float64("0.3225"))
+
+            assert mm.has_record(TIMING, stat="taar.collaborative_recommend")
+
+
+def test_recommendation_weights(test_ctx):
+    """
+    Weights should be ordered greatest to lowest
+    """
+    with mock_install_mock_data(test_ctx):
+        r = CollaborativeRecommender(test_ctx)
 
         # An non-empty set of addons should give a list of recommendations
         fixture_client_data = {
@@ -150,10 +224,9 @@ def test_best_recommendation(test_ctx):
             "client_id": "test_client",
         }
         assert r.can_recommend(fixture_client_data)
-        recommendations = r.recommend(fixture_client_data, 1)
-
+        recommendations = r.recommend(fixture_client_data, 2)
         assert isinstance(recommendations, list)
-        assert len(recommendations) == 1
+        assert len(recommendations) == 2
 
         # Verify that addon2 - the most heavy weighted addon was
         # recommended
@@ -164,43 +237,11 @@ def test_best_recommendation(test_ctx):
         assert type(result[1]) is numpy.float64
         assert numpy.isclose(result[1], numpy.float64("0.3225"))
 
-        assert mm.has_record(TIMING, stat="taar.item_matrix")
-        assert mm.has_record(TIMING, stat="taar.addon_mapping")
-        assert mm.has_record(TIMING, stat="taar.collaborative_recommend")
-
-
-@mock_s3
-def test_recommendation_weights(test_ctx):
-    """
-    Weights should be ordered greatest to lowest
-    """
-    ctx = install_mock_data(test_ctx)
-    r = CollaborativeRecommender(ctx)
-
-    # An non-empty set of addons should give a list of recommendations
-    fixture_client_data = {
-        "installed_addons": ["addon4.id"],
-        "client_id": "test_client",
-    }
-    assert r.can_recommend(fixture_client_data)
-    recommendations = r.recommend(fixture_client_data, 2)
-    assert isinstance(recommendations, list)
-    assert len(recommendations) == 2
-
-    # Verify that addon2 - the most heavy weighted addon was
-    # recommended
-    result = recommendations[0]
-    assert type(result) is tuple
-    assert len(result) == 2
-    assert result[0] == "addon2.id"
-    assert type(result[1]) is numpy.float64
-    assert numpy.isclose(result[1], numpy.float64("0.3225"))
-
-    # Verify that addon2 - the most heavy weighted addon was
-    # recommended
-    result = recommendations[1]
-    assert type(result) is tuple
-    assert len(result) == 2
-    assert result[0] == "addon5.id"
-    assert type(result[1]) is numpy.float64
-    assert numpy.isclose(result[1], numpy.float64("0.29"))
+        # Verify that addon2 - the most heavy weighted addon was
+        # recommended
+        result = recommendations[1]
+        assert type(result) is tuple
+        assert len(result) == 2
+        assert result[0] == "addon5.id"
+        assert type(result[1]) is numpy.float64
+        assert numpy.isclose(result[1], numpy.float64("0.29"))

@@ -8,6 +8,7 @@ import mock
 import contextlib
 import fakeredis
 from taar.recommenders.redis_cache import AddonsCoinstallCache
+from .noop_fixtures import noop_taarcollab_dataload, noop_taarlite_dataload
 
 import json
 
@@ -42,20 +43,6 @@ def install_mock_data(ctx):
     return ctx
 
 
-def noop_taarlite_dataload(stack):
-    # no-op the taarlite rankdata
-    stack.enter_context(
-        mock.patch.object(AddonsCoinstallCache, "_update_rank_data", return_value=None)
-    )
-    # no-op the taarlite guidguid data
-    stack.enter_context(
-        mock.patch.object(
-            AddonsCoinstallCache, "_update_coinstall_data", return_value=None,
-        )
-    )
-    return stack
-
-
 @contextlib.contextmanager
 def mock_locale_data(ctx):
     with contextlib.ExitStack() as stack:
@@ -68,6 +55,7 @@ def mock_locale_data(ctx):
         )
 
         stack = noop_taarlite_dataload(stack)
+        stack = noop_taarcollab_dataload(stack)
 
         # Patch fakeredis in
         stack.enter_context(
