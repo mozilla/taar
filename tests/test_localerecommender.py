@@ -8,8 +8,11 @@ import mock
 import contextlib
 import fakeredis
 from taar.recommenders.redis_cache import AddonsCoinstallCache
-from .noop_fixtures import noop_taarcollab_dataload, noop_taarlite_dataload
-
+from .noop_fixtures import (
+    noop_taarcollab_dataload,
+    noop_taarlite_dataload,
+    noop_taarsimilarity_dataload,
+)
 import json
 
 
@@ -46,6 +49,7 @@ def install_mock_data(ctx):
 @contextlib.contextmanager
 def mock_locale_data(ctx):
     with contextlib.ExitStack() as stack:
+        AddonsCoinstallCache._instance = None
         stack.enter_context(
             mock.patch.object(
                 AddonsCoinstallCache,
@@ -56,6 +60,7 @@ def mock_locale_data(ctx):
 
         stack = noop_taarlite_dataload(stack)
         stack = noop_taarcollab_dataload(stack)
+        stack = noop_taarsimilarity_dataload(stack)
 
         # Patch fakeredis in
         stack.enter_context(
@@ -71,7 +76,7 @@ def mock_locale_data(ctx):
         )
 
         # Initialize redis
-        AddonsCoinstallCache(ctx).safe_load_data()
+        AddonsCoinstallCache.get_instance(ctx).safe_load_data()
         yield stack
 
 

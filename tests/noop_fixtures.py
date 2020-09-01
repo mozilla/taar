@@ -39,3 +39,13 @@ def noop_taarcollab_dataload(stack):
         )
     )
     return stack
+
+
+def noop_taarsimilarity_dataload(stack):
+    # no-op the taar collab
+    stack.enter_context(
+        mock.patch.object(
+            AddonsCoinstallCache, "_update_similarity_data", return_value=None
+        )
+    )
+    return stack

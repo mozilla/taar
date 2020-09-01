@@ -14,6 +14,7 @@ from taar.settings import (
     REDIS_PORT,
 )
 
+
 # TAARLite configuration
 from taar.settings import (
     TAARLITE_GUID_COINSTALL_BUCKET,
@@ -23,14 +24,20 @@ from taar.settings import (
     TAARLITE_MUTEX_TTL,
 )
 
-# TAARLite configuration
+# TAAR configuration
 from taar.settings import (
+    # Locale
     TAAR_LOCALE_BUCKET,
     TAAR_LOCALE_KEY,
+    # Collaborative dta
     TAAR_ADDON_MAPPING_BUCKET,
     TAAR_ADDON_MAPPING_KEY,
     TAAR_ITEM_MATRIX_BUCKET,
     TAAR_ITEM_MATRIX_KEY,
+    # Similarity data
+    TAAR_SIMILARITY_BUCKET,
+    TAAR_SIMILARITY_DONOR_KEY,
+    TAAR_SIMILARITY_LRCURVES_KEY,
 )
 
 from jsoncache.loader import s3_json_loader
@@ -75,6 +82,13 @@ LOCALE_DATA = "taar_locale_data|"
 COLLAB_MAPPING_DATA = "taar_collab_mapping|"
 COLLAB_ITEM_MATRIX = "taar_collab_item_matrix|"
 
+SIMILARITY_DONORS = "taar_similarity_donors|"
+SIMILARITY_LRCURVES = "taar_similarity_lrcurves|"
+
+SIMILARITY_NUM_DONORS = "taar_similarity_num_donors|"
+SIMILARITY_CONTINUOUS_FEATURES = "taar_similarity_continuous_features|"
+SIMILARITY_CATEGORICAL_FEATURES = "taar_similarity_categorical_features|"
+
 
 class PrefixStripper:
     def __init__(self, prefix, iterator, cast_to_str=False):
@@ -99,11 +113,27 @@ class AddonsCoinstallCache:
     GUID->GUID co-installation data
     """
 
+    _instance = None
+
+    @classmethod
+    def get_instance(cls, ctx):
+        if cls._instance is None:
+            cls._instance = AddonsCoinstallCache(ctx)
+        return cls._instance
+
     def __init__(self, ctx):
         self._ctx = ctx
         self.logger = self._ctx[IMozLogging].get_logger("taar")
 
+        # Keep an integer handle (or None) on the last known database
+        self._last_db = None
+
+        self._similarity_num_donors = 0
+        self._similarity_continuous_features = None
+        self._similarity_categorical_features = None
+
         rcon = self.init_redis_connections()
+
         self._r0 = rcon[0]
         self._r1 = rcon[1]
         self._r2 = rcon[2]
@@ -276,6 +306,43 @@ class AddonsCoinstallCache:
             return json.loads(tmp.decode("utf8"))
         return None
 
+    def similarity_donors(self):
+        """
+        Get the taar similarity donors
+        """
+        tmp = self._db().get(SIMILARITY_DONORS)
+        if tmp:
+            return json.loads(tmp.decode("utf8"))
+        return None
+
+    def similarity_lrcurves(self):
+        """
+        Get the taar similarity donors
+        """
+        tmp = self._db().get(SIMILARITY_LRCURVES)
+        if tmp:
+            return json.loads(tmp.decode("utf8"))
+        return None
+
+    def similarity_continuous_features(self):
+        """
+        precomputed similarity recommender continuous features cache
+        """
+        return self._similarity_continuous_features
+
+    def similarity_categorical_features(self):
+        """
+        precomputed similarity recommender categorical features cache
+        """
+        return self._similarity_categorical_features
+
+    @property
+    def similarity_num_donors(self):
+        """
+        precomputed similarity recommender categorical features cache
+        """
+        return self._similarity_num_donors
+
     """
 
     ################################
@@ -290,12 +357,65 @@ class AddonsCoinstallCache:
         active redis instance
         """
         active_db = self._r0.get(ACTIVE_DB)
+
         if active_db is not None:
             db = int(active_db.decode("utf8"))
+
             if db == 1:
                 return self._r1
             elif db == 2:
                 return self._r2
+
+    def _update_data_callback(self, db):
+        """
+        Process data that needs updating when new data is loaded
+        """
+        self._build_similarity_features_caches(db)
+
+    def _build_similarity_features_caches(self, db):
+        """
+        This function build two feature cache matrices and sets the
+        number of donors (self.similarity_num_donors)
+
+        That's the self.categorical_features and
+        self.continuous_features attributes.
+
+        One matrix is for the continuous features and the other is for
+        the categorical features. This is needed to speed up the similarity
+        recommendation process."""
+        from taar.recommenders.similarity_recommender import (
+            CONTINUOUS_FEATURES,
+            CATEGORICAL_FEATURES,
+        )
+
+        tmp = db.get(SIMILARITY_DONORS)
+        if tmp is None:
+            return
+        donors_pool = json.loads(tmp.decode("utf8"))
+
+        self._similarity_num_donors = len(donors_pool)
+
+        # Build a numpy matrix cache for the continuous features.
+        continuous_features = np.zeros(
+            (self.similarity_num_donors, len(CONTINUOUS_FEATURES))
+        )
+
+        for idx, d in enumerate(donors_pool):
+            features = [d.get(specified_key) for specified_key in CONTINUOUS_FEATURES]
+            continuous_features[idx] = features
+        self._similarity_continuous_features = continuous_features
+
+        # Build the cache for categorical features.
+        categorical_features = np.zeros(
+            (self.similarity_num_donors, len(CATEGORICAL_FEATURES)), dtype="object",
+        )
+        for idx, d in enumerate(donors_pool):
+            features = [d.get(specified_key) for specified_key in CATEGORICAL_FEATURES]
+            categorical_features[idx] = np.array([features], dtype="object")
+
+        self._similarity_categorical_features = categorical_features
+
+        self.logger.info("Reconstructed matrices for similarity recommender")
 
     @property
     def _ident(self):
@@ -318,6 +438,22 @@ class AddonsCoinstallCache:
 
     def _fetch_collaborative_item_matrix(self):
         return s3_json_loader(TAAR_ITEM_MATRIX_BUCKET, TAAR_ITEM_MATRIX_KEY)
+
+    def _fetch_similarity_donors(self):
+        return s3_json_loader(TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY,)
+
+    def _fetch_similarity_lrcurves(self):
+        return s3_json_loader(TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY,)
+
+    def _update_similarity_data(self, db):
+        """
+        Load the TAAR similarity data
+        """
+        donors = self._fetch_similarity_donors()
+        lrcurves = self._fetch_similarity_lrcurves()
+
+        db.set(SIMILARITY_DONORS, json.dumps(donors))
+        db.set(SIMILARITY_LRCURVES, json.dumps(lrcurves))
 
     def _update_collab_data(self, db):
         """
@@ -445,9 +581,18 @@ class AddonsCoinstallCache:
 
         # Clear this database before we do anything with it
         db.flushdb()
-        self._update_rank_data(db)
 
+        # Update TAARlite
+        self._update_rank_data(db)
         self._update_coinstall_data(db)
 
+        # Update TAAR locale data
         self._update_locale_data(db)
+
+        # Update TAAR collaborative data
         self._update_collab_data(db)
+
+        # Update TAAR similarity data
+        self._update_similarity_data(db)
+
+        self._update_data_callback(db)

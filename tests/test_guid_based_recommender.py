@@ -5,7 +5,11 @@ import pytest
 import mock
 import contextlib
 
-from .noop_fixtures import noop_taarlocale_dataload, noop_taarcollab_dataload
+from .noop_fixtures import (
+    noop_taarlocale_dataload,
+    noop_taarcollab_dataload,
+    noop_taarsimilarity_dataload,
+)
 
 from taar.recommenders.guid_based_recommender import GuidBasedRecommender
 from taar.recommenders.redis_cache import AddonsCoinstallCache
@@ -87,6 +91,8 @@ RESULTS = {
 def mock_coinstall_ranking_context(ctx, mock_coinstall, mock_ranking):
 
     with contextlib.ExitStack() as stack:
+        AddonsCoinstallCache._instance = None
+
         stack.enter_context(
             mock.patch.object(
                 AddonsCoinstallCache, "_fetch_ranking_data", return_value=mock_ranking,
@@ -102,6 +108,7 @@ def mock_coinstall_ranking_context(ctx, mock_coinstall, mock_ranking):
 
         stack = noop_taarlocale_dataload(stack)
         stack = noop_taarcollab_dataload(stack)
+        stack = noop_taarsimilarity_dataload(stack)
 
         # Patch fakeredis in
         stack.enter_context(
@@ -117,7 +124,7 @@ def mock_coinstall_ranking_context(ctx, mock_coinstall, mock_ranking):
         )
 
         # Initialize redis
-        AddonsCoinstallCache(ctx).safe_load_data()
+        AddonsCoinstallCache.get_instance(ctx).safe_load_data()
         yield stack
 
 

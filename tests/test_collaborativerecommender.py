@@ -20,8 +20,11 @@ from taar.recommenders.collaborative_recommender import positive_hash
 from markus import TIMING
 from markus.testing import MetricsMock
 
-from .test_localerecommender import noop_taarlite_dataload
-from .noop_fixtures import noop_taarlocale_dataload
+from .noop_fixtures import (
+    noop_taarlocale_dataload,
+    noop_taarlite_dataload,
+    noop_taarsimilarity_dataload,
+)
 
 
 """
@@ -32,6 +35,13 @@ the Java hash function.
 """
 
 
+def noop_other_recommenders(stack):
+    stack = noop_taarlocale_dataload(stack)
+    stack = noop_taarlite_dataload(stack)
+    stack = noop_taarsimilarity_dataload(stack)
+    return stack
+
+
 @contextlib.contextmanager
 def mock_install_none_mock_data(ctx):
     """
@@ -39,6 +49,8 @@ def mock_install_none_mock_data(ctx):
     we always get 404 errors.
     """
     with contextlib.ExitStack() as stack:
+        AddonsCoinstallCache._instance = None
+
         stack.enter_context(
             mock.patch.object(
                 AddonsCoinstallCache,
@@ -54,8 +66,7 @@ def mock_install_none_mock_data(ctx):
             )
         )
 
-        stack = noop_taarlocale_dataload(stack)
-        stack = noop_taarlite_dataload(stack)
+        stack = noop_other_recommenders(stack)
 
         # Patch fakeredis in
         stack.enter_context(
@@ -71,7 +82,7 @@ def mock_install_none_mock_data(ctx):
         )
 
         # Initialize redis
-        AddonsCoinstallCache(ctx).safe_load_data()
+        AddonsCoinstallCache.get_instance(ctx).safe_load_data()
         yield stack
 
 
@@ -100,6 +111,7 @@ def mock_install_mock_data(ctx):
         fake_mapping[str(java_hash)] = addon
 
     with contextlib.ExitStack() as stack:
+        AddonsCoinstallCache._instance = None
         stack.enter_context(
             mock.patch.object(
                 AddonsCoinstallCache,
@@ -115,8 +127,7 @@ def mock_install_mock_data(ctx):
             )
         )
 
-        stack = noop_taarlocale_dataload(stack)
-        stack = noop_taarlite_dataload(stack)
+        stack = noop_other_recommenders(stack)
 
         # Patch fakeredis in
         stack.enter_context(
@@ -132,7 +143,7 @@ def mock_install_mock_data(ctx):
         )
 
         # Initialize redis
-        AddonsCoinstallCache(ctx).safe_load_data()
+        AddonsCoinstallCache.get_instance(ctx).safe_load_data()
         yield stack
 
 
