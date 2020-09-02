@@ -383,6 +383,10 @@ class TAARCache:
         return None
 
     def cache_context(self):
+        self._db()
+        return self._cache_context
+
+    def _build_cache_context(self):
         """
         Fetch from redis once per request
         """
@@ -455,6 +459,8 @@ class TAARCache:
 
         self._last_db = db_num
         self._build_similarity_features_caches(db)
+
+        self._cache_context = self._build_cache_context()
         self.logger.info("Completed precomputing normalized data")
 
     def _build_similarity_features_caches(self, db):

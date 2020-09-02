@@ -69,7 +69,6 @@ class LocaleRecommender(AbstractRecommender):
             result_list = self._recommend(client_data, limit, extra_data)
         except Exception as e:
             result_list = []
-            self._top_addons_per_locale.force_expiry()
             metrics.incr("error_locale", value=1)
             self.logger.exception(
                 "Locale recommender crashed for {}".format(
