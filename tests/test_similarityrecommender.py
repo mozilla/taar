@@ -31,7 +31,7 @@ from .noop_fixtures import (
     noop_taarlocale_dataload,
     noop_taarensemble_dataload,
 )
-from taar.recommenders.redis_cache import AddonsCoinstallCache
+from taar.recommenders.redis_cache import TAARCache
 
 
 def noop_loaders(stack):
@@ -82,17 +82,13 @@ def generate_a_fake_taar_client():
 def mock_install_no_data(ctx):
 
     with contextlib.ExitStack() as stack:
-        AddonsCoinstallCache._instance = None
+        TAARCache._instance = None
         stack.enter_context(
-            mock.patch.object(
-                AddonsCoinstallCache, "_fetch_similarity_donors", return_value="",
-            )
+            mock.patch.object(TAARCache, "_fetch_similarity_donors", return_value="",)
         )
 
         stack.enter_context(
-            mock.patch.object(
-                AddonsCoinstallCache, "_fetch_similarity_lrcurves", return_value="",
-            )
+            mock.patch.object(TAARCache, "_fetch_similarity_lrcurves", return_value="",)
         )
 
         stack = noop_loaders(stack)
@@ -100,7 +96,7 @@ def mock_install_no_data(ctx):
         # Patch fakeredis in
         stack.enter_context(
             mock.patch.object(
-                AddonsCoinstallCache,
+                TAARCache,
                 "init_redis_connections",
                 return_value={
                     0: fakeredis.FakeStrictRedis(db=0),
@@ -111,7 +107,7 @@ def mock_install_no_data(ctx):
         )
 
         # Initialize redis
-        AddonsCoinstallCache.get_instance(ctx).safe_load_data()
+        TAARCache.get_instance(ctx).safe_load_data()
         yield stack
 
 
@@ -119,10 +115,10 @@ def mock_install_no_data(ctx):
 def mock_install_categorical_data(ctx):
 
     with contextlib.ExitStack() as stack:
-        AddonsCoinstallCache._instance = None
+        TAARCache._instance = None
         stack.enter_context(
             mock.patch.object(
-                AddonsCoinstallCache,
+                TAARCache,
                 "_fetch_similarity_donors",
                 return_value=CATEGORICAL_FEATURE_FIXTURE_DATA,
             )
@@ -130,7 +126,7 @@ def mock_install_categorical_data(ctx):
 
         stack.enter_context(
             mock.patch.object(
-                AddonsCoinstallCache,
+                TAARCache,
                 "_fetch_similarity_lrcurves",
                 return_value=generate_fake_lr_curves(1000),
             )
@@ -140,7 +136,7 @@ def mock_install_categorical_data(ctx):
         # Patch fakeredis in
         stack.enter_context(
             mock.patch.object(
-                AddonsCoinstallCache,
+                TAARCache,
                 "init_redis_connections",
                 return_value={
                     0: fakeredis.FakeStrictRedis(db=0),
@@ -151,7 +147,7 @@ def mock_install_categorical_data(ctx):
         )
 
         # Initialize redis
-        AddonsCoinstallCache.get_instance(ctx).safe_load_data()
+        TAARCache.get_instance(ctx).safe_load_data()
         yield stack
 
 
@@ -161,18 +157,16 @@ def mock_install_continuous_data(ctx):
     lrs_data = generate_fake_lr_curves(1000)
 
     with contextlib.ExitStack() as stack:
-        AddonsCoinstallCache._instance = None
+        TAARCache._instance = None
         stack.enter_context(
             mock.patch.object(
-                AddonsCoinstallCache, "_fetch_similarity_donors", return_value=cts_data,
+                TAARCache, "_fetch_similarity_donors", return_value=cts_data,
             )
         )
 
         stack.enter_context(
             mock.patch.object(
-                AddonsCoinstallCache,
-                "_fetch_similarity_lrcurves",
-                return_value=lrs_data,
+                TAARCache, "_fetch_similarity_lrcurves", return_value=lrs_data,
             )
         )
         stack = noop_loaders(stack)
@@ -180,7 +174,7 @@ def mock_install_continuous_data(ctx):
         # Patch fakeredis in
         stack.enter_context(
             mock.patch.object(
-                AddonsCoinstallCache,
+                TAARCache,
                 "init_redis_connections",
                 return_value={
                     0: fakeredis.FakeStrictRedis(db=0),
@@ -191,7 +185,7 @@ def mock_install_continuous_data(ctx):
         )
 
         # Initialize redis
-        AddonsCoinstallCache.get_instance(ctx).safe_load_data()
+        TAARCache.get_instance(ctx).safe_load_data()
         yield stack
 
 

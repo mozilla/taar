@@ -8,7 +8,7 @@ from taar.recommenders.ensemble_recommender import (
 )
 from taar.recommenders.randomizer import in_experiment, reorder_guids
 from srgutil.interfaces import IMozLogging
-from taar.recommenders.redis_cache import AddonsCoinstallCache
+from taar.recommenders.redis_cache import TAARCache
 
 from taar.settings import TAAR_EXPERIMENT_PROB
 
@@ -57,7 +57,7 @@ class RecommendationManager:
 
         # The whitelist data is only used for test client IDs
 
-        self._redis_cache = AddonsCoinstallCache.get_instance(self._ctx)
+        self._redis_cache = TAARCache.get_instance(self._ctx)
 
         self._experiment_prob = ctx.get("TAAR_EXPERIMENT_PROB", TAAR_EXPERIMENT_PROB)
 

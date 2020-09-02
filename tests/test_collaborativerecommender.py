@@ -11,7 +11,7 @@ import numpy
 import fakeredis
 import mock
 import contextlib
-from taar.recommenders.redis_cache import AddonsCoinstallCache
+from taar.recommenders.redis_cache import TAARCache
 
 
 from taar.recommenders.collaborative_recommender import CollaborativeRecommender
@@ -51,20 +51,16 @@ def mock_install_none_mock_data(ctx):
     we always get 404 errors.
     """
     with contextlib.ExitStack() as stack:
-        AddonsCoinstallCache._instance = None
+        TAARCache._instance = None
 
         stack.enter_context(
             mock.patch.object(
-                AddonsCoinstallCache,
-                "_fetch_collaborative_item_matrix",
-                return_value="",
+                TAARCache, "_fetch_collaborative_item_matrix", return_value="",
             )
         )
         stack.enter_context(
             mock.patch.object(
-                AddonsCoinstallCache,
-                "_fetch_collaborative_mapping_data",
-                return_value="",
+                TAARCache, "_fetch_collaborative_mapping_data", return_value="",
             )
         )
 
@@ -73,7 +69,7 @@ def mock_install_none_mock_data(ctx):
         # Patch fakeredis in
         stack.enter_context(
             mock.patch.object(
-                AddonsCoinstallCache,
+                TAARCache,
                 "init_redis_connections",
                 return_value={
                     0: fakeredis.FakeStrictRedis(db=0),
@@ -84,7 +80,7 @@ def mock_install_none_mock_data(ctx):
         )
 
         # Initialize redis
-        AddonsCoinstallCache.get_instance(ctx).safe_load_data()
+        TAARCache.get_instance(ctx).safe_load_data()
         yield stack
 
 
@@ -113,17 +109,17 @@ def mock_install_mock_data(ctx):
         fake_mapping[str(java_hash)] = addon
 
     with contextlib.ExitStack() as stack:
-        AddonsCoinstallCache._instance = None
+        TAARCache._instance = None
         stack.enter_context(
             mock.patch.object(
-                AddonsCoinstallCache,
+                TAARCache,
                 "_fetch_collaborative_item_matrix",
                 return_value=fake_addon_matrix,
             )
         )
         stack.enter_context(
             mock.patch.object(
-                AddonsCoinstallCache,
+                TAARCache,
                 "_fetch_collaborative_mapping_data",
                 return_value=fake_mapping,
             )
@@ -134,7 +130,7 @@ def mock_install_mock_data(ctx):
         # Patch fakeredis in
         stack.enter_context(
             mock.patch.object(
-                AddonsCoinstallCache,
+                TAARCache,
                 "init_redis_connections",
                 return_value={
                     0: fakeredis.FakeStrictRedis(db=0),
@@ -145,7 +141,7 @@ def mock_install_mock_data(ctx):
         )
 
         # Initialize redis
-        AddonsCoinstallCache.get_instance(ctx).safe_load_data()
+        TAARCache.get_instance(ctx).safe_load_data()
         yield stack
 
 

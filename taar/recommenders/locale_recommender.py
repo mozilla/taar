@@ -7,7 +7,7 @@ import markus
 from srgutil.interfaces import IMozLogging
 
 from .base_recommender import AbstractRecommender
-from taar.recommenders.redis_cache import AddonsCoinstallCache
+from taar.recommenders.redis_cache import TAARCache
 
 metrics = markus.get_metrics("taar")
 
@@ -28,7 +28,7 @@ class LocaleRecommender(AbstractRecommender):
 
         self.logger = self._ctx[IMozLogging].get_logger("taar")
 
-        self._redis_cache = AddonsCoinstallCache.get_instance(self._ctx)
+        self._redis_cache = TAARCache.get_instance(self._ctx)
 
     # DONE removed
     @property

@@ -122,7 +122,7 @@ class PrefixStripper:
         return result
 
 
-class AddonsCoinstallCache:
+class TAARCache:
     """
     This class manages a redis instance to hold onto the taar-lite
     GUID->GUID co-installation data
@@ -133,7 +133,7 @@ class AddonsCoinstallCache:
     @classmethod
     def get_instance(cls, ctx):
         if cls._instance is None:
-            cls._instance = AddonsCoinstallCache(ctx, i_didnt_read_the_docs=False)
+            cls._instance = TAARCache(ctx, i_didnt_read_the_docs=False)
         return cls._instance
 
     def __init__(self, ctx, i_didnt_read_the_docs=True):

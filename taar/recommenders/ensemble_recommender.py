@@ -7,7 +7,7 @@ import itertools
 from .base_recommender import AbstractRecommender
 
 from taar.utils import hasher
-from taar.recommenders.redis_cache import AddonsCoinstallCache
+from taar.recommenders.redis_cache import TAARCache
 
 import markus
 
@@ -32,7 +32,7 @@ class EnsembleRecommender(AbstractRecommender):
         self.RECOMMENDER_KEYS = ["collaborative", "similarity", "locale"]
         self._ctx = ctx
 
-        self._redis_cache = AddonsCoinstallCache.get_instance(self._ctx)
+        self._redis_cache = TAARCache.get_instance(self._ctx)
         self.logger = self._ctx[IMozLogging].get_logger("taar.ensemble")
 
         assert "recommender_factory" in self._ctx

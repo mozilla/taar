@@ -6,7 +6,7 @@ from taar.recommenders.ensemble_recommender import EnsembleRecommender
 import mock
 import contextlib
 import fakeredis
-from taar.recommenders.redis_cache import AddonsCoinstallCache
+from taar.recommenders.redis_cache import TAARCache
 from .noop_fixtures import (
     noop_taarlocale_dataload,
     noop_taarcollab_dataload,
@@ -59,16 +59,14 @@ def mock_install_mock_ensemble_data(ctx):
     ]
 
     with contextlib.ExitStack() as stack:
-        AddonsCoinstallCache._instance = None
+        TAARCache._instance = None
         stack.enter_context(
-            mock.patch.object(
-                AddonsCoinstallCache, "_fetch_ensemble_weights", return_value=DATA,
-            )
+            mock.patch.object(TAARCache, "_fetch_ensemble_weights", return_value=DATA,)
         )
 
         stack.enter_context(
             mock.patch.object(
-                AddonsCoinstallCache, "_fetch_whitelist", return_value=WHITELIST_DATA,
+                TAARCache, "_fetch_whitelist", return_value=WHITELIST_DATA,
             )
         )
 
@@ -77,7 +75,7 @@ def mock_install_mock_ensemble_data(ctx):
         # Patch fakeredis in
         stack.enter_context(
             mock.patch.object(
-                AddonsCoinstallCache,
+                TAARCache,
                 "init_redis_connections",
                 return_value={
                     0: fakeredis.FakeStrictRedis(db=0),
@@ -88,7 +86,7 @@ def mock_install_mock_ensemble_data(ctx):
         )
 
         # Initialize redis
-        AddonsCoinstallCache.get_instance(ctx).safe_load_data()
+        TAARCache.get_instance(ctx).safe_load_data()
         yield stack
 
 

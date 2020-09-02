@@ -13,7 +13,7 @@ from .noop_fixtures import (
 )
 
 from taar.recommenders.guid_based_recommender import GuidBasedRecommender
-from taar.recommenders.redis_cache import AddonsCoinstallCache
+from taar.recommenders.redis_cache import TAARCache
 
 from taar.recommenders.redis_cache import NORMDATA_GUID_ROW_NORM_PREFIX
 
@@ -92,18 +92,16 @@ RESULTS = {
 def mock_coinstall_ranking_context(ctx, mock_coinstall, mock_ranking):
 
     with contextlib.ExitStack() as stack:
-        AddonsCoinstallCache._instance = None
+        TAARCache._instance = None
 
         stack.enter_context(
             mock.patch.object(
-                AddonsCoinstallCache, "_fetch_ranking_data", return_value=mock_ranking,
+                TAARCache, "_fetch_ranking_data", return_value=mock_ranking,
             )
         )
         stack.enter_context(
             mock.patch.object(
-                AddonsCoinstallCache,
-                "_fetch_coinstall_data",
-                return_value=mock_coinstall,
+                TAARCache, "_fetch_coinstall_data", return_value=mock_coinstall,
             )
         )
 
@@ -115,7 +113,7 @@ def mock_coinstall_ranking_context(ctx, mock_coinstall, mock_ranking):
         # Patch fakeredis in
         stack.enter_context(
             mock.patch.object(
-                AddonsCoinstallCache,
+                TAARCache,
                 "init_redis_connections",
                 return_value={
                     0: fakeredis.FakeStrictRedis(db=0),
@@ -126,7 +124,7 @@ def mock_coinstall_ranking_context(ctx, mock_coinstall, mock_ranking):
         )
 
         # Initialize redis
-        AddonsCoinstallCache.get_instance(ctx).safe_load_data()
+        TAARCache.get_instance(ctx).safe_load_data()
         yield stack
 
 

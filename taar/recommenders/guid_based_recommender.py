@@ -10,7 +10,7 @@ from srgutil.interfaces import IMozLogging
 
 import markus
 
-from taar.recommenders.redis_cache import AddonsCoinstallCache
+from taar.recommenders.redis_cache import TAARCache
 
 
 metrics = markus.get_metrics("taar")
@@ -76,7 +76,7 @@ class GuidBasedRecommender:
         self._ctx = ctx
         self.logger = self._ctx[IMozLogging].get_logger("taarlite")
 
-        self._redis_cache = AddonsCoinstallCache.get_instance(self._ctx)
+        self._redis_cache = TAARCache.get_instance(self._ctx)
         self.logger.info("GUIDBasedRecommender is initialized")
 
     def cache_ready(self):

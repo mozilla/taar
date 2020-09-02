@@ -8,7 +8,7 @@ import operator as op
 
 from .base_recommender import AbstractRecommender
 
-from taar.recommenders.redis_cache import AddonsCoinstallCache
+from taar.recommenders.redis_cache import TAARCache
 
 import markus
 
@@ -40,7 +40,7 @@ class CollaborativeRecommender(AbstractRecommender):
 
         self.logger = self._ctx[IMozLogging].get_logger("taar")
 
-        self._redis_cache = AddonsCoinstallCache.get_instance(self._ctx)
+        self._redis_cache = TAARCache.get_instance(self._ctx)
 
         self.model = None
 
