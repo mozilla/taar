@@ -30,7 +30,7 @@ up:
 		-e WORKERS=1 \
 		-e THREADS=2 \
 		-e LOG_LEVEL=20 \
-		-e GOOGLE_APPLICATION_CREDENTIALS=/app/.gcp_creds/vng-taar-dev-clientinfo-svc.json \
+		-e GOOGLE_APPLICATION_CREDENTIALS=/app/.gcp_creds/vng-taar-stage.json \
 		-e TAAR_API_PLUGIN=taar.plugin \
 		-e TAAR_ITEM_MATRIX_BUCKET=telemetry-public-analysis-2 \
 		-e TAAR_ITEM_MATRIX_KEY=telemetry-ml/addon_recommender/item_matrix.json \
@@ -49,10 +49,8 @@ up:
 		-e TAARLITE_MAX_RESULTS=4 \
 		-e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} \
 		-e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \
-		-e BIGTABLE_PROJECT_ID=${BIGTABLE_PROJECT_ID} \
-		-e BIGTABLE_INSTANCE_ID=${BIGTABLE_INSTANCE_ID} \
-		-e BIGTABLE_TABLE_ID=${BIGTABLE_TABLE_ID} \
-		-e GCLOUD_PROJECT=${GCLOUD_PROJECT} \
+		-e BIGTABLE_PROJECT_ID=moz-fx-data-taar-nonprod-48b6 \
+		-e BIGTABLE_INSTANCE_ID=taar-stage-202006 \
 		-p 8000:8000 \
 		-it taar:latest 
 

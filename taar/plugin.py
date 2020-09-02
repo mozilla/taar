@@ -45,17 +45,6 @@ def acquire_taar_singleton(PROXY_MANAGER):
     return PROXY_MANAGER.getTaarRM()
 
 
-def warm_caches():
-    import sys
-
-    if "pytest" in sys.modules:
-        # Don't clobber the taarlite singleton under test
-        return
-
-    global PROXY_MANAGER
-    acquire_taarlite_singleton(PROXY_MANAGER)
-
-
 class ResourceProxy(object):
     def __init__(self):
         self._resource = None
@@ -265,5 +254,4 @@ def configure_plugin(app):  # noqa: C901
             if "PROXY_RESOURCE" in config_options:
                 PROXY_MANAGER._resource = config_options["PROXY_RESOURCE"]
 
-    warm_caches()
     return MyPlugin()
