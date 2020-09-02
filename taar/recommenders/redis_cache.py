@@ -418,8 +418,8 @@ class TAARCache:
             return
 
         self._last_db = db_num
-
         self._build_similarity_features_caches(db)
+        self.logger.info("Completed precomputing normalized data")
 
     def _build_similarity_features_caches(self, db):
         """
@@ -638,8 +638,6 @@ class TAARCache:
             next_active_db = 1
 
         self._copy_data(next_active_db)
-
-        self.logger.info("Completed precomputing normalized data")
 
         self._r0.set(ACTIVE_DB, next_active_db)
         self.logger.info(f"Active DB is set to {next_active_db}")
