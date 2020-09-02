@@ -162,8 +162,7 @@ def test_can_recommend(test_ctx):
     with mock_install_mock_data(test_ctx):
         r = CollaborativeRecommender(test_ctx)
 
-        # For some reason, moto doesn't like to play nice with this call
-        # Check that we can recommend if we the user has at least an addon.
+        # Check that we can recommend if the user has at least an addon.
         assert r.can_recommend(
             {
                 "installed_addons": ["uBlock0@raymondhill.net"],
