@@ -30,14 +30,21 @@ class LocaleRecommender(AbstractRecommender):
 
         self._redis_cache = TAARCache.get_instance(self._ctx)
 
-    # DONE removed
+    def _get_cache(self, extra_data):
+        tmp = extra_data.get("cache", None)
+        if tmp is None:
+            tmp = self._redis_cache.cache_context()
+        return tmp
+
     @property
     def top_addons_per_locale(self):
         return self._redis_cache.top_addons_per_locale()
 
     def can_recommend(self, client_data, extra_data={}):
+        cache = self._get_cache(extra_data)
+
         # We can't recommend if we don't have our data files.
-        if self.top_addons_per_locale is None:
+        if cache["top_addons_per_locale"] is None:
             return False
 
         # If we have data coming from other sources, we can use that for
@@ -48,10 +55,10 @@ class LocaleRecommender(AbstractRecommender):
         if not isinstance(client_locale, str):
             return False
 
-        if client_locale not in self.top_addons_per_locale:
+        if client_locale not in cache["top_addons_per_locale"]:
             return False
 
-        if not self.top_addons_per_locale.get(client_locale):
+        if not cache["top_addons_per_locale"].get(client_locale):
             return False
 
         return True
@@ -74,10 +81,11 @@ class LocaleRecommender(AbstractRecommender):
         return result_list
 
     def _recommend(self, client_data, limit, extra_data={}):
+        cache = self._get_cache(extra_data)
         # If we have data coming from multiple sourecs, prefer the one
         # from 'client_data'.
         client_locale = client_data.get("locale") or extra_data.get("locale", None)
-        result_list = self.top_addons_per_locale.get(client_locale, [])[:limit]
+        result_list = cache["top_addons_per_locale"].get(client_locale, [])[:limit]
 
         if "locale" not in client_data:
             try:

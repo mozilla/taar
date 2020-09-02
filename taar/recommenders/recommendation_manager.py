@@ -10,6 +10,7 @@ from taar.recommenders.randomizer import in_experiment, reorder_guids
 from srgutil.interfaces import IMozLogging
 from taar.recommenders.redis_cache import TAARCache
 
+import time
 from taar.settings import TAAR_EXPERIMENT_PROB
 
 import markus
@@ -72,6 +73,11 @@ class RecommendationManager:
         :param limit: the maximum number of recommendations to return.
         :param extra_data: a dictionary with extra client data.
         """
+        rec_start = time.time()
+
+        # Read everything from redis now
+        extra_data["cache"] = self._redis_cache.cache_context()
+
         results = None
 
         if is_test_client(client_id):
@@ -92,10 +98,11 @@ class RecommendationManager:
                 # Fetch back all possible whitelisted addons for this
                 # client
                 extra_data["guid_randomization"] = True
-                whitelist = self._redis_cache.whitelist_data()
+                whitelist = extra_data["cache"]["whitelist"]
                 results = self._ensemble_recommender.recommend(
                     client_info, len(whitelist), extra_data
                 )
+
             results = reorder_guids(results, limit)
         else:
             if results is None:
@@ -103,4 +110,7 @@ class RecommendationManager:
                     client_info, limit, extra_data
                 )
 
+        self.logger.info(
+            f"Recommendation manager executed in {time.time()-rec_start} seconds"
+        )
         return results

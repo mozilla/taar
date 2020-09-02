@@ -74,3 +74,10 @@ TAARLITE_MUTEX_TTL = config("TAARLITE_MUTEX_TTL", 60 * 60, cast=int)
 TAARLITE_MUTEX_TTL = config("TAARLITE_MUTEX_TTL", 60 * 60, cast=int)
 
 TAARLITE_TRUNCATE = config("TAARLITE_TRUNCATE", TAARLITE_MAX_RESULTS * 5, cast=int)
+
+# Bigtable config
+BIGTABLE_PROJECT_ID = config(
+    "BIGTABLE_PROJECT_ID", default="cfr-personalization-experiment"
+)
+BIGTABLE_INSTANCE_ID = config("BIGTABLE_INSTANCE_ID", default="taar-profile")
+BIGTABLE_TABLE_ID = config("BIGTABLE_TABLE_ID", default="taar_profile")

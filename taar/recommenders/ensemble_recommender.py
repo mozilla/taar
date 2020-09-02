@@ -8,6 +8,7 @@ from .base_recommender import AbstractRecommender
 
 from taar.utils import hasher
 from taar.recommenders.redis_cache import TAARCache
+import time
 
 import markus
 
@@ -39,6 +40,12 @@ class EnsembleRecommender(AbstractRecommender):
 
         self._init_from_ctx()
 
+    def _get_cache(self, extra_data):
+        tmp = extra_data.get("cache", None)
+        if tmp is None:
+            tmp = self._redis_cache.cache_context()
+        return tmp
+
     def getWeights(self):
         return self._redis_cache.ensemble_weights()
 
@@ -66,10 +73,11 @@ class EnsembleRecommender(AbstractRecommender):
 
     @metrics.timer_decorator("ensemble_recommend")
     def recommend(self, client_data, limit, extra_data={}):
+        cache = self._get_cache(extra_data)
         client_id = client_data.get("client_id", "no-client-id")
 
         if is_test_client(client_id):
-            whitelist = self._redis_cache.whitelist_data()
+            whitelist = cache["whitelist"]
             samples = whitelist[:limit]
             self.logger.info("Test ID detected [{}]".format(client_id))
 
@@ -102,6 +110,7 @@ class EnsembleRecommender(AbstractRecommender):
         weight each recommender appropriate so that the ordering is
         correct.
         """
+        cache = self._get_cache(extra_data)
         self.logger.info("Ensemble recommend invoked")
         preinstalled_addon_ids = client_data.get("installed_addons", [])
 
@@ -110,12 +119,13 @@ class EnsembleRecommender(AbstractRecommender):
         extended_limit = limit + len(preinstalled_addon_ids)
 
         flattened_results = []
-        ensemble_weights = self._redis_cache.ensemble_weights()
+        ensemble_weights = cache["ensemble_weights"]
 
         for rkey in self.RECOMMENDER_KEYS:
+            rec_start = time.time()
+            self.logger.info(f"{rkey} recommend starting")
             recommender = self._recommender_map[rkey]
-
-            if recommender.can_recommend(client_data):
+            if recommender.can_recommend(client_data, extra_data):
                 raw_results = recommender.recommend(
                     client_data, extended_limit, extra_data
                 )
@@ -124,6 +134,9 @@ class EnsembleRecommender(AbstractRecommender):
                     item = (guid, weight * ensemble_weights[rkey])
                     reweighted_results.append(item)
                 flattened_results.extend(reweighted_results)
+            self.logger.info(
+                f"{rkey} recommend ended in {time.time()-rec_start} seconds"
+            )
 
         # Sort the results by the GUID
         flattened_results.sort(key=lambda item: item[0])
