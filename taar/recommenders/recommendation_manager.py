@@ -76,7 +76,8 @@ class RecommendationManager:
 
         with log_timer_info("recommmend executed", self.logger):
             # Read everything from redis now
-            extra_data["cache"] = self._redis_cache.cache_context()
+            with log_timer_info("redis read", self.logger):
+                extra_data["cache"] = self._redis_cache.cache_context()
 
             results = None
 
