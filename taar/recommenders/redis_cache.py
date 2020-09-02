@@ -382,6 +382,46 @@ class TAARCache:
             return json.loads(tmp)
         return None
 
+    def cache_context(self):
+        self._db()
+        return self._cache_context
+
+    def _build_cache_context(self):
+        """
+        Fetch from redis once per request
+        """
+        tmp = {
+            # Similarity stuff
+            "lr_curves": self.similarity_lrcurves(),
+            "num_donors": self.similarity_num_donors,
+            "continuous_features": self.similarity_continuous_features(),
+            "categorical_features": self.similarity_categorical_features(),
+            "donors_pool": self.similarity_donors(),
+            # Collaborative
+            "addon_mapping": self.collab_addon_mapping(),
+            "raw_item_matrix": self.collab_raw_item_matrix(),
+            # Locale
+            "top_addons_per_locale": self.top_addons_per_locale(),
+            # Ensemble
+            "whitelist": self.whitelist_data(),
+            "ensemble_weights": self.ensemble_weights(),
+        }
+
+        def compute_collab_model(val):
+            if val not in (None, ""):
+                num_rows = len(val)
+                num_cols = len(val[0]["features"])
+
+                model = np.zeros(shape=(num_rows, num_cols))
+                for index, row in enumerate(val):
+                    model[index, :] = row["features"]
+            else:
+                model = None
+            return model
+
+        tmp["collab_model"] = compute_collab_model(tmp["raw_item_matrix"])
+        return tmp
+
     """
 
     ################################
@@ -419,6 +459,8 @@ class TAARCache:
 
         self._last_db = db_num
         self._build_similarity_features_caches(db)
+
+        self._cache_context = self._build_cache_context()
         self.logger.info("Completed precomputing normalized data")
 
     def _build_similarity_features_caches(self, db):

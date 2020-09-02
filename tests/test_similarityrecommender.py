@@ -250,9 +250,10 @@ def test_get_lr(test_ctx):
     # Tests that the likelihood ratio values are not empty for extreme values and are realistic.
     with mock_install_continuous_data(test_ctx):
         r = SimilarityRecommender(test_ctx)
-        assert r.get_lr(0.0001) is not None
-        assert r.get_lr(10.0) is not None
-        assert r.get_lr(0.001) > r.get_lr(5.0)
+        cache = r._get_cache({})
+        assert r.get_lr(0.0001, cache) is not None
+        assert r.get_lr(10.0, cache) is not None
+        assert r.get_lr(0.001, cache) > r.get_lr(5.0, cache)
 
 
 def test_compute_clients_dist(test_ctx):
@@ -300,8 +301,9 @@ def test_compute_clients_dist(test_ctx):
         per_client_test = []
 
         # Compute a different set of distances for each set of clients.
+        cache = r._get_cache({})
         for tc in test_clients:
-            test_distances = r.compute_clients_dist(tc)
+            test_distances = r.compute_clients_dist(tc, cache)
             assert len(test_distances) == len(CONTINUOUS_FEATURE_FIXTURE_DATA)
             per_client_test.append(test_distances[2][0])
 

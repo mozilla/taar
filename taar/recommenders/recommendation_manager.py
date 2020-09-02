@@ -7,6 +7,7 @@ from taar.recommenders.ensemble_recommender import (
     is_test_client,
 )
 from taar.recommenders.randomizer import in_experiment, reorder_guids
+from taar.recommenders.debug import log_timer_info
 from srgutil.interfaces import IMozLogging
 from taar.recommenders.redis_cache import TAARCache
 
@@ -72,35 +73,44 @@ class RecommendationManager:
         :param limit: the maximum number of recommendations to return.
         :param extra_data: a dictionary with extra client data.
         """
-        results = None
 
-        if is_test_client(client_id):
-            # Just create a stub client_info blob
-            client_info = {
-                "client_id": client_id,
-            }
-        else:
-            client_info = self.profile_fetcher.get(client_id)
-            if client_info is None:
-                self.logger.info(
-                    "Defaulting to empty results.  No client info fetched from storage backend."
-                )
-                return []
+        with log_timer_info("recommmend executed", self.logger):
+            # Read everything from redis now
+            with log_timer_info("redis read", self.logger):
+                extra_data["cache"] = self._redis_cache.cache_context()
 
-        if in_experiment(client_id, self._experiment_prob):
-            if results is None:
-                # Fetch back all possible whitelisted addons for this
-                # client
-                extra_data["guid_randomization"] = True
-                whitelist = self._redis_cache.whitelist_data()
-                results = self._ensemble_recommender.recommend(
-                    client_info, len(whitelist), extra_data
-                )
-            results = reorder_guids(results, limit)
-        else:
-            if results is None:
-                results = self._ensemble_recommender.recommend(
-                    client_info, limit, extra_data
-                )
+            results = None
 
-        return results
+            if is_test_client(client_id):
+                # Just create a stub client_info blob
+                client_info = {
+                    "client_id": client_id,
+                }
+            else:
+                with log_timer_info("bigtable fetched data", self.logger):
+                    client_info = self.profile_fetcher.get(client_id)
+
+                if client_info is None:
+                    self.logger.info(
+                        "Defaulting to empty results.  No client info fetched from storage backend."
+                    )
+                    return []
+
+            if in_experiment(client_id, self._experiment_prob):
+                if results is None:
+                    # Fetch back all possible whitelisted addons for this
+                    # client
+                    extra_data["guid_randomization"] = True
+                    whitelist = extra_data["cache"]["whitelist"]
+                    results = self._ensemble_recommender.recommend(
+                        client_info, len(whitelist), extra_data
+                    )
+
+                results = reorder_guids(results, limit)
+            else:
+                if results is None:
+                    results = self._ensemble_recommender.recommend(
+                        client_info, limit, extra_data
+                    )
+
+            return results

@@ -42,7 +42,11 @@ class CollaborativeRecommender(AbstractRecommender):
 
         self._redis_cache = TAARCache.get_instance(self._ctx)
 
-        self.model = None
+    def _get_cache(self, extra_data):
+        tmp = extra_data.get("cache", None)
+        if tmp is None:
+            tmp = self._redis_cache.cache_context()
+        return tmp
 
     @property
     def addon_mapping(self):
@@ -50,25 +54,15 @@ class CollaborativeRecommender(AbstractRecommender):
 
     @property
     def raw_item_matrix(self):
-        val = self._redis_cache.collab_raw_item_matrix()
-        if val not in (None, ""):
-            # Build a dense numpy matrix out of it.
-            num_rows = len(val)
-            num_cols = len(val[0]["features"])
-
-            self.model = np.zeros(shape=(num_rows, num_cols))
-            for index, row in enumerate(val):
-                self.model[index, :] = row["features"]
-        else:
-            self.model = None
-        return val
+        return self._redis_cache.collab_raw_item_matrix()
 
     def can_recommend(self, client_data, extra_data={}):
+        cache = self._get_cache(extra_data)
         # We can't recommend if we don't have our data files.
         if (
-            self.raw_item_matrix is None
-            or self.model is None
-            or self.addon_mapping is None
+            cache["raw_item_matrix"] is None
+            or cache["collab_model"] is None
+            or cache["addon_mapping"] is None
         ):
             return False
 
@@ -80,6 +74,8 @@ class CollaborativeRecommender(AbstractRecommender):
         return False
 
     def _recommend(self, client_data, limit, extra_data):
+        cache = self._get_cache(extra_data)
+
         installed_addons_as_hashes = [
             positive_hash(addon_id)
             for addon_id in client_data.get("installed_addons", [])
@@ -90,18 +86,18 @@ class CollaborativeRecommender(AbstractRecommender):
         query_vector = np.array(
             [
                 1.0 if (entry.get("id") in installed_addons_as_hashes) else 0.0
-                for entry in self.raw_item_matrix
+                for entry in cache["raw_item_matrix"]
             ]
         )
 
         # Build the user factors matrix.
-        user_factors = np.matmul(query_vector, self.model)
+        user_factors = np.matmul(query_vector, cache["collab_model"])
         user_factors_transposed = np.transpose(user_factors)
 
         # Compute the distance between the user and all the addons in the latent
         # space.
         distances = {}
-        for addon in self.raw_item_matrix:
+        for addon in cache["raw_item_matrix"]:
             # We don't really need to show the items we requested.
             # They will always end up with the greatest score. Also
             # filter out legacy addons from the suggestions.
@@ -109,8 +105,8 @@ class CollaborativeRecommender(AbstractRecommender):
             str_hashed_id = str(hashed_id)
             if (
                 hashed_id in installed_addons_as_hashes
-                or str_hashed_id not in self.addon_mapping
-                or self.addon_mapping[str_hashed_id].get("isWebextension", False)
+                or str_hashed_id not in cache["addon_mapping"]
+                or cache["addon_mapping"][str_hashed_id].get("isWebextension", False)
                 is False
             ):
                 continue
@@ -118,7 +114,7 @@ class CollaborativeRecommender(AbstractRecommender):
             dist = np.dot(user_factors_transposed, addon.get("features"))
             # Read the addon ids from the "addon_mapping" looking it
             # up by 'id' (which is an hashed value).
-            addon_id = self.addon_mapping[str_hashed_id].get("id")
+            addon_id = cache["addon_mapping"][str_hashed_id].get("id")
             distances[addon_id] = dist
 
         # Sort the suggested addons by their score and return the

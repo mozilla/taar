@@ -2,7 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from decouple import config
 from srgutil.interfaces import IMozLogging
 from google.cloud import bigtable
 from google.cloud.bigtable import column_family
@@ -10,12 +9,15 @@ from google.cloud.bigtable import row_filters
 import json
 import zlib
 import datetime
-
-BIGTABLE_PROJECT_ID = config(
-    "BIGTABLE_PROJECT_ID", default="cfr-personalization-experiment"
+from taar.settings import (
+    BIGTABLE_PROJECT_ID,
+    BIGTABLE_INSTANCE_ID,
+    BIGTABLE_TABLE_ID,
 )
-BIGTABLE_INSTANCE_ID = config("BIGTABLE_INSTANCE_ID", default="taar-profile")
-BIGTABLE_TABLE_ID = config("BIGTABLE_TABLE_ID", default="test-table")
+import markus
+
+
+metrics = markus.get_metrics("taar")
 
 
 class BigTableProfileController:
@@ -109,6 +111,7 @@ class ProfileFetcher:
     def set_client(self, client):
         self.__client = client
 
+    @metrics.timer_decorator("bigtable_read")
     def get(self, client_id):
         try:
             profile_data = self._client.get_client_profile(client_id)

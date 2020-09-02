@@ -70,9 +70,20 @@ class SimilarityRecommender(AbstractRecommender):
     def lr_curves(self):
         return self._redis_cache.similarity_lrcurves()
 
+    def _get_cache(self, extra_data):
+        tmp = extra_data.get("cache", None)
+        if tmp is None:
+            tmp = self._redis_cache.cache_context()
+        return tmp
+
+    """
+    End private properties
+    """
+
     def can_recommend(self, client_data, extra_data={}):
+        cache = self._get_cache(extra_data)
         # We can't recommend if we don't have our data files.
-        if self.donors_pool is None or self.lr_curves is None:
+        if cache["donors_pool"] is None or cache["lr_curves"] is None:
             return False
 
         # Check that the client info contains a non-None value for each required
@@ -87,7 +98,7 @@ class SimilarityRecommender(AbstractRecommender):
             self.logger.error("Unusable client data encountered")
         return has_fields
 
-    def get_lr(self, score):
+    def get_lr(self, score, cache):
         """Compute a :float: likelihood ratio from a provided similarity score when compared
         to two probability density functions which are computed and pre-loaded during init.
 
@@ -104,15 +115,15 @@ class SimilarityRecommender(AbstractRecommender):
 
         # The lr_curves_cache is a list of scalar distance
         # measurements
-        lr_curves_cache = np.array([s[0] for s in self.lr_curves])
+        lr_curves_cache = np.array([s[0] for s in cache["lr_curves"]])
 
         # np.argmin produces the index to the part of the curve
         # where distance is the smallest to the score which we are
         # inspecting currently.
         idx = np.argmin(abs(score - lr_curves_cache))
 
-        numer_val = self.lr_curves[idx][1][0]
-        denum_val = self.lr_curves[idx][1][1]
+        numer_val = cache["lr_curves"][idx][1][0]
+        denum_val = cache["lr_curves"][idx][1][1]
 
         # Compute LR based on numerator and denominator values
         return float(numer_val) / float(denum_val)
@@ -121,7 +132,7 @@ class SimilarityRecommender(AbstractRecommender):
     # Any changes to this function must be reflected in the corresponding ETL job.
     # https://github.com/mozilla/python_mozetl/blob/master/mozetl/taar/taar_similarity.py
     #
-    def compute_clients_dist(self, client_data):
+    def compute_clients_dist(self, client_data, cache):
         client_categorical_feats = [
             client_data.get(specified_key) for specified_key in CATEGORICAL_FEATURES
         ]
@@ -131,14 +142,16 @@ class SimilarityRecommender(AbstractRecommender):
 
         # Compute the distances between the user and the cached continuous features.
         cont_features = distance.cdist(
-            self.continuous_features, np.array([client_continuous_feats]), "canberra",
+            cache["continuous_features"],
+            np.array([client_continuous_feats]),
+            "canberra",
         )
 
         # Compute the distances between the user and the cached categorical features.
         cat_features = np.array(
             [
                 [distance.hamming(x, client_categorical_feats)]
-                for x in self.categorical_features
+                for x in cache["categorical_features"]
             ]
         )
 
@@ -152,7 +165,7 @@ class SimilarityRecommender(AbstractRecommender):
         # similarity over continous similarity
         return (cont_features + FLOOR_DISTANCE_ADJUSTMENT) * cat_features
 
-    def get_similar_donors(self, client_data):
+    def get_similar_donors(self, client_data, cache):
         """Computes a set of :float: similarity scores between a client and a set of candidate
         donors for which comparable variables have been measured.
 
@@ -167,13 +180,13 @@ class SimilarityRecommender(AbstractRecommender):
                  each LR score with the related donor in the |self.donors_pool|.
         """
         # Compute the distance between self and any comparable client.
-        distances = self.compute_clients_dist(client_data)
+        distances = self.compute_clients_dist(client_data, cache)
 
         # Compute the LR based on precomputed distributions that relate the score
         # to a probability of providing good addon recommendations.
 
         lrs_from_scores = np.array(
-            [self.get_lr(distances[i]) for i in range(self.num_donors)]
+            [self.get_lr(distances[i], cache) for i in range(cache["num_donors"])]
         )
 
         # Sort the LR values (descending) and return the sorted values together with
@@ -182,7 +195,9 @@ class SimilarityRecommender(AbstractRecommender):
         return lrs_from_scores[indices], indices
 
     def _recommend(self, client_data, limit, extra_data={}):
-        donor_set_ranking, indices = self.get_similar_donors(client_data)
+        cache = self._get_cache(extra_data)
+
+        donor_set_ranking, indices = self.get_similar_donors(client_data, cache)
         donor_log_lrs = np.log(donor_set_ranking)
         # 1.0 corresponds to a log likelihood ratio of 0 meaning that donors are equally
         # likely to be 'good'. A value > 0.0 is sufficient, but we like this to be high.
@@ -197,7 +212,7 @@ class SimilarityRecommender(AbstractRecommender):
         index_lrs_iter = zip(indices[donor_log_lrs > 0.0], donor_log_lrs)
         recommendations = []
         for (index, lrs) in index_lrs_iter:
-            for term in self.donors_pool[index]["active_addons"]:
+            for term in cache["donors_pool"][index]["active_addons"]:
                 candidate = (term, lrs)
                 recommendations.append(candidate)
         # Sort recommendations on key (guid name)

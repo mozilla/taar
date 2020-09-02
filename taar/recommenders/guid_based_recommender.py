@@ -2,16 +2,13 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from contextlib import contextmanager
-
-import time
 
 from srgutil.interfaces import IMozLogging
 
 import markus
 
 from taar.recommenders.redis_cache import TAARCache
-
+from taar.recommenders.debug import log_timer_debug
 
 metrics = markus.get_metrics("taar")
 
@@ -20,26 +17,6 @@ NORM_MODE_ROWNORMSUM = "rownorm_sum"
 NORM_MODE_ROWCOUNT = "row_count"
 NORM_MODE_ROWSUM = "row_sum"
 NORM_MODE_GUIDCEPTION = "guidception"
-
-
-@contextmanager
-def log_timer_debug(msg, logger):
-    start_time = time.time()
-    try:
-        yield
-    finally:
-        end_time = time.time()
-        logger.debug(msg + f" Completed in {end_time-start_time} seconds")
-
-
-@contextmanager
-def log_timer_info(msg, logger):
-    start_time = time.time()
-    try:
-        yield
-    finally:
-        end_time = time.time()
-        logger.info(msg + f" Completed in {end_time-start_time} seconds")
 
 
 class GuidBasedRecommender:
