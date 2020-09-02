@@ -146,6 +146,7 @@ class TAARCache:
             )
 
         self._ctx = ctx
+        self._last_db = None
         self.logger = self._ctx[IMozLogging].get_logger("taar")
 
         # Keep an integer handle (or None) on the last known database
@@ -351,12 +352,14 @@ class TAARCache:
         """
         precomputed similarity recommender continuous features cache
         """
+        _ = self._db()  # make sure we've computed data from the live redis instance
         return self._similarity_continuous_features
 
     def similarity_categorical_features(self):
         """
         precomputed similarity recommender categorical features cache
         """
+        _ = self._db()  # make sure we've computed data from the live redis instance
         return self._similarity_categorical_features
 
     @property
@@ -364,6 +367,7 @@ class TAARCache:
         """
         precomputed similarity recommender categorical features cache
         """
+        _ = self._db()  # make sure we've computed data from the live redis instance
         return self._similarity_num_donors
 
     def ensemble_weights(self):
@@ -397,14 +401,24 @@ class TAARCache:
             db = int(active_db.decode("utf8"))
 
             if db == 1:
-                return self._r1
+                # Run all callback functions to preprocess model data
+                live_db = self._r1
             elif db == 2:
-                return self._r2
+                live_db = self._r2
 
-    def _update_data_callback(self, db):
+            self._update_data_callback(db, live_db)
+            return live_db
+
+    def _update_data_callback(self, db_num, db):
         """
-        Process data that needs updating when new data is loaded
+        Preprocess data when the current redis instance does not match
+        the last known instance.
         """
+        if db_num == self._last_db:
+            return
+
+        self._last_db = db_num
+
         self._build_similarity_features_caches(db)
 
     def _build_similarity_features_caches(self, db):
@@ -657,6 +671,3 @@ class TAARCache:
 
         # Update TAAR ensemble data
         self._update_whitelist_data(db)
-
-        # Run all callback functions to preprocess model data
-        self._update_data_callback(db)
