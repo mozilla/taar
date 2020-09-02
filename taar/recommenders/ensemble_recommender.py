@@ -8,8 +8,7 @@ from .base_recommender import AbstractRecommender
 
 from taar.utils import hasher
 from taar.recommenders.redis_cache import TAARCache
-import time
-
+from taar.recommenders.debug import log_timer_info
 import markus
 
 metrics = markus.get_metrics("taar")
@@ -122,21 +121,17 @@ class EnsembleRecommender(AbstractRecommender):
         ensemble_weights = cache["ensemble_weights"]
 
         for rkey in self.RECOMMENDER_KEYS:
-            rec_start = time.time()
-            self.logger.info(f"{rkey} recommend starting")
-            recommender = self._recommender_map[rkey]
-            if recommender.can_recommend(client_data, extra_data):
-                raw_results = recommender.recommend(
-                    client_data, extended_limit, extra_data
-                )
-                reweighted_results = []
-                for guid, weight in raw_results:
-                    item = (guid, weight * ensemble_weights[rkey])
-                    reweighted_results.append(item)
-                flattened_results.extend(reweighted_results)
-            self.logger.info(
-                f"{rkey} recommend ended in {time.time()-rec_start} seconds"
-            )
+            with log_timer_info(f"{rkey} recommend invoked", self.logger):
+                recommender = self._recommender_map[rkey]
+                if recommender.can_recommend(client_data, extra_data):
+                    raw_results = recommender.recommend(
+                        client_data, extended_limit, extra_data
+                    )
+                    reweighted_results = []
+                    for guid, weight in raw_results:
+                        item = (guid, weight * ensemble_weights[rkey])
+                        reweighted_results.append(item)
+                    flattened_results.extend(reweighted_results)
 
         # Sort the results by the GUID
         flattened_results.sort(key=lambda item: item[0])

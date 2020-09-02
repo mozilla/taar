@@ -9,13 +9,15 @@ from google.cloud.bigtable import row_filters
 import json
 import zlib
 import datetime
-
-
 from taar.settings import (
     BIGTABLE_PROJECT_ID,
     BIGTABLE_INSTANCE_ID,
     BIGTABLE_TABLE_ID,
 )
+import markus
+
+
+metrics = markus.get_metrics("taar")
 
 
 class BigTableProfileController:
@@ -109,6 +111,7 @@ class ProfileFetcher:
     def set_client(self, client):
         self.__client = client
 
+    @metrics.timer_decorator("bigtable_read")
     def get(self, client_id):
         try:
             profile_data = self._client.get_client_profile(client_id)
