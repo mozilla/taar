@@ -23,6 +23,7 @@ from markus.testing import MetricsMock
 from .noop_fixtures import (
     noop_taarlocale_dataload,
     noop_taarlite_dataload,
+    noop_taarensemble_dataload,
     noop_taarsimilarity_dataload,
 )
 
@@ -39,6 +40,7 @@ def noop_other_recommenders(stack):
     stack = noop_taarlocale_dataload(stack)
     stack = noop_taarlite_dataload(stack)
     stack = noop_taarsimilarity_dataload(stack)
+    stack = noop_taarensemble_dataload(stack)
     return stack
 
 

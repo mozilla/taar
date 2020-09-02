@@ -23,7 +23,7 @@ def main(reset, load, info):
         return
 
     ctx = default_context()
-    cache = AddonsCoinstallCache(ctx)
+    cache = AddonsCoinstallCache.get_instance(ctx)
     if reset:
         if cache.reset():
             print("Successfully flushed db0 bookkeeping database.")

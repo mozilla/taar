@@ -40,7 +40,7 @@ class CollaborativeRecommender(AbstractRecommender):
 
         self.logger = self._ctx[IMozLogging].get_logger("taar")
 
-        self._redis_cache = AddonsCoinstallCache(self._ctx)
+        self._redis_cache = AddonsCoinstallCache.get_instance(self._ctx)
 
         self.model = None
 

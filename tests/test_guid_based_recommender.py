@@ -9,6 +9,7 @@ from .noop_fixtures import (
     noop_taarlocale_dataload,
     noop_taarcollab_dataload,
     noop_taarsimilarity_dataload,
+    noop_taarensemble_dataload,
 )
 
 from taar.recommenders.guid_based_recommender import GuidBasedRecommender
@@ -109,6 +110,7 @@ def mock_coinstall_ranking_context(ctx, mock_coinstall, mock_ranking):
         stack = noop_taarlocale_dataload(stack)
         stack = noop_taarcollab_dataload(stack)
         stack = noop_taarsimilarity_dataload(stack)
+        stack = noop_taarensemble_dataload(stack)
 
         # Patch fakeredis in
         stack.enter_context(

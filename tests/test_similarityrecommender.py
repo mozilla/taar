@@ -29,8 +29,17 @@ from .noop_fixtures import (
     noop_taarcollab_dataload,
     noop_taarlite_dataload,
     noop_taarlocale_dataload,
+    noop_taarensemble_dataload,
 )
 from taar.recommenders.redis_cache import AddonsCoinstallCache
+
+
+def noop_loaders(stack):
+    stack = noop_taarlocale_dataload(stack)
+    stack = noop_taarcollab_dataload(stack)
+    stack = noop_taarensemble_dataload(stack)
+    stack = noop_taarlite_dataload(stack)
+    return stack
 
 
 def generate_fake_lr_curves(num_elements, ceiling=10.0):
@@ -86,9 +95,7 @@ def mock_install_no_data(ctx):
             )
         )
 
-        stack = noop_taarlocale_dataload(stack)
-        stack = noop_taarcollab_dataload(stack)
-        stack = noop_taarlite_dataload(stack)
+        stack = noop_loaders(stack)
 
         # Patch fakeredis in
         stack.enter_context(
@@ -128,9 +135,7 @@ def mock_install_categorical_data(ctx):
                 return_value=generate_fake_lr_curves(1000),
             )
         )
-        stack = noop_taarlocale_dataload(stack)
-        stack = noop_taarcollab_dataload(stack)
-        stack = noop_taarlite_dataload(stack)
+        stack = noop_loaders(stack)
 
         # Patch fakeredis in
         stack.enter_context(
@@ -170,9 +175,7 @@ def mock_install_continuous_data(ctx):
                 return_value=lrs_data,
             )
         )
-        stack = noop_taarlocale_dataload(stack)
-        stack = noop_taarcollab_dataload(stack)
-        stack = noop_taarlite_dataload(stack)
+        stack = noop_loaders(stack)
 
         # Patch fakeredis in
         stack.enter_context(

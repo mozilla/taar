@@ -1,6 +1,6 @@
 import re
 
-RE_PLATFORM = re.compile('(linux|windows|macintosh|android|fxios).*firefox')
+RE_PLATFORM = re.compile("(linux|windows|macintosh|android|fxios).*firefox")
 
 LINUX = 1
 WINDOWS = 2
@@ -8,11 +8,13 @@ MACINTOSH = 3
 ANDROID = 4
 FXIOS = 5
 
-OSNAME_TO_ID = {'linux': LINUX,
-                'windows': WINDOWS,
-                'macintosh': MACINTOSH,
-                'android': ANDROID,
-                'fxios': FXIOS}
+OSNAME_TO_ID = {
+    "linux": LINUX,
+    "windows": WINDOWS,
+    "macintosh": MACINTOSH,
+    "android": ANDROID,
+    "fxios": FXIOS,
+}
 
 
 def parse_ua(user_agent):

@@ -5,16 +5,9 @@
 from srgutil.interfaces import IMozLogging
 import itertools
 from .base_recommender import AbstractRecommender
-from .lazys3 import LazyJSONLoader
-
-from taar.settings import (
-    TAAR_WHITELIST_BUCKET,
-    TAAR_WHITELIST_KEY,
-    TAAR_ENSEMBLE_BUCKET,
-    TAAR_ENSEMBLE_KEY,
-)
 
 from taar.utils import hasher
+from taar.recommenders.redis_cache import AddonsCoinstallCache
 
 import markus
 
@@ -25,18 +18,6 @@ def is_test_client(client_id):
     """ any client_id where the GUID is composed of a single digit
     (repeating) is a test id """
     return len(set(client_id.replace("-", ""))) == 1
-
-
-class WeightCache:
-    def __init__(self, ctx):
-        self._ctx = ctx
-
-        self._weights = LazyJSONLoader(
-            self._ctx, TAAR_ENSEMBLE_BUCKET, TAAR_ENSEMBLE_KEY, "ensemble"
-        )
-
-    def getWeights(self):
-        return self._weights.get()[0]["ensemble_weights"]
 
 
 class EnsembleRecommender(AbstractRecommender):
@@ -50,11 +31,16 @@ class EnsembleRecommender(AbstractRecommender):
     def __init__(self, ctx):
         self.RECOMMENDER_KEYS = ["collaborative", "similarity", "locale"]
         self._ctx = ctx
+
+        self._redis_cache = AddonsCoinstallCache.get_instance(self._ctx)
         self.logger = self._ctx[IMozLogging].get_logger("taar.ensemble")
 
         assert "recommender_factory" in self._ctx
 
         self._init_from_ctx()
+
+    def getWeights(self):
+        return self._redis_cache.ensemble_weights()
 
     def _init_from_ctx(self):
         # Copy the map of the recommenders
@@ -64,11 +50,6 @@ class EnsembleRecommender(AbstractRecommender):
         for rkey in self.RECOMMENDER_KEYS:
             self._recommender_map[rkey] = recommender_factory.create(rkey)
 
-        self._whitelist_data = LazyJSONLoader(
-            self._ctx, TAAR_WHITELIST_BUCKET, TAAR_WHITELIST_KEY, "whitelist"
-        )
-
-        self._weight_cache = WeightCache(self._ctx.child())
         self.logger.info("EnsembleRecommender initialized")
 
     def can_recommend(self, client_data, extra_data={}):
@@ -88,7 +69,7 @@ class EnsembleRecommender(AbstractRecommender):
         client_id = client_data.get("client_id", "no-client-id")
 
         if is_test_client(client_id):
-            whitelist = self._whitelist_data.get()[0]
+            whitelist = self._redis_cache.whitelist_data()
             samples = whitelist[:limit]
             self.logger.info("Test ID detected [{}]".format(client_id))
 
@@ -102,7 +83,6 @@ class EnsembleRecommender(AbstractRecommender):
                 results = self._recommend(client_data, limit, extra_data)
             except Exception as e:
                 results = []
-                self._weight_cache._weights.force_expiry()
                 self.logger.exception(
                     "Ensemble recommender crashed for {}".format(client_id), e
                 )
@@ -130,7 +110,7 @@ class EnsembleRecommender(AbstractRecommender):
         extended_limit = limit + len(preinstalled_addon_ids)
 
         flattened_results = []
-        ensemble_weights = self._weight_cache.getWeights()
+        ensemble_weights = self._redis_cache.ensemble_weights()
 
         for rkey in self.RECOMMENDER_KEYS:
             recommender = self._recommender_map[rkey]

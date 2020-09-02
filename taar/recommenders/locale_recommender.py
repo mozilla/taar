@@ -28,7 +28,7 @@ class LocaleRecommender(AbstractRecommender):
 
         self.logger = self._ctx[IMozLogging].get_logger("taar")
 
-        self._redis_cache = AddonsCoinstallCache(self._ctx)
+        self._redis_cache = AddonsCoinstallCache.get_instance(self._ctx)
 
     # DONE removed
     @property

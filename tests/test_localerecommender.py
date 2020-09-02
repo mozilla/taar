@@ -12,6 +12,7 @@ from .noop_fixtures import (
     noop_taarcollab_dataload,
     noop_taarlite_dataload,
     noop_taarsimilarity_dataload,
+    noop_taarensemble_dataload,
 )
 import json
 
@@ -61,6 +62,7 @@ def mock_locale_data(ctx):
         stack = noop_taarlite_dataload(stack)
         stack = noop_taarcollab_dataload(stack)
         stack = noop_taarsimilarity_dataload(stack)
+        stack = noop_taarensemble_dataload(stack)
 
         # Patch fakeredis in
         stack.enter_context(

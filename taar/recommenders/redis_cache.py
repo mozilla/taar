@@ -38,6 +38,12 @@ from taar.settings import (
     TAAR_SIMILARITY_BUCKET,
     TAAR_SIMILARITY_DONOR_KEY,
     TAAR_SIMILARITY_LRCURVES_KEY,
+    # Ensemble data
+    TAAR_ENSEMBLE_BUCKET,
+    TAAR_ENSEMBLE_KEY,
+    # Whitelist data
+    TAAR_WHITELIST_BUCKET,
+    TAAR_WHITELIST_KEY,
 )
 
 from jsoncache.loader import s3_json_loader
@@ -82,12 +88,21 @@ LOCALE_DATA = "taar_locale_data|"
 COLLAB_MAPPING_DATA = "taar_collab_mapping|"
 COLLAB_ITEM_MATRIX = "taar_collab_item_matrix|"
 
+# TAAR: similarity data
 SIMILARITY_DONORS = "taar_similarity_donors|"
 SIMILARITY_LRCURVES = "taar_similarity_lrcurves|"
 
+# TAAR: similarity preprocessed data
 SIMILARITY_NUM_DONORS = "taar_similarity_num_donors|"
 SIMILARITY_CONTINUOUS_FEATURES = "taar_similarity_continuous_features|"
 SIMILARITY_CATEGORICAL_FEATURES = "taar_similarity_categorical_features|"
+
+# TAAR: ensemble weights
+
+ENSEMBLE_WEIGHTS = "taar_ensemble_weights|"
+
+# TAAR: whitelist data
+WHITELIST_DATA = "taar_whitelist_data|"
 
 
 class PrefixStripper:
@@ -118,10 +133,18 @@ class AddonsCoinstallCache:
     @classmethod
     def get_instance(cls, ctx):
         if cls._instance is None:
-            cls._instance = AddonsCoinstallCache(ctx)
+            cls._instance = AddonsCoinstallCache(ctx, i_didnt_read_the_docs=False)
         return cls._instance
 
-    def __init__(self, ctx):
+    def __init__(self, ctx, i_didnt_read_the_docs=True):
+        """
+        Don't call this directly - use get_instance instace
+        """
+        if i_didnt_read_the_docs:
+            raise RuntimeError(
+                "You cannot call this method directly - use get_instance"
+            )
+
         self._ctx = ctx
         self.logger = self._ctx[IMozLogging].get_logger("taar")
 
@@ -343,6 +366,18 @@ class AddonsCoinstallCache:
         """
         return self._similarity_num_donors
 
+    def ensemble_weights(self):
+        tmp = self._db().get(ENSEMBLE_WEIGHTS)
+        if tmp:
+            return json.loads(tmp)
+        return None
+
+    def whitelist_data(self):
+        tmp = self._db().get(WHITELIST_DATA)
+        if tmp:
+            return json.loads(tmp)
+        return None
+
     """
 
     ################################
@@ -444,6 +479,28 @@ class AddonsCoinstallCache:
 
     def _fetch_similarity_lrcurves(self):
         return s3_json_loader(TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY,)
+
+    def _fetch_ensemble_weights(self):
+        return s3_json_loader(TAAR_ENSEMBLE_BUCKET, TAAR_ENSEMBLE_KEY)
+
+    def _fetch_whitelist(self):
+        return s3_json_loader(TAAR_WHITELIST_BUCKET, TAAR_WHITELIST_KEY)
+
+    def _update_whitelist_data(self, db):
+        """
+        Load the TAAR whitelist data
+        """
+        tmp = self._fetch_whitelist()
+        if tmp:
+            db.set(WHITELIST_DATA, json.dumps(tmp))
+
+    def _update_ensemble_data(self, db):
+        """
+        Load the TAAR ensemble data
+        """
+        tmp = self._fetch_ensemble_weights()
+        if tmp:
+            db.set(ENSEMBLE_WEIGHTS, json.dumps(tmp["ensemble_weights"]))
 
     def _update_similarity_data(self, db):
         """
@@ -595,4 +652,11 @@ class AddonsCoinstallCache:
         # Update TAAR similarity data
         self._update_similarity_data(db)
 
+        # Update TAAR ensemble data
+        self._update_ensemble_data(db)
+
+        # Update TAAR ensemble data
+        self._update_whitelist_data(db)
+
+        # Run all callback functions to preprocess model data
         self._update_data_callback(db)
