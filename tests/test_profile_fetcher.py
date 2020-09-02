@@ -52,10 +52,7 @@ MOCK_DATA = {
         "tab_open_count": 46,
         "total_uri": 791,
         "unique_tlds": 11,
-        "installed_addons": [
-            "e10srollout@mozilla.org",
-            "firefox@getpocket.com",
-        ],
+        "installed_addons": ["e10srollout@mozilla.org", "firefox@getpocket.com",],
         "locale": "it-IT",
     },
 }

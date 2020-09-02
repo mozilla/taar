@@ -2,13 +2,12 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from srgutil.interfaces import IMozLogging
-from .base_recommender import AbstractRecommender
-from .lazys3 import LazyJSONLoader
-
-from taar.settings import TAAR_LOCALE_BUCKET, TAAR_LOCALE_KEY
-
 import markus
+
+from srgutil.interfaces import IMozLogging
+
+from .base_recommender import AbstractRecommender
+from taar.recommenders.redis_cache import TAARCache
 
 metrics = markus.get_metrics("taar")
 
@@ -29,27 +28,12 @@ class LocaleRecommender(AbstractRecommender):
 
         self.logger = self._ctx[IMozLogging].get_logger("taar")
 
-        self._top_addons_per_locale = LazyJSONLoader(
-            self._ctx, TAAR_LOCALE_BUCKET, TAAR_LOCALE_KEY, "locale"
-        )
+        self._redis_cache = TAARCache.get_instance(self._ctx)
 
-        self._init_from_ctx()
-
+    # DONE removed
     @property
     def top_addons_per_locale(self):
-        def presort_locale(data):
-            result = {}
-            for locale, guid_list in data.items():
-                result[locale] = sorted(guid_list, key=lambda x: x[1], reverse=True)
-            return result
-
-        return self._top_addons_per_locale.get(transform=presort_locale)[0]
-
-    def _init_from_ctx(self):
-        if self.top_addons_per_locale is None:
-            self.logger.error(
-                "Cannot download the top per locale file {}".format(TAAR_LOCALE_KEY)
-            )
+        return self._redis_cache.top_addons_per_locale()
 
     def can_recommend(self, client_data, extra_data={}):
         # We can't recommend if we don't have our data files.

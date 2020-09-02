@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from taar.recommenders.redis_cache import AddonsCoinstallCache
+from taar.recommenders.redis_cache import TAARCache
 from taar.context import default_context
 import click
 
@@ -11,7 +11,7 @@ import click
 @click.option("--info", is_flag=True, help="Display information about the cache state")
 def main(reset, load, info):
     """
-    Manage the TAARLite redis cache.
+    Manage the TAAR+TAARLite redis cache.
 
     This expecte that the following enviroment variables are set:
 
@@ -23,7 +23,7 @@ def main(reset, load, info):
         return
 
     ctx = default_context()
-    cache = AddonsCoinstallCache(ctx)
+    cache = TAARCache.get_instance(ctx)
     if reset:
         if cache.reset():
             print("Successfully flushed db0 bookkeeping database.")

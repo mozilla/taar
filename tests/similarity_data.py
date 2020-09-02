@@ -7,7 +7,12 @@
 
 CONTINUOUS_FEATURE_FIXTURE_DATA = [
     {
-        "active_addons": ["{test-guid-1}", "{test-guid-2}", "{test-guid-3}", "{test-guid-4}"],
+        "active_addons": [
+            "{test-guid-1}",
+            "{test-guid-2}",
+            "{test-guid-3}",
+            "{test-guid-4}",
+        ],
         "geo_city": "brasilia-br",
         "subsession_length": 4911,
         "locale": "br-PT",
@@ -15,10 +20,15 @@ CONTINUOUS_FEATURE_FIXTURE_DATA = [
         "bookmark_count": 7,
         "tab_open_count": 4,
         "total_uri": 190,
-        "unique_tlds": 21
+        "unique_tlds": 21,
     },
     {
-        "active_addons": ["{test-guid-5}", "{test-guid-6}", "{test-guid-1}", "{test-guid-8}"],
+        "active_addons": [
+            "{test-guid-5}",
+            "{test-guid-6}",
+            "{test-guid-1}",
+            "{test-guid-8}",
+        ],
         "geo_city": "brasilia-br",
         "subsession_length": 4911,
         "locale": "br-PT",
@@ -26,10 +36,15 @@ CONTINUOUS_FEATURE_FIXTURE_DATA = [
         "bookmark_count": 7,
         "tab_open_count": 4,
         "total_uri": 200,
-        "unique_tlds": 21
+        "unique_tlds": 21,
     },
     {
-        "active_addons": ["{test-guid-9}", "{test-guid-10}", "{test-guid-11}", "{test-guid-12}"],
+        "active_addons": [
+            "{test-guid-9}",
+            "{test-guid-10}",
+            "{test-guid-11}",
+            "{test-guid-12}",
+        ],
         "geo_city": "brasilia-br",
         "subsession_length": 4911,
         "locale": "br-PT",
@@ -37,7 +52,7 @@ CONTINUOUS_FEATURE_FIXTURE_DATA = [
         "bookmark_count": 7,
         "tab_open_count": 4,
         "total_uri": 222,
-        "unique_tlds": 21
+        "unique_tlds": 21,
     },
     {
         "active_addons": ["{test-guid-13}", "{test-guid-14}"],
@@ -48,8 +63,8 @@ CONTINUOUS_FEATURE_FIXTURE_DATA = [
         "bookmark_count": 7,
         "tab_open_count": 4,
         "total_uri": 210,
-        "unique_tlds": 21
-    }
+        "unique_tlds": 21,
+    },
 ]
 
 # Match the fixture taar client, but vary the geo_city to test only
@@ -60,7 +75,12 @@ CONTINUOUS_FEATURE_FIXTURE_DATA = [
 
 CATEGORICAL_FEATURE_FIXTURE_DATA = [
     {
-        "active_addons": ["{test-guid-1}", "{test-guid-2}", "{test-guid-3}", "{test-guid-4}"],
+        "active_addons": [
+            "{test-guid-1}",
+            "{test-guid-2}",
+            "{test-guid-3}",
+            "{test-guid-4}",
+        ],
         "geo_city": "brasilia-br",
         "subsession_length": 4911,
         "locale": "br-PT",
@@ -68,11 +88,16 @@ CATEGORICAL_FEATURE_FIXTURE_DATA = [
         "bookmark_count": 7,
         "tab_open_count": 4,
         "total_uri": 222,
-        "unique_tlds": 21
+        "unique_tlds": 21,
     },
     {
         # "{test-guid-1}" appears in duplicate here.
-        "active_addons": ["{test-guid-5}", "{test-guid-6}", "{test-guid-1}", "{test-guid-8}"],
+        "active_addons": [
+            "{test-guid-5}",
+            "{test-guid-6}",
+            "{test-guid-1}",
+            "{test-guid-8}",
+        ],
         "geo_city": "toronto-ca",
         "subsession_length": 4911,
         "locale": "br-PT",
@@ -80,10 +105,15 @@ CATEGORICAL_FEATURE_FIXTURE_DATA = [
         "bookmark_count": 7,
         "tab_open_count": 4,
         "total_uri": 222,
-        "unique_tlds": 21
+        "unique_tlds": 21,
     },
     {
-        "active_addons": ["{test-guid-9}", "{test-guid-10}", "{test-guid-11}", "{test-guid-12}"],
+        "active_addons": [
+            "{test-guid-9}",
+            "{test-guid-10}",
+            "{test-guid-11}",
+            "{test-guid-12}",
+        ],
         "geo_city": "brasilia-br",
         "subsession_length": 4911,
         "locale": "br-PT",
@@ -91,7 +121,7 @@ CATEGORICAL_FEATURE_FIXTURE_DATA = [
         "bookmark_count": 7,
         "tab_open_count": 4,
         "total_uri": 222,
-        "unique_tlds": 21
+        "unique_tlds": 21,
     },
     {
         "active_addons": ["{test-guid-13}", "{test-guid-1}"],
@@ -102,6 +132,6 @@ CATEGORICAL_FEATURE_FIXTURE_DATA = [
         "bookmark_count": 7,
         "tab_open_count": 4,
         "total_uri": 222,
-        "unique_tlds": 21
-    }
+        "unique_tlds": 21,
+    },
 ]

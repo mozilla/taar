@@ -132,9 +132,7 @@ class ProfileFetcher:
                 "locale": profile_data.get("locale", ""),
                 "os": profile_data.get("os", ""),
                 "installed_addons": addon_ids,
-                "disabled_addons_ids": profile_data.get(
-                    "disabled_addons_ids", []
-                ),
+                "disabled_addons_ids": profile_data.get("disabled_addons_ids", []),
                 "bookmark_count": profile_data.get("places_bookmarks_count", 0),
                 "tab_open_count": profile_data.get(
                     "scalar_parent_browser_engagement_tab_open_event_count", 0

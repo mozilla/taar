@@ -3,7 +3,7 @@ from setuptools import find_packages, setup
 setup(
     name="mozilla-taar3",
     use_scm_version=False,
-    version="0.7.3",
+    version="0.7.4",
     setup_requires=["setuptools_scm", "pytest-runner"],
     tests_require=["pytest"],
     include_package_data=True,
@@ -29,6 +29,6 @@ setup(
     [taarapi_app]
     app=taar.plugin:configure_plugin
     """,
-    scripts=["bin/taarlite-redis.py"],
+    scripts=["bin/taar-redis.py"],
     zip_safe=False,
 )

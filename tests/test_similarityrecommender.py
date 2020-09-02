@@ -6,12 +6,9 @@ import json
 import six
 import logging
 
+
 import numpy as np
 import scipy.stats
-from taar.recommenders.lazys3 import LazyJSONLoader
-
-import boto3
-from moto import mock_s3
 
 from taar.recommenders.similarity_recommender import (
     CATEGORICAL_FEATURES,
@@ -25,11 +22,24 @@ from .similarity_data import CATEGORICAL_FEATURE_FIXTURE_DATA
 from markus import TIMING
 from markus.testing import MetricsMock
 
-from taar.settings import (
-    TAAR_SIMILARITY_BUCKET,
-    TAAR_SIMILARITY_DONOR_KEY,
-    TAAR_SIMILARITY_LRCURVES_KEY,
+import fakeredis
+import mock
+import contextlib
+from .noop_fixtures import (
+    noop_taarcollab_dataload,
+    noop_taarlite_dataload,
+    noop_taarlocale_dataload,
+    noop_taarensemble_dataload,
 )
+from taar.recommenders.redis_cache import TAARCache
+
+
+def noop_loaders(stack):
+    stack = noop_taarlocale_dataload(stack)
+    stack = noop_taarcollab_dataload(stack)
+    stack = noop_taarensemble_dataload(stack)
+    stack = noop_taarlite_dataload(stack)
+    return stack
 
 
 def generate_fake_lr_curves(num_elements, ceiling=10.0):
@@ -68,311 +78,326 @@ def generate_a_fake_taar_client():
     }
 
 
-def install_no_data(ctx):
-    ctx = ctx.child()
-    conn = boto3.resource("s3", region_name="us-west-2")
+@contextlib.contextmanager
+def mock_install_no_data(ctx):
 
-    conn.create_bucket(Bucket=TAAR_SIMILARITY_BUCKET)
-    conn.Object(TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY).put(Body="")
+    with contextlib.ExitStack() as stack:
+        TAARCache._instance = None
+        stack.enter_context(
+            mock.patch.object(TAARCache, "_fetch_similarity_donors", return_value="",)
+        )
 
-    conn.Object(TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY).put(Body="")
+        stack.enter_context(
+            mock.patch.object(TAARCache, "_fetch_similarity_lrcurves", return_value="",)
+        )
 
-    ctx["similarity_donors_pool"] = LazyJSONLoader(
-        ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY, "similarity_donor",
-    )
+        stack = noop_loaders(stack)
 
-    ctx["similarity_lr_curves"] = LazyJSONLoader(
-        ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY, "similarity_curves",
-    )
+        # Patch fakeredis in
+        stack.enter_context(
+            mock.patch.object(
+                TAARCache,
+                "init_redis_connections",
+                return_value={
+                    0: fakeredis.FakeStrictRedis(db=0),
+                    1: fakeredis.FakeStrictRedis(db=1),
+                    2: fakeredis.FakeStrictRedis(db=2),
+                },
+            )
+        )
 
-    return ctx
-
-
-def install_categorical_data(ctx):
-    ctx = ctx.child()
-    conn = boto3.resource("s3", region_name="us-west-2")
-
-    try:
-        conn.create_bucket(Bucket=TAAR_SIMILARITY_BUCKET)
-    except Exception:
-        pass
-    conn.Object(TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY).put(
-        Body=json.dumps(CATEGORICAL_FEATURE_FIXTURE_DATA)
-    )
-
-    conn.Object(TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY).put(
-        Body=json.dumps(generate_fake_lr_curves(1000))
-    )
-
-    ctx["similarity_donors_pool"] = LazyJSONLoader(
-        ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY, "similarity_donor",
-    )
-
-    ctx["similarity_lr_curves"] = LazyJSONLoader(
-        ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY, "similarity_curves",
-    )
-
-    return ctx
+        # Initialize redis
+        TAARCache.get_instance(ctx).safe_load_data()
+        yield stack
 
 
-def install_continuous_data(ctx):
-    ctx = ctx.child()
-    cts_data = json.dumps(CONTINUOUS_FEATURE_FIXTURE_DATA)
-    lrs_data = json.dumps(generate_fake_lr_curves(1000))
+@contextlib.contextmanager
+def mock_install_categorical_data(ctx):
 
-    conn = boto3.resource("s3", region_name="us-west-2")
+    with contextlib.ExitStack() as stack:
+        TAARCache._instance = None
+        stack.enter_context(
+            mock.patch.object(
+                TAARCache,
+                "_fetch_similarity_donors",
+                return_value=CATEGORICAL_FEATURE_FIXTURE_DATA,
+            )
+        )
 
-    try:
-        conn.create_bucket(Bucket=TAAR_SIMILARITY_BUCKET)
-    except Exception:
-        pass
-    conn.Object(TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY).put(Body=cts_data)
+        stack.enter_context(
+            mock.patch.object(
+                TAARCache,
+                "_fetch_similarity_lrcurves",
+                return_value=generate_fake_lr_curves(1000),
+            )
+        )
+        stack = noop_loaders(stack)
 
-    conn.Object(TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY).put(Body=lrs_data)
+        # Patch fakeredis in
+        stack.enter_context(
+            mock.patch.object(
+                TAARCache,
+                "init_redis_connections",
+                return_value={
+                    0: fakeredis.FakeStrictRedis(db=0),
+                    1: fakeredis.FakeStrictRedis(db=1),
+                    2: fakeredis.FakeStrictRedis(db=2),
+                },
+            )
+        )
 
-    ctx["similarity_donors_pool"] = LazyJSONLoader(
-        ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY, "similarity_donor",
-    )
-
-    ctx["similarity_lr_curves"] = LazyJSONLoader(
-        ctx, TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY, "similarity_curves",
-    )
-
-    return ctx
+        # Initialize redis
+        TAARCache.get_instance(ctx).safe_load_data()
+        yield stack
 
 
-def check_matrix_built(caplog):
-    msg = "Reconstructed matrices for similarity recommender"
-    return sum([msg in str(s) for s in caplog.records]) > 0
+@contextlib.contextmanager
+def mock_install_continuous_data(ctx):
+    cts_data = CONTINUOUS_FEATURE_FIXTURE_DATA
+    lrs_data = generate_fake_lr_curves(1000)
+
+    with contextlib.ExitStack() as stack:
+        TAARCache._instance = None
+        stack.enter_context(
+            mock.patch.object(
+                TAARCache, "_fetch_similarity_donors", return_value=cts_data,
+            )
+        )
+
+        stack.enter_context(
+            mock.patch.object(
+                TAARCache, "_fetch_similarity_lrcurves", return_value=lrs_data,
+            )
+        )
+        stack = noop_loaders(stack)
+
+        # Patch fakeredis in
+        stack.enter_context(
+            mock.patch.object(
+                TAARCache,
+                "init_redis_connections",
+                return_value={
+                    0: fakeredis.FakeStrictRedis(db=0),
+                    1: fakeredis.FakeStrictRedis(db=1),
+                    2: fakeredis.FakeStrictRedis(db=2),
+                },
+            )
+        )
+
+        # Initialize redis
+        TAARCache.get_instance(ctx).safe_load_data()
+        yield stack
 
 
-@mock_s3
 def test_soft_fail(test_ctx, caplog):
     # Create a new instance of a SimilarityRecommender.
-    ctx = install_no_data(test_ctx)
-    r = SimilarityRecommender(ctx)
+    with mock_install_no_data(test_ctx):
+        r = SimilarityRecommender(test_ctx)
 
-    # Don't recommend if the source files cannot be found.
-    assert not r.can_recommend({})
-    assert not check_matrix_built(caplog)
+        # Don't recommend if the source files cannot be found.
+        assert not r.can_recommend({})
 
 
-@mock_s3
 def test_can_recommend(test_ctx, caplog):
     caplog.set_level(logging.INFO)
 
     # Create a new instance of a SimilarityRecommender.
-    ctx = install_continuous_data(test_ctx)
-    r = SimilarityRecommender(ctx)
+    with mock_install_continuous_data(test_ctx):
+        r = SimilarityRecommender(test_ctx)
 
-    assert check_matrix_built(caplog)
+        # Test that we can't recommend if we have not enough client info.
+        assert not r.can_recommend({})
 
-    # Test that we can't recommend if we have not enough client info.
-    assert not r.can_recommend({})
+        # Test that we can recommend for a normal client.
+        assert r.can_recommend(generate_a_fake_taar_client())
 
-    # Test that we can recommend for a normal client.
-    assert r.can_recommend(generate_a_fake_taar_client())
+        # Check that we can not recommend if any required client field is missing.
+        required_fields = CATEGORICAL_FEATURES + CONTINUOUS_FEATURES
 
-    # Check that we can not recommend if any required client field is missing.
-    required_fields = CATEGORICAL_FEATURES + CONTINUOUS_FEATURES
+        for required_field in required_fields:
+            profile_without_x = generate_a_fake_taar_client()
 
-    for required_field in required_fields:
-        profile_without_x = generate_a_fake_taar_client()
+            # Make an empty value in a required field in the client info dict.
+            profile_without_x[required_field] = None
+            assert not r.can_recommend(profile_without_x)
 
-        # Make an empty value in a required field in the client info dict.
-        profile_without_x[required_field] = None
-        assert not r.can_recommend(profile_without_x)
-
-        # Completely remove (in place) the entire required field from the dict.
-        del profile_without_x[required_field]
-        assert not r.can_recommend(profile_without_x)
+            # Completely remove (in place) the entire required field from the dict.
+            del profile_without_x[required_field]
+            assert not r.can_recommend(profile_without_x)
 
 
-@mock_s3
 def test_recommendations(test_ctx):
     with MetricsMock() as mm:
         # Create a new instance of a SimilarityRecommender.
-        ctx = install_continuous_data(test_ctx)
-        r = SimilarityRecommender(ctx)
+        with mock_install_continuous_data(test_ctx):
+            r = SimilarityRecommender(test_ctx)
 
-        recommendation_list = r.recommend(generate_a_fake_taar_client(), 1)
+            recommendation_list = r.recommend(generate_a_fake_taar_client(), 1)
 
-        assert isinstance(recommendation_list, list)
-        assert len(recommendation_list) == 1
+            assert isinstance(recommendation_list, list)
+            assert len(recommendation_list) == 1
 
-        recommendation, weight = recommendation_list[0]
+            recommendation, weight = recommendation_list[0]
 
-        # Make sure that the reported addons are the expected ones from the most similar donor.
-        assert "{test-guid-1}" == recommendation
-        assert type(weight) == np.float64
+            # Make sure that the reported addons are the expected ones from the most similar donor.
+            assert "{test-guid-1}" == recommendation
+            assert type(weight) == np.float64
 
-        assert mm.has_record(TIMING, stat="taar.similarity_donor")
-        assert mm.has_record(TIMING, stat="taar.similarity_curves")
-        assert mm.has_record(TIMING, stat="taar.similarity_recommend")
+            assert mm.has_record(TIMING, stat="taar.similarity_recommend")
 
 
-@mock_s3
-def test_recommender_str(test_ctx):
-    # Tests that the string representation of the recommender is correct.
-    ctx = install_continuous_data(test_ctx)
-    r = SimilarityRecommender(ctx)
-    assert str(r) == "SimilarityRecommender"
-
-
-@mock_s3
 def test_get_lr(test_ctx):
     # Tests that the likelihood ratio values are not empty for extreme values and are realistic.
-    ctx = install_continuous_data(test_ctx)
-    r = SimilarityRecommender(ctx)
-    assert r.get_lr(0.0001) is not None
-    assert r.get_lr(10.0) is not None
-    assert r.get_lr(0.001) > r.get_lr(5.0)
+    with mock_install_continuous_data(test_ctx):
+        r = SimilarityRecommender(test_ctx)
+        assert r.get_lr(0.0001) is not None
+        assert r.get_lr(10.0) is not None
+        assert r.get_lr(0.001) > r.get_lr(5.0)
 
 
-@mock_s3
 def test_compute_clients_dist(test_ctx):
     # Test the distance function computation.
-    ctx = install_continuous_data(test_ctx)
-    r = SimilarityRecommender(ctx)
-    test_clients = [
-        {
-            "client_id": "test-client-002",
-            "activeAddons": [],
-            "geo_city": "sfo-us",
-            "subsession_length": 1,
-            "locale": "en-US",
-            "os": "windows",
-            "bookmark_count": 1,
-            "tab_open_count": 1,
-            "total_uri": 1,
-            "unique_tlds": 1,
-        },
-        {
-            "client_id": "test-client-003",
-            "activeAddons": [],
-            "geo_city": "brasilia-br",
-            "subsession_length": 1,
-            "locale": "br-PT",
-            "os": "windows",
-            "bookmark_count": 10,
-            "tab_open_count": 1,
-            "total_uri": 1,
-            "unique_tlds": 1,
-        },
-        {
-            "client_id": "test-client-004",
-            "activeAddons": [],
-            "geo_city": "brasilia-br",
-            "subsession_length": 100,
-            "locale": "br-PT",
-            "os": "windows",
-            "bookmark_count": 10,
-            "tab_open_count": 10,
-            "total_uri": 100,
-            "unique_tlds": 10,
-        },
-    ]
-    per_client_test = []
+    with mock_install_continuous_data(test_ctx):
+        r = SimilarityRecommender(test_ctx)
+        test_clients = [
+            {
+                "client_id": "test-client-002",
+                "activeAddons": [],
+                "geo_city": "sfo-us",
+                "subsession_length": 1,
+                "locale": "en-US",
+                "os": "windows",
+                "bookmark_count": 1,
+                "tab_open_count": 1,
+                "total_uri": 1,
+                "unique_tlds": 1,
+            },
+            {
+                "client_id": "test-client-003",
+                "activeAddons": [],
+                "geo_city": "brasilia-br",
+                "subsession_length": 1,
+                "locale": "br-PT",
+                "os": "windows",
+                "bookmark_count": 10,
+                "tab_open_count": 1,
+                "total_uri": 1,
+                "unique_tlds": 1,
+            },
+            {
+                "client_id": "test-client-004",
+                "activeAddons": [],
+                "geo_city": "brasilia-br",
+                "subsession_length": 100,
+                "locale": "br-PT",
+                "os": "windows",
+                "bookmark_count": 10,
+                "tab_open_count": 10,
+                "total_uri": 100,
+                "unique_tlds": 10,
+            },
+        ]
+        per_client_test = []
 
-    # Compute a different set of distances for each set of clients.
-    for tc in test_clients:
-        test_distances = r.compute_clients_dist(tc)
-        assert len(test_distances) == len(CONTINUOUS_FEATURE_FIXTURE_DATA)
-        per_client_test.append(test_distances[2][0])
+        # Compute a different set of distances for each set of clients.
+        for tc in test_clients:
+            test_distances = r.compute_clients_dist(tc)
+            assert len(test_distances) == len(CONTINUOUS_FEATURE_FIXTURE_DATA)
+            per_client_test.append(test_distances[2][0])
 
-    # Ensure the different clients also had different distances to a specific donor.
-    assert per_client_test[0] >= per_client_test[1] >= per_client_test[2]
+        # Ensure the different clients also had different distances to a specific donor.
+        assert per_client_test[0] >= per_client_test[1] >= per_client_test[2]
 
 
-@mock_s3
 def test_distance_functions(test_ctx):
-    # Tests the similarity functions via expected output when passing modified client data.
-    ctx = install_continuous_data(test_ctx)
-    r = SimilarityRecommender(ctx)
+    # Tests the similarity functions via expected output when passing
+    # modified client data.
+    with mock_install_continuous_data(test_ctx):
+        r = SimilarityRecommender(test_ctx)
 
-    # Generate a fake client.
-    test_client = generate_a_fake_taar_client()
-    recs = r.recommend(test_client, 10)
-    assert len(recs) > 0
+        # Generate a fake client.
+        test_client = generate_a_fake_taar_client()
+        recs = r.recommend(test_client, 10)
+        assert len(recs) > 0
 
-    # Make it a generally poor match for the donors.
-    test_client.update({"total_uri": 10, "bookmark_count": 2, "subsession_length": 10})
+        # Make it a generally poor match for the donors.
+        test_client.update(
+            {"total_uri": 10, "bookmark_count": 2, "subsession_length": 10}
+        )
 
-    all_client_values_zero = test_client
-    # Make all categorical variables non-matching with any donor.
-    all_client_values_zero.update(
-        {key: "zero" for key in test_client.keys() if key in CATEGORICAL_FEATURES}
-    )
-    recs = r.recommend(all_client_values_zero, 10)
-    assert len(recs) == 0
+        all_client_values_zero = test_client
+        # Make all categorical variables non-matching with any donor.
+        all_client_values_zero.update(
+            {key: "zero" for key in test_client.keys() if key in CATEGORICAL_FEATURES}
+        )
+        recs = r.recommend(all_client_values_zero, 10)
+        assert len(recs) == 0
 
-    # Make all continuous variables equal to zero.
-    all_client_values_zero.update(
-        {key: 0 for key in test_client.keys() if key in CONTINUOUS_FEATURES}
-    )
-    recs = r.recommend(all_client_values_zero, 10)
-    assert len(recs) == 0
+        # Make all continuous variables equal to zero.
+        all_client_values_zero.update(
+            {key: 0 for key in test_client.keys() if key in CONTINUOUS_FEATURES}
+        )
+        recs = r.recommend(all_client_values_zero, 10)
+        assert len(recs) == 0
 
-    # Make all categorical variables non-matching with any donor.
-    all_client_values_high = test_client
-    all_client_values_high.update(
-        {
-            key: "one billion"
-            for key in test_client.keys()
-            if key in CATEGORICAL_FEATURES
-        }
-    )
-    recs = r.recommend(all_client_values_high, 10)
-    assert len(recs) == 0
+        # Make all categorical variables non-matching with any donor.
+        all_client_values_high = test_client
+        all_client_values_high.update(
+            {
+                key: "one billion"
+                for key in test_client.keys()
+                if key in CATEGORICAL_FEATURES
+            }
+        )
+        recs = r.recommend(all_client_values_high, 10)
+        assert len(recs) == 0
 
-    # Make all continuous variables equal to a very high numerical value.
-    all_client_values_high.update(
-        {key: 1e60 for key in test_client.keys() if key in CONTINUOUS_FEATURES}
-    )
-    recs = r.recommend(all_client_values_high, 10)
-    assert len(recs) == 0
+        # Make all continuous variables equal to a very high numerical value.
+        all_client_values_high.update(
+            {key: 1e60 for key in test_client.keys() if key in CONTINUOUS_FEATURES}
+        )
+        recs = r.recommend(all_client_values_high, 10)
+        assert len(recs) == 0
 
-    # Test for 0.0 values if j_c is not normalized and j_d is fine.
-    j_c = 0.0
-    j_d = 0.42
-    assert abs(j_c * j_d) == 0.0
-    assert abs((j_c + 0.01) * j_d) != 0.0
+        # Test for 0.0 values if j_c is not normalized and j_d is fine.
+        j_c = 0.0
+        j_d = 0.42
+        assert abs(j_c * j_d) == 0.0
+        assert abs((j_c + 0.01) * j_d) != 0.0
 
 
-@mock_s3
 def test_weights_continuous(test_ctx):
     # Create a new instance of a SimilarityRecommender.
-    ctx = install_continuous_data(test_ctx)
-    r = SimilarityRecommender(ctx)
+    with mock_install_continuous_data(test_ctx):
+        r = SimilarityRecommender(test_ctx)
 
-    # In the ensemble method recommendations should be a sorted list of tuples
-    # containing [(guid, weight), (guid, weight)... (guid, weight)].
-    recommendation_list = r.recommend(generate_a_fake_taar_client(), 2)
-    with open("/tmp/similarity_recommender.json", "w") as fout:
-        fout.write(json.dumps(recommendation_list))
+        # In the ensemble method recommendations should be a sorted list of tuples
+        # containing [(guid, weight), (guid, weight)... (guid, weight)].
+        recommendation_list = r.recommend(generate_a_fake_taar_client(), 2)
+        with open("/tmp/similarity_recommender.json", "w") as fout:
+            fout.write(json.dumps(recommendation_list))
 
-    # Make sure the structure of the recommendations is correct and
-    # that we recommended the the right addons.
+        # Make sure the structure of the recommendations is correct and
+        # that we recommended the the right addons.
 
-    assert len(recommendation_list) == 2
-    for recommendation, weight in recommendation_list:
-        assert isinstance(recommendation, six.string_types)
-        assert isinstance(weight, float)
+        assert len(recommendation_list) == 2
+        for recommendation, weight in recommendation_list:
+            assert isinstance(recommendation, six.string_types)
+            assert isinstance(weight, float)
 
-    # Test that sorting is appropriate.
-    rec0 = recommendation_list[0]
-    rec1 = recommendation_list[1]
+        # Test that sorting is appropriate.
+        rec0 = recommendation_list[0]
+        rec1 = recommendation_list[1]
 
-    rec0_weight = rec0[1]
-    rec1_weight = rec1[1]
+        rec0_weight = rec0[1]
+        rec1_weight = rec1[1]
 
-    # Duplicate presence of test-guid-1 should mean rec0_weight is double
-    # rec1_weight, and both should be greater than 1.0
+        # Duplicate presence of test-guid-1 should mean rec0_weight is double
+        # rec1_weight, and both should be greater than 1.0
 
-    assert rec0_weight > rec1_weight > 1.0
+        assert rec0_weight > rec1_weight > 1.0
 
 
-@mock_s3
 def test_weights_categorical(test_ctx):
     """
     This should get :
@@ -383,48 +408,24 @@ def test_weights_categorical(test_ctx):
 
     """
     # Create a new instance of a SimilarityRecommender.
-    cat_ctx = install_categorical_data(test_ctx)
-    cts_ctx = install_continuous_data(test_ctx)
+    with mock_install_categorical_data(test_ctx):
+        r = SimilarityRecommender(test_ctx)
 
-    wrapped = cts_ctx.wrap(cat_ctx)
-    r = SimilarityRecommender(wrapped)
+        # In the ensemble method recommendations should be a sorted list of tuples
+        # containing [(guid, weight), (guid, weight)... (guid, weight)].
+        recommendation_list = r.recommend(generate_a_fake_taar_client(), 2)
 
-    # In the ensemble method recommendations should be a sorted list of tuples
-    # containing [(guid, weight), (guid, weight)... (guid, weight)].
-    recommendation_list = r.recommend(generate_a_fake_taar_client(), 2)
+        assert len(recommendation_list) == 2
+        # Make sure the structure of the recommendations is correct and that we recommended the the right addons.
+        for recommendation, weight in recommendation_list:
+            assert isinstance(recommendation, six.string_types)
+            assert isinstance(weight, float)
 
-    assert len(recommendation_list) == 2
-    # Make sure the structure of the recommendations is correct and that we recommended the the right addons.
-    for recommendation, weight in recommendation_list:
-        assert isinstance(recommendation, six.string_types)
-        assert isinstance(weight, float)
+        # Test that sorting is appropriate.
+        rec0 = recommendation_list[0]
+        rec1 = recommendation_list[1]
 
-    # Test that sorting is appropriate.
-    rec0 = recommendation_list[0]
-    rec1 = recommendation_list[1]
+        rec0_weight = rec0[1]
+        rec1_weight = rec1[1]
 
-    rec0_weight = rec0[1]
-    rec1_weight = rec1[1]
-
-    assert rec0_weight > rec1_weight > 0
-
-
-@mock_s3
-def test_recompute_matrices(test_ctx, caplog):
-    caplog.set_level(logging.INFO)
-
-    # Create a new instance of a SimilarityRecommender.
-    ctx = install_continuous_data(test_ctx)
-    r = SimilarityRecommender(ctx)
-
-    # Reloading the donors pool should reconstruct the matrices
-    caplog.clear()
-    r._donors_pool.force_expiry()
-    r.donors_pool
-    assert check_matrix_built(caplog)
-
-    # Reloading the LR curves should reconstruct the matrices
-    caplog.clear()
-    r._lr_curves.force_expiry()
-    r.lr_curves
-    assert check_matrix_built(caplog)
+        assert rec0_weight > rec1_weight > 0

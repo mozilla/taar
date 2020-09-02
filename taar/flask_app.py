@@ -20,8 +20,7 @@ PLUGIN = config("TAAR_API_PLUGIN", default=None)
 
 
 sentry_sdk.init(
-    dsn=config("SENTRY_DSN", ''),
-    integrations=[FlaskIntegration()],
+    dsn=config("SENTRY_DSN", ""), integrations=[FlaskIntegration()],
 )
 
 # There should only be a single registered app for the taar-api

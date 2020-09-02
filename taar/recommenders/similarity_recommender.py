@@ -7,13 +7,7 @@ from itertools import groupby
 from scipy.spatial import distance
 from srgutil.interfaces import IMozLogging
 import numpy as np
-from .lazys3 import LazyJSONLoader
-
-from taar.settings import (
-    TAAR_SIMILARITY_BUCKET,
-    TAAR_SIMILARITY_DONOR_KEY,
-    TAAR_SIMILARITY_LRCURVES_KEY,
-)
+from taar.recommenders.redis_cache import TAARCache
 
 import markus
 
@@ -52,99 +46,29 @@ class SimilarityRecommender(AbstractRecommender):
     def __init__(self, ctx):
         self._ctx = ctx
 
-        if "similarity_donors_pool" in self._ctx:
-            self._donors_pool = self._ctx["similarity_donors_pool"]
-        else:
-            self._donors_pool = LazyJSONLoader(
-                self._ctx,
-                TAAR_SIMILARITY_BUCKET,
-                TAAR_SIMILARITY_DONOR_KEY,
-                "similarity_donor",
-            )
-
-        if "similarity_lr_curves" in self._ctx:
-            self._lr_curves = self._ctx["similarity_lr_curves"]
-        else:
-            self._lr_curves = LazyJSONLoader(
-                self._ctx,
-                TAAR_SIMILARITY_BUCKET,
-                TAAR_SIMILARITY_LRCURVES_KEY,
-                "similarity_curves",
-            )
+        self._redis_cache = TAARCache.get_instance(self._ctx)
 
         self.logger = self._ctx[IMozLogging].get_logger("taar")
 
-        self._init_from_ctx()
+    @property
+    def categorical_features(self):
+        return self._redis_cache.similarity_categorical_features()
+
+    @property
+    def continuous_features(self):
+        return self._redis_cache.similarity_continuous_features()
+
+    @property
+    def num_donors(self):
+        return self._redis_cache.similarity_num_donors
 
     @property
     def donors_pool(self):
-        result, status = self._donors_pool.get()
-        if status:
-            # Force a reconstruction of the features cache on new
-            # donor pool data
-            self._build_features_caches()
-        return result
+        return self._redis_cache.similarity_donors()
 
     @property
     def lr_curves(self):
-        result, status = self._lr_curves.get()
-        if status:
-            # Force a reconstruction of the features cache on new
-            # curve data
-            self._build_features_caches()
-        return result
-
-    def _init_from_ctx(self):
-        # Download the addon donors list.
-        if self.donors_pool is None:
-            self.logger.info(
-                "Similarity donors pool has not been fetched from S3: {}".format(
-                    TAAR_SIMILARITY_DONOR_KEY
-                )
-            )
-
-        # Download the probability mapping curves from similarity to likelihood of being a good donor.
-        if self.lr_curves is None:
-            self.logger.error(
-                "Similarity LR Curves have not been fetched from S3: {}".format(
-                    TAAR_SIMILARITY_LRCURVES_KEY
-                )
-            )
-
-    def _build_features_caches(self):
-        """This function build two feature cache matrices.
-
-        That's the self.categorical_features and
-        self.continuous_features attributes.
-
-        One matrix is for the continuous features and the other is for
-        the categorical features. This is needed to speed up the similarity
-        recommendation process."""
-        _donors_pool = self._donors_pool.get()[0]
-        _lr_curves = self._lr_curves.get()[0]
-
-        if _donors_pool is None or _lr_curves is None:
-            # We need to have both donors_pool and lr_curves defined
-            # to reconstruct the matrices
-            return None
-
-        self.num_donors = len(_donors_pool)
-
-        # Build a numpy matrix cache for the continuous features.
-        self.continuous_features = np.zeros((self.num_donors, len(CONTINUOUS_FEATURES)))
-        for idx, d in enumerate(_donors_pool):
-            features = [d.get(specified_key) for specified_key in CONTINUOUS_FEATURES]
-            self.continuous_features[idx] = features
-
-        # Build the cache for categorical features.
-        self.categorical_features = np.zeros(
-            (self.num_donors, len(CATEGORICAL_FEATURES)), dtype="object"
-        )
-        for idx, d in enumerate(_donors_pool):
-            features = [d.get(specified_key) for specified_key in CATEGORICAL_FEATURES]
-            self.categorical_features[idx] = np.array([features], dtype="object")
-
-        self.logger.info("Reconstructed matrices for similarity recommender")
+        return self._redis_cache.similarity_lrcurves()
 
     def can_recommend(self, client_data, extra_data={}):
         # We can't recommend if we don't have our data files.
@@ -301,8 +225,6 @@ class SimilarityRecommender(AbstractRecommender):
             recommendations_out = self._recommend(client_data, limit, extra_data)
         except Exception as e:
             recommendations_out = []
-            self._donors_pool.force_expiry()
-            self._lr_curves.force_expiry()
 
             metrics.incr("error_similarity", value=1)
             self.logger.exception(

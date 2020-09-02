@@ -8,13 +8,9 @@ from taar.recommenders.ensemble_recommender import (
 )
 from taar.recommenders.randomizer import in_experiment, reorder_guids
 from srgutil.interfaces import IMozLogging
-from .lazys3 import LazyJSONLoader
+from taar.recommenders.redis_cache import TAARCache
 
-from taar.settings import (
-    TAAR_WHITELIST_BUCKET,
-    TAAR_WHITELIST_KEY,
-    TAAR_EXPERIMENT_PROB,
-)
+from taar.settings import TAAR_EXPERIMENT_PROB
 
 import markus
 
@@ -61,9 +57,7 @@ class RecommendationManager:
 
         # The whitelist data is only used for test client IDs
 
-        self._whitelist_data = LazyJSONLoader(
-            self._ctx, TAAR_WHITELIST_BUCKET, TAAR_WHITELIST_KEY, "whitelist"
-        )
+        self._redis_cache = TAARCache.get_instance(self._ctx)
 
         self._experiment_prob = ctx.get("TAAR_EXPERIMENT_PROB", TAAR_EXPERIMENT_PROB)
 
@@ -98,7 +92,7 @@ class RecommendationManager:
                 # Fetch back all possible whitelisted addons for this
                 # client
                 extra_data["guid_randomization"] = True
-                whitelist = self._whitelist_data.get()[0]
+                whitelist = self._redis_cache.whitelist_data()
                 results = self._ensemble_recommender.recommend(
                     client_info, len(whitelist), extra_data
                 )
