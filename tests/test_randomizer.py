@@ -59,3 +59,10 @@ def test_experimental_branch_guid():
 
         total = sum([in_experiment(id, cutoff - 0.1) for i in range(100)])
         assert total == 0
+
+
+def test_in_experiment_zero_prob():
+    """
+    Test the edge case when some client IDs go to experiment even with 0 probability.
+    """
+    assert not in_experiment('0ace1ca2a3519332ab93e76a049fe74091fa8fc9063399caa8545dd23f93de5c', xp_prob=0.0)
