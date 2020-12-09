@@ -15,7 +15,7 @@ def in_experiment(client_id, xp_prob=0.5):
     """
     hex_client = "".join([c for c in client_id.lower() if c in "abcdef0123456789"])
     int_client = int(hex_client, 16)
-    return int((int_client % 100) <= (xp_prob * 100))
+    return int((int_client % 100) < (xp_prob * 100))
 
 
 def reorder_guids(guid_weight_tuples, size=None):
