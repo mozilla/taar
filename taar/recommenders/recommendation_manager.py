@@ -6,15 +6,12 @@ from taar.recommenders.ensemble_recommender import (
     EnsembleRecommender,
     is_test_client,
 )
-from taar.recommenders.randomizer import in_experiment, reorder_guids
+from taar.recommenders.randomizer import reorder_guids
 from taar.recommenders.debug import log_timer_info
 from srgutil.interfaces import IMozLogging
 from taar.recommenders.redis_cache import TAARCache
 
-from taar.settings import TAAR_EXPERIMENT_PROB
-
 import markus
-
 
 metrics = markus.get_metrics("taar")
 
@@ -60,8 +57,6 @@ class RecommendationManager:
 
         self._redis_cache = TAARCache.get_instance(self._ctx)
 
-        self._experiment_prob = ctx.get("TAAR_EXPERIMENT_PROB", TAAR_EXPERIMENT_PROB)
-
     @metrics.timer_decorator("profile_recommendation")
     def recommend(self, client_id, limit, extra_data={}):
         """Return recommendations for the given client.
@@ -79,8 +74,6 @@ class RecommendationManager:
             with log_timer_info("redis read", self.logger):
                 extra_data["cache"] = self._redis_cache.cache_context()
 
-            results = None
-
             if is_test_client(client_id):
                 # Just create a stub client_info blob
                 client_info = {
@@ -96,21 +89,14 @@ class RecommendationManager:
                     )
                     return []
 
-            if in_experiment(client_id, self._experiment_prob):
-                if results is None:
-                    # Fetch back all possible whitelisted addons for this
-                    # client
-                    extra_data["guid_randomization"] = True
-                    whitelist = extra_data["cache"]["whitelist"]
-                    results = self._ensemble_recommender.recommend(
-                        client_info, len(whitelist), extra_data
-                    )
+            # Fetch back all possible whitelisted addons for this
+            # client
+            extra_data["guid_randomization"] = True
+            whitelist = extra_data["cache"]["whitelist"]
+            results = self._ensemble_recommender.recommend(
+                client_info, len(whitelist), extra_data
+            )
 
-                results = reorder_guids(results, limit)
-            else:
-                if results is None:
-                    results = self._ensemble_recommender.recommend(
-                        client_info, limit, extra_data
-                    )
+            results = reorder_guids(results, limit)
 
             return results

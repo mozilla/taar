@@ -28,7 +28,7 @@ def reorder_guids(guid_weight_tuples, size=None):
     if guid_weight_tuples is None or len(guid_weight_tuples) == 0:
         return []
 
-    weight_list = [weight for (guid, weight) in guid_weight_tuples]
+    weights = np.array([weight for (guid, weight) in guid_weight_tuples])
     guids = [guid for (guid, weight) in guid_weight_tuples]
     guid_map = dict(zip(guids, guid_weight_tuples))
 
@@ -36,8 +36,9 @@ def reorder_guids(guid_weight_tuples, size=None):
         size = len(guids)
 
     # Normalize the weights so that they're probabilities
-    total_weight = sum(weight_list)
-    probabilities = [w * 1.0 / total_weight for w in weight_list]
+    # Scale first, weights can be negative (for example, collaborative filtering similarity scores)
+    scaled_weights = weights - np.min(weights) + np.finfo(float).eps
+    probabilities = scaled_weights / np.sum(scaled_weights)
 
     choices = np.random.choice(guids, size=size, replace=False, p=probabilities)
     return [guid_map[guid] for guid in choices]

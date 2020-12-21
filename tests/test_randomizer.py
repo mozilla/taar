@@ -26,20 +26,23 @@ def test_reorder_guids():
     np.random.seed(seed=42)
 
     guid_weight_tuples = [
-        ("guid1", 0.01),
+        ("guid0", -0.60),
+        ("guid1", -0.30),
         ("guid2", 0.09),
         ("guid3", 0.30),
-        ("guid4", 0.60),
+        ("guid4", 2.5),
     ]
 
     # Run this 100 times to get the average ordering
     results = []
+    limit = 4
     for i in range(100):
-        results.append(reorder_guids(guid_weight_tuples))
+        results.append(reorder_guids(guid_weight_tuples, size=limit))
 
     best_result = []
-    for i in range(4):
+    for i in range(limit):
         best_result.append(most_frequent([row[i] for row in results])[0])
+
     assert best_result == ["guid4", "guid3", "guid2", "guid1"]
 
 

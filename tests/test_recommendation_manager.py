@@ -17,6 +17,7 @@ from .mocks import MockRecommenderFactory
 import operator
 from functools import reduce
 
+import numpy as np
 from markus import TIMING
 from markus.testing import MetricsMock
 
@@ -116,19 +117,22 @@ def test_none_profile_returns_empty_list(test_ctx):
 
 
 def test_simple_recommendation(test_ctx):
-    with mock_install_mock_curated_data(test_ctx):
+    # Fix the random seed so that we get stable results between test
+    # runs
+    np.random.seed(seed=42)
 
+    with mock_install_mock_curated_data(test_ctx):
         EXPECTED_RESULTS = [
-            ("ghi", 3430.0),
             ("def", 3320.0),
-            ("ijk", 3200.0),
-            ("hij", 3100.0),
-            ("lmn", 420.0),
             ("klm", 409.99999999999994),
+            ("hij", 3100.0),
+            ("ijk", 3200.0),
+            ("ghi", 3430.0),
+            ("lmn", 420.0),
             ("jkl", 400.0),
             ("abc", 23.0),
             ("fgh", 22.0),
-            ("efg", 21.0),
+            ("efg", 21.0)
         ]
 
         with MetricsMock() as mm:
