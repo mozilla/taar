@@ -45,8 +45,6 @@ TAAR_SIMILARITY_LRCURVES_KEY = config(
     "TAAR_SIMILARITY_LRCURVES_KEY", default="test_similarity_lrcurves_key"
 )
 
-TAAR_EXPERIMENT_PROB = config("TAAR_EXPERIMENT_PROB", default=0.0)
-
 
 # TAAR-lite configuration below
 
