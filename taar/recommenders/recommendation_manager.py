@@ -99,4 +99,8 @@ class RecommendationManager:
 
             results = reorder_guids(results, limit)
 
+            self.logger.info(
+                f"Final results - client_id: [{client_id}], guids: [{str([r[0] for r in results])}]"
+            )
+
             return results
