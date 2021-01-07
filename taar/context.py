@@ -2,6 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+# copy paste from https://github.com/mozilla/srgutil to get rid of this heavy legacy dependency
+
 """
 A Context is a customizable namespace.
 
@@ -17,8 +19,79 @@ configuration information as we pass the context through an object
 chain.
 """
 
-# Clobber the Context name to prevent messy name collisions
-from srgutil.context import default_context as _default_context
+from taar.logs import IMozLogging
+from decouple import config
+
+
+class InvalidInterface(Exception):
+    """Raise this when impl() fails to export an implementation"""
+    pass
+
+
+class Context:
+    def __init__(self, delegate=None):
+        if delegate is None:
+            delegate = {}
+
+        self._local_dict = {}
+        self._delegate = delegate
+
+    def __contains__(self, key):
+        try:
+            self[key]
+            return True
+        except KeyError:
+            return False
+
+    def __getitem__(self, key):
+        # This is a little tricky, we want to lookup items in our
+        # local namespace before we hit the delegate
+        try:
+            result = self._local_dict[key]
+        except KeyError:
+            result = self._delegate[key]
+        return result
+
+    def get(self, key, default):
+        try:
+            result = self[key]
+        except KeyError:
+            result = default
+        return result
+
+    def __setitem__(self, key, value):
+        self._local_dict[key] = value
+
+    def __delitem__(self, key):
+        del self._local_dict[key]
+
+    def wrap(self, ctx):
+        ctx_child = ctx.child()
+        this_child = self.child()
+        this_child._delegate = ctx_child
+        return this_child
+
+    def child(self):
+        """ In general, you should call this immediately in any
+        constructor that receives a context """
+
+        return Context(self)
+
+    def impl(self, iface):
+        instance = self._local_dict[iface]
+        if not isinstance(instance, iface):
+            raise InvalidInterface("Instance [%s] doesn't implement requested interface.")
+        return instance
+
+
+def _default_context():
+    ctx = Context()
+    from taar.logs import Logging
+
+    logger = Logging(ctx)
+    logger.set_prefix('srg', config("LOG_LEVEL", "INFO"))
+    ctx[IMozLogging] = logger
+    return ctx
 
 
 def default_context():

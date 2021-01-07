@@ -2,14 +2,15 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from srgutil.interfaces import IMozLogging
 import itertools
-from .base_recommender import AbstractRecommender
 
-from taar.utils import hasher
-from taar.recommenders.redis_cache import TAARCache
-from taar.recommenders.debug import log_timer_info
 import markus
+
+from taar.logs import IMozLogging
+from taar.recommenders.debug import log_timer_debug
+from taar.recommenders.redis_cache import TAARCache
+from taar.utils import hasher
+from .base_recommender import AbstractRecommender
 
 metrics = markus.get_metrics("taar")
 
@@ -67,7 +68,7 @@ class EnsembleRecommender(AbstractRecommender):
                 for rkey in self.RECOMMENDER_KEYS
             ]
         )
-        self.logger.info("Ensemble can_recommend: {}".format(result))
+        self.logger.debug("Ensemble can_recommend: {}".format(result))
         return result
 
     @metrics.timer_decorator("ensemble_recommend")
@@ -110,7 +111,7 @@ class EnsembleRecommender(AbstractRecommender):
         correct.
         """
         cache = self._get_cache(extra_data)
-        self.logger.info("Ensemble recommend invoked")
+        self.logger.debug("Ensemble recommend invoked")
         preinstalled_addon_ids = client_data.get("installed_addons", [])
 
         # Compute an extended limit by adding the length of
@@ -121,7 +122,7 @@ class EnsembleRecommender(AbstractRecommender):
         ensemble_weights = cache["ensemble_weights"]
 
         for rkey in self.RECOMMENDER_KEYS:
-            with log_timer_info(f"{rkey} recommend invoked", self.logger):
+            with log_timer_debug(f"{rkey} recommend invoked", self.logger):
                 recommender = self._recommender_map[rkey]
                 if recommender.can_recommend(client_data, extra_data):
                     raw_results = recommender.recommend(
@@ -163,7 +164,7 @@ class EnsembleRecommender(AbstractRecommender):
             str(ensemble_weights),
             str([r[0] for r in results]),
         )
-        self.logger.info(
+        self.logger.debug(
             "client_id: [%s], guid_randomization: [%s], ensemble_weight: [%s], guids: [%s]"
             % log_data
         )

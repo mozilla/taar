@@ -3,7 +3,7 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 
-from srgutil.interfaces import IMozLogging
+from taar.logs import IMozLogging
 
 import markus
 
@@ -152,7 +152,7 @@ class GuidBasedRecommender:
                 result_list.sort(key=lambda x: x[1], reverse=True)
 
             log_data = (str(addon_guid), [str(r) for r in result_list[:limit]])
-            self.logger.info(
+            self.logger.debug(
                 "Addon: [%s] triggered these recommendation guids: [%s]" % log_data
             )
 

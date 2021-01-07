@@ -2,16 +2,16 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import markus
+
+from taar.logs import IMozLogging
+from taar.recommenders.debug import log_timer_debug
 from taar.recommenders.ensemble_recommender import (
     EnsembleRecommender,
     is_test_client,
 )
 from taar.recommenders.randomizer import reorder_guids
-from taar.recommenders.debug import log_timer_info
-from srgutil.interfaces import IMozLogging
 from taar.recommenders.redis_cache import TAARCache
-
-import markus
 
 metrics = markus.get_metrics("taar")
 
@@ -69,9 +69,9 @@ class RecommendationManager:
         :param extra_data: a dictionary with extra client data.
         """
 
-        with log_timer_info("recommmend executed", self.logger):
+        with log_timer_debug("recommmend executed", self.logger):
             # Read everything from redis now
-            with log_timer_info("redis read", self.logger):
+            with log_timer_debug("redis read", self.logger):
                 extra_data["cache"] = self._redis_cache.cache_context()
 
             if is_test_client(client_id):
@@ -80,11 +80,11 @@ class RecommendationManager:
                     "client_id": client_id,
                 }
             else:
-                with log_timer_info("bigtable fetched data", self.logger):
+                with log_timer_debug("bigtable fetched data", self.logger):
                     client_info = self.profile_fetcher.get(client_id)
 
                 if client_info is None:
-                    self.logger.info(
+                    self.logger.warning(
                         "Defaulting to empty results.  No client info fetched from storage backend."
                     )
                     return []

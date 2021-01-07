@@ -7,7 +7,7 @@ import os
 import threading
 import redis
 import numpy as np
-from srgutil.interfaces import IMozLogging
+from taar.logs import IMozLogging
 
 from taar.settings import (
     REDIS_HOST,

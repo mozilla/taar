@@ -2,7 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from srgutil.interfaces import IMozLogging
+from taar.logs import IMozLogging
 import numpy as np
 import operator as op
 
@@ -143,7 +143,7 @@ class CollaborativeRecommender(AbstractRecommender):
             client_data["client_id"],
             str([r[0] for r in recommendations]),
         )
-        self.logger.info(
+        self.logger.debug(
             "collaborative_recommender_triggered, "
             "client_id: [%s], "
             "guids: [%s]" % log_data

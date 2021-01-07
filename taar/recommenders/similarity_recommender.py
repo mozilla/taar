@@ -5,7 +5,7 @@
 from .base_recommender import AbstractRecommender
 from itertools import groupby
 from scipy.spatial import distance
-from srgutil.interfaces import IMozLogging
+from taar.logs import IMozLogging
 import numpy as np
 from taar.recommenders.redis_cache import TAARCache
 
@@ -228,7 +228,7 @@ class SimilarityRecommender(AbstractRecommender):
             client_data["client_id"],
             str([r[0] for r in recommendations_out[:limit]]),
         )
-        self.logger.info(
+        self.logger.debug(
             "similarity_recommender_triggered, "
             "client_id: [%s], guids: [%s]" % log_data
         )
