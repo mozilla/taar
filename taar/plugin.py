@@ -9,6 +9,7 @@ import markus
 
 # TAAR specific libraries
 from taar.context import default_context
+from taar.logs import ContextFilter
 from taar.profile_fetcher import ProfileFetcher
 from taar import recommenders
 
@@ -137,9 +138,14 @@ def configure_plugin(app):  # noqa: C901
         if normalization_type is not None:
             cdict["normalize"] = normalization_type
 
-        recommendations = taarlite_recommender.recommend(
-            client_data=cdict, limit=TAARLITE_MAX_RESULTS
-        )
+        def set_extra(record):
+            record.url = request.path
+            record.guid = guid
+
+        with ContextFilter(taarlite_recommender.logger, set_extra):
+            recommendations = taarlite_recommender.recommend(
+                client_data=cdict, limit=TAARLITE_MAX_RESULTS
+            )
 
         if len(recommendations) != TAARLITE_MAX_RESULTS:
             recommendations = []
@@ -225,9 +231,20 @@ def configure_plugin(app):  # noqa: C901
             extra_data["platform"] = platform
 
         recommendation_manager = acquire_taar_singleton(PROXY_MANAGER)
-        recommendations = recommendation_manager.recommend(
-            client_id=client_id, limit=TAAR_MAX_RESULTS, extra_data=extra_data
-        )
+
+        def set_extra(record):
+            record.url = request.path
+            if locale:
+                record.locale = locale
+            if platform:
+                record.platform = platform
+            record.client_id = client_id
+            record.method = request.method
+
+        with ContextFilter(recommendation_manager.logger, set_extra):
+            recommendations = recommendation_manager.recommend(
+                client_id=client_id, limit=TAAR_MAX_RESULTS, extra_data=extra_data
+            )
 
         promoted_guids = extra_data.get("options", {}).get("promoted", [])
         recommendations = merge_promoted_guids(promoted_guids, recommendations)

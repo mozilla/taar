@@ -89,7 +89,7 @@ def _default_context():
     from taar.logs import Logging
 
     logger = Logging(ctx)
-    logger.set_prefix('srg', config("LOG_LEVEL", "INFO"))
+    logger.set_log_level(config("PYTHON_LOG_LEVEL", "INFO"))
     ctx[IMozLogging] = logger
     return ctx
 
