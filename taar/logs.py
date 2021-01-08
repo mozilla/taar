@@ -9,7 +9,6 @@ try:
 except Exception:
     from abc import ABCMeta
 
-
     class ABC(object):
         """Helper class that provides a standard way to create an ABC using
         inheritance.
@@ -29,6 +28,7 @@ class IMozLogging(ABC):
 
 class ContextFilter(logging.Filter):
     """Enhances log messages with contextual information"""
+
     def __init__(self, logger, func):
 
         super().__init__()
