@@ -34,6 +34,8 @@ def reorder_guids(guid_weight_tuples, size=None):
 
     if size is None:
         size = len(guids)
+    else:
+        size = min(size, len(guids))
 
     # Normalize the weights so that they're probabilities
     # Scale first, weights can be negative (for example, collaborative filtering similarity scores)

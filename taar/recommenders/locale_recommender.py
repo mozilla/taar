@@ -4,7 +4,7 @@
 
 import markus
 
-from srgutil.interfaces import IMozLogging
+from taar.logs import IMozLogging
 
 from .base_recommender import AbstractRecommender
 from taar.recommenders.redis_cache import TAARCache
@@ -93,7 +93,7 @@ class LocaleRecommender(AbstractRecommender):
                 client_data["locale"] = None
 
         log_data = (client_data["locale"], str([r[0] for r in result_list]))
-        self.logger.info(
+        self.logger.debug(
             "locale_recommender_triggered, "
             "client_locale: [%s], guids: [%s]" % log_data
         )

@@ -83,7 +83,6 @@ dependencies:
     - markus[datadog]==2.2.0
     - mock==2.0.0
     - more-itertools==4.2.0
-    - mozilla-srgutil==0.1.7
     - mozilla-jsoncache==0.1.7
     - networkx==2.4
     - newrelic==5.14.1.144

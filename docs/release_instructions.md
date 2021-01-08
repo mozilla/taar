@@ -90,10 +90,11 @@ the case.  Models are sufficiently small that they can held in memory.
 Tagging a version in git will trigger CircleCI to build a container
 image for production.  
 
-You must inform operations to push the tag to staging and to
-production enviroments.  
+Autopush on tag is currently enabled for staging environment.
 
-No autopush on tag is currently enabled.
+You must inform operations to push the tag to production enviroment.  
+
+
 
 ## A note about logging
 

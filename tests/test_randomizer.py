@@ -46,6 +46,17 @@ def test_reorder_guids():
     assert best_result == ["guid4", "guid3", "guid2", "guid1"]
 
 
+def test_reorder_guids_size_less_than_limit():
+    guid_weight_tuples = [
+        ("guid0", -0.60),
+        ("guid1", -0.30)]
+    limit = 4
+
+    reordered = reorder_guids(guid_weight_tuples, size=limit)
+
+    assert len(reordered) == 2
+
+
 def test_experimental_branch_guid():
     """
     Test the experimental cutoff selection code.

@@ -3,7 +3,7 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 
-from srgutil.interfaces import IMozLogging
+from taar.logs import IMozLogging
 
 import markus
 
@@ -151,9 +151,9 @@ class GuidBasedRecommender:
                 # Sort the result list in descending order by weight
                 result_list.sort(key=lambda x: x[1], reverse=True)
 
-            log_data = (str(addon_guid), [str(r) for r in result_list[:limit]])
             self.logger.info(
-                "Addon: [%s] triggered these recommendation guids: [%s]" % log_data
+                "Addon related recommendations results",
+                extra={'guid': str(addon_guid), 'recs': [str(r) for r in result_list[:limit]]}
             )
 
         return result_list[:limit]

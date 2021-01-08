@@ -3,8 +3,7 @@ These are global fixtures automagically loaded by pytest
 """
 
 import pytest
-from srgutil.context import default_context
-from srgutil.interfaces import IClock
+from taar.context import _default_context
 
 FAKE_LOCALE_DATA = {
     "te-ST": [
@@ -19,8 +18,7 @@ FAKE_LOCALE_DATA = {
 
 @pytest.fixture
 def test_ctx():
-    ctx = default_context()
-    ctx["clock"] = ctx[IClock]
+    ctx = _default_context()
     return ctx
 
 

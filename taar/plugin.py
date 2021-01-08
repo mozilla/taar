@@ -6,9 +6,11 @@ from flask import request
 import json
 
 import markus
+from sentry_sdk import capture_exception
 
 # TAAR specific libraries
 from taar.context import default_context
+from taar.logs import ContextFilter
 from taar.profile_fetcher import ProfileFetcher
 from taar import recommenders
 
@@ -17,12 +19,13 @@ from taar.settings import (
     TAARLITE_MAX_RESULTS,
     STATSD_HOST,
     STATSD_PORT,
+    PYTHON_LOG_LEVEL
 )
 
 
 def acquire_taarlite_singleton(PROXY_MANAGER):
     if PROXY_MANAGER.getTaarLite() is None:
-        ctx = default_context()
+        ctx = default_context(log_level=PYTHON_LOG_LEVEL)
         root_ctx = ctx.child()
         instance = recommenders.GuidBasedRecommender(root_ctx)
         PROXY_MANAGER.setTaarLite(instance)
@@ -31,7 +34,7 @@ def acquire_taarlite_singleton(PROXY_MANAGER):
 
 def acquire_taar_singleton(PROXY_MANAGER):
     if PROXY_MANAGER.getTaarRM() is None:
-        ctx = default_context()
+        ctx = default_context(log_level=PYTHON_LOG_LEVEL)
         profile_fetcher = ProfileFetcher(ctx)
 
         ctx["profile_fetcher"] = profile_fetcher
@@ -137,9 +140,14 @@ def configure_plugin(app):  # noqa: C901
         if normalization_type is not None:
             cdict["normalize"] = normalization_type
 
-        recommendations = taarlite_recommender.recommend(
-            client_data=cdict, limit=TAARLITE_MAX_RESULTS
-        )
+        def set_extra(record):
+            record.url = request.path
+            record.guid = guid
+
+        with ContextFilter(taarlite_recommender.logger, set_extra):
+            recommendations = taarlite_recommender.recommend(
+                client_data=cdict, limit=TAARLITE_MAX_RESULTS
+            )
 
         if len(recommendations) != TAARLITE_MAX_RESULTS:
             recommendations = []
@@ -209,6 +217,7 @@ def configure_plugin(app):  # noqa: C901
             jdata = {}
             jdata["results"] = []
             jdata["error"] = "Invalid JSON in POST: {}".format(e)
+            capture_exception(e)
             return app.response_class(
                 response=json.dumps(jdata, status=400, mimetype="application/json")
             )
@@ -225,9 +234,20 @@ def configure_plugin(app):  # noqa: C901
             extra_data["platform"] = platform
 
         recommendation_manager = acquire_taar_singleton(PROXY_MANAGER)
-        recommendations = recommendation_manager.recommend(
-            client_id=client_id, limit=TAAR_MAX_RESULTS, extra_data=extra_data
-        )
+
+        def set_extra(record):
+            record.url = request.path
+            if locale:
+                record.locale = locale
+            if platform:
+                record.platform = platform
+            record.client_id = client_id
+            record.method = request.method
+
+        with ContextFilter(recommendation_manager.logger, set_extra):
+            recommendations = recommendation_manager.recommend(
+                client_id=client_id, limit=TAAR_MAX_RESULTS, extra_data=extra_data
+            )
 
         promoted_guids = extra_data.get("options", {}).get("promoted", [])
         recommendations = merge_promoted_guids(promoted_guids, recommendations)
