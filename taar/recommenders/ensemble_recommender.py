@@ -5,6 +5,7 @@
 import itertools
 
 import markus
+from sentry_sdk import capture_exception
 
 from taar.logs import IMozLogging
 from taar.recommenders.debug import log_timer_debug
@@ -91,9 +92,8 @@ class EnsembleRecommender(AbstractRecommender):
                 results = self._recommend(client_data, limit, extra_data)
             except Exception as e:
                 results = []
-                self.logger.exception(
-                    "Ensemble recommender crashed for {}".format(client_id), e
-                )
+                self.logger.exception(f"Ensemble recommender crashed for {client_id}")
+                capture_exception(e)
         return results
 
     def _recommend(self, client_data, limit, extra_data={}):

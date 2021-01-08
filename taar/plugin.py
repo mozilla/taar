@@ -6,6 +6,7 @@ from flask import request
 import json
 
 import markus
+from sentry_sdk import capture_exception
 
 # TAAR specific libraries
 from taar.context import default_context
@@ -215,6 +216,7 @@ def configure_plugin(app):  # noqa: C901
             jdata = {}
             jdata["results"] = []
             jdata["error"] = "Invalid JSON in POST: {}".format(e)
+            capture_exception(e)
             return app.response_class(
                 response=json.dumps(jdata, status=400, mimetype="application/json")
             )
