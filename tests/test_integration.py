@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import uuid
 
 from flask import Flask
@@ -61,7 +62,7 @@ def test_only_promoted_addons_post(client, app):
 
 class FakeRecommendationManager(object):
     def __init__(self, *args, **kwargs):
-        pass
+        self.logger = logging.getLogger('test')
 
 
 class StaticRecommendationManager(FakeRecommendationManager):
