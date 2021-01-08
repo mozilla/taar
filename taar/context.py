@@ -81,20 +81,22 @@ class Context:
         return instance
 
 
-def _default_context():
+def _default_context(log_level=None):
     ctx = Context()
     from taar.logs import Logging
     from taar.logs import IMozLogging
-    from decouple import config
 
     logger = Logging(ctx)
-    logger.set_log_level(config("PYTHON_LOG_LEVEL", "INFO"))
+
+    if log_level:
+        logger.set_log_level(log_level)
+
     ctx[IMozLogging] = logger
     return ctx
 
 
-def default_context():
-    ctx = _default_context()
+def default_context(log_level=None):
+    ctx = _default_context(log_level)
     from taar.recommenders import CollaborativeRecommender
     from taar.recommenders import SimilarityRecommender
     from taar.recommenders import LocaleRecommender

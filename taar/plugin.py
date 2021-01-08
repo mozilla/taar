@@ -19,12 +19,13 @@ from taar.settings import (
     TAARLITE_MAX_RESULTS,
     STATSD_HOST,
     STATSD_PORT,
+    PYTHON_LOG_LEVEL
 )
 
 
 def acquire_taarlite_singleton(PROXY_MANAGER):
     if PROXY_MANAGER.getTaarLite() is None:
-        ctx = default_context()
+        ctx = default_context(log_level=PYTHON_LOG_LEVEL)
         root_ctx = ctx.child()
         instance = recommenders.GuidBasedRecommender(root_ctx)
         PROXY_MANAGER.setTaarLite(instance)
@@ -33,7 +34,7 @@ def acquire_taarlite_singleton(PROXY_MANAGER):
 
 def acquire_taar_singleton(PROXY_MANAGER):
     if PROXY_MANAGER.getTaarRM() is None:
-        ctx = default_context()
+        ctx = default_context(log_level=PYTHON_LOG_LEVEL)
         profile_fetcher = ProfileFetcher(ctx)
 
         ctx["profile_fetcher"] = profile_fetcher

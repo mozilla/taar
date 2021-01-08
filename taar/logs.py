@@ -65,7 +65,7 @@ class Logging(IMozLogging):
         },
         'handlers': {
             'console': {
-                'level': 'DEBUG',
+                'level': 'INFO',
                 'class': 'logging.StreamHandler',
                 'formatter': 'json',
                 'stream': sys.stdout
@@ -75,7 +75,7 @@ class Logging(IMozLogging):
         'loggers': {
             LOG_NAME: {
                 'handlers': ['console'],
-                'level': 'DEBUG'
+                'level': 'INFO'
             },
         }
     }

@@ -5,6 +5,8 @@
 
 from decouple import config
 
+PYTHON_LOG_LEVEL = config("PYTHON_LOG_LEVEL", "INFO")
+
 REDIS_HOST = config("REDIS_HOST", "localhost", cast=str)
 REDIS_PORT = config("REDIS_PORT", 6379, cast=int)
 
