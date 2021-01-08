@@ -19,9 +19,6 @@ configuration information as we pass the context through an object
 chain.
 """
 
-from taar.logs import IMozLogging
-from decouple import config
-
 
 class InvalidInterface(Exception):
     """Raise this when impl() fails to export an implementation"""
@@ -87,6 +84,8 @@ class Context:
 def _default_context():
     ctx = Context()
     from taar.logs import Logging
+    from taar.logs import IMozLogging
+    from decouple import config
 
     logger = Logging(ctx)
     logger.set_log_level(config("PYTHON_LOG_LEVEL", "INFO"))
