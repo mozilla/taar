@@ -153,7 +153,7 @@ class GuidBasedRecommender:
 
             self.logger.info(
                 "Addon related recommendations results",
-                extra={'guid': str(addon_guid), 'recs': [str(r) for r in result_list[:limit]]}
+                extra={'guid': str(addon_guid), 'recs': [str(r[0]) for r in result_list[:limit]]}
             )
 
         return result_list[:limit]
