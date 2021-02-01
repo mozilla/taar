@@ -2,8 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import boto3
 import mock
+import bz2
 
 import contextlib
 import fakeredis
@@ -16,7 +16,7 @@ from .noop_fixtures import (
 )
 import json
 
-
+from google.cloud import storage
 from taar.recommenders import LocaleRecommender
 from taar.settings import TAAR_LOCALE_KEY, TAAR_LOCALE_BUCKET
 
@@ -37,12 +37,14 @@ FAKE_LOCALE_DATA = {
 
 def install_mock_data(ctx):
     ctx = ctx.child()
-    conn = boto3.resource("s3", region_name="us-west-2")
 
-    conn.create_bucket(Bucket=TAAR_LOCALE_BUCKET)
-    conn.Object(TAAR_LOCALE_BUCKET, TAAR_LOCALE_KEY).put(
-        Body=json.dumps(FAKE_LOCALE_DATA)
-    )
+    byte_data = json.dumps(FAKE_LOCALE_DATA).encode("utf8")
+    byte_data = bz2.compress(byte_data)
+
+    client = storage.Client()
+    bucket = client.get_bucket(TAAR_LOCALE_BUCKET)
+    blob = bucket.blob(TAAR_LOCALE_KEY)
+    blob.upload_from_string(byte_data)
 
     return ctx
 

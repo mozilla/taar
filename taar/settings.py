@@ -54,7 +54,7 @@ TAARLITE_GUID_COINSTALL_BUCKET = config(
     "TAARLITE_GUID_COINSTALL_BUCKET", "telemetry-parquet"
 )
 TAARLITE_GUID_COINSTALL_KEY = config(
-    "TAARlLITE_GUID_COINSTALL_KEY", "taar/lite/guid_coinstallation.json"
+    "TAARLITE_GUID_COINSTALL_KEY", "taar/lite/guid_coinstallation.json"
 )
 
 TAARLITE_GUID_RANKING_KEY = config(

@@ -6,8 +6,15 @@ all:
 
 setup_conda:
 	# Install all dependencies and setup repo in dev mode
-	conda env update -n taar-37 -f enviroment.yml
+	conda env update -n taar-37 -f environment.yml
 	python setup.py develop
+
+conda_update:
+    # Actualize env after .yml file was modified
+	conda env update -n taar-37 -f environment.yml --prune
+
+conda_export:
+	conda env export > environment.yml
 
 upload:
 	twine upload --repository-url https://upload.pypi.org/legacy/ dist/*
@@ -21,44 +28,13 @@ build:
 	docker build . -t taar:latest
 
 up:
-	docker run \
-		--rm \
-		--name=taar \
-		-v ~/.config:/app/.config \
-		-v ~/.aws:/app/.aws \
-		-v ~/.gcp_creds:/app/.gcp_creds \
-		-e WORKERS=1 \
-		-e THREADS=2 \
-		-e LOG_LEVEL=20 \
-		-e GOOGLE_APPLICATION_CREDENTIALS=/app/.gcp_creds/vng-taar-stage.json \
-		-e TAAR_API_PLUGIN=taar.plugin \
-		-e TAAR_ITEM_MATRIX_BUCKET=telemetry-public-analysis-2 \
-		-e TAAR_ITEM_MATRIX_KEY=telemetry-ml/addon_recommender/item_matrix.json \
-		-e TAAR_ADDON_MAPPING_BUCKET=telemetry-public-analysis-2 \
-		-e TAAR_ADDON_MAPPING_KEY=telemetry-ml/addon_recommender/addon_mapping.json \
-		-e TAAR_ENSEMBLE_BUCKET=telemetry-parquet \
-		-e TAAR_ENSEMBLE_KEY=taar/ensemble/ensemble_weight.json \
-		-e TAAR_WHITELIST_BUCKET=telemetry-parquet \
-		-e TAAR_WHITELIST_KEY=telemetry-ml/addon_recommender/only_guids_top_200.json \
-		-e TAAR_LOCALE_BUCKET=telemetry-parquet \
-		-e TAAR_LOCALE_KEY=taar/locale/top10_dict.json \
-		-e TAAR_SIMILARITY_BUCKET=telemetry-parquet \
-		-e TAAR_SIMILARITY_DONOR_KEY=taar/similarity/donors.json \
-		-e TAAR_SIMILARITY_LRCURVES_KEY=taar/similarity/lr_curves.json \
-		-e TAAR_MAX_RESULTS=10 \
-		-e TAARLITE_MAX_RESULTS=4 \
-		-e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} \
-		-e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \
-		-e BIGTABLE_PROJECT_ID=moz-fx-data-taar-nonprod-48b6 \
-		-e BIGTABLE_INSTANCE_ID=taar-stage-202006 \
-		-p 8000:8000 \
-		-it taar:latest 
+	docker-compose up
 
 test-container:
 	docker run -e CODECOV_TOKEN=${CODECOV_TOKEN} -it taar:latest test
 
 run_local:
-	TAAR_API_PLUGIN=taar.plugin python taar/flask_app.py
+	. bin/test_env.sh && python taar/flask_app.py -H 0.0.0.0
 
 shell:
 	docker run -it taar:latest bash 

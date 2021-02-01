@@ -46,7 +46,7 @@ from taar.settings import (
     TAAR_WHITELIST_KEY,
 )
 
-from jsoncache.loader import s3_json_loader
+from jsoncache.loader import gcs_json_loader
 
 
 # This marks which of the redis databases is currently
@@ -514,33 +514,33 @@ class TAARCache:
         return f"{os.getpid()}_{threading.get_ident()}"
 
     def _fetch_coinstall_data(self):
-        return s3_json_loader(
+        return gcs_json_loader(
             TAARLITE_GUID_COINSTALL_BUCKET, TAARLITE_GUID_COINSTALL_KEY
         )
 
     def _fetch_ranking_data(self):
-        return s3_json_loader(TAARLITE_GUID_COINSTALL_BUCKET, TAARLITE_GUID_RANKING_KEY)
+        return gcs_json_loader(TAARLITE_GUID_COINSTALL_BUCKET, TAARLITE_GUID_RANKING_KEY)
 
     def _fetch_locale_data(self):
-        return s3_json_loader(TAAR_LOCALE_BUCKET, TAAR_LOCALE_KEY)
+        return gcs_json_loader(TAAR_LOCALE_BUCKET, TAAR_LOCALE_KEY)
 
     def _fetch_collaborative_mapping_data(self):
-        return s3_json_loader(TAAR_ADDON_MAPPING_BUCKET, TAAR_ADDON_MAPPING_KEY)
+        return gcs_json_loader(TAAR_ADDON_MAPPING_BUCKET, TAAR_ADDON_MAPPING_KEY)
 
     def _fetch_collaborative_item_matrix(self):
-        return s3_json_loader(TAAR_ITEM_MATRIX_BUCKET, TAAR_ITEM_MATRIX_KEY)
+        return gcs_json_loader(TAAR_ITEM_MATRIX_BUCKET, TAAR_ITEM_MATRIX_KEY)
 
     def _fetch_similarity_donors(self):
-        return s3_json_loader(TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY,)
+        return gcs_json_loader(TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY,)
 
     def _fetch_similarity_lrcurves(self):
-        return s3_json_loader(TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY,)
+        return gcs_json_loader(TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY,)
 
     def _fetch_ensemble_weights(self):
-        return s3_json_loader(TAAR_ENSEMBLE_BUCKET, TAAR_ENSEMBLE_KEY)
+        return gcs_json_loader(TAAR_ENSEMBLE_BUCKET, TAAR_ENSEMBLE_KEY)
 
     def _fetch_whitelist(self):
-        return s3_json_loader(TAAR_WHITELIST_BUCKET, TAAR_WHITELIST_KEY)
+        return gcs_json_loader(TAAR_WHITELIST_BUCKET, TAAR_WHITELIST_KEY)
 
     def _update_whitelist_data(self, db):
         """

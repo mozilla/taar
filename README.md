@@ -88,8 +88,10 @@ container and run the test suite inside the container.
 
 TAAR uses miniconda and a enviroment.yml file to manage versioning.
 
-To update versions, edit the enviroment.yml with the new dependency
-you need.  If you are unfamiliar with using conda, see the [official
+To update versions, edit the `enviroment.yml` with the new dependency
+you need then run `make conda_update`.
+
+If you are unfamiliar with using conda, see the [official
 documentation](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html)
 for reference.
 
@@ -104,7 +106,6 @@ create a new release has been split out into separate
 
 ### Google Cloud Storage resources
 
-### TODO: put this into a table to be easier to read
 The final TAAR models are stored in:
 
 ```gs://moz-fx-data-taar-pr-prod-e0f7-prod-models```
@@ -115,63 +116,62 @@ variable `taar_etl_model_storage_bucket`
 Temporary models that the Airflow  ETL jobs require are stored in a
 temporary bucket defined in the Airflow variable `taar_etl_storage_bucket`
 
-
-### AWS resources
-
-Recommendation engines load models from Amazon S3.
+Recommendation engines load models from GCS.
 
 The following table is a complete list of all resources per
 recommendation engine.
 
-Recommendation Engine |  S3 Resource 
+Recommendation Engine |  GCS Resource 
 --- | ---
-RecommendationManager Whitelist | s3://telemetry-parquet/telemetry-ml/addon_recommender/top_200_whitelist.json
-Similarity Recommender | s3://telemetry-parquet/taar/similarity/donors.json <br> s3://telemetry-parquet/taar/similarity/lr_curves.json
-CollaborativeRecommender |  s3://telemetry-parquet/telemetry-ml/addon_recommender/item_matrix.json <br> s3://telemetry-parquet/telemetry-ml/addon_recommender/addon_mapping.json
-LocaleRecommender | s3://telemetry-parquet/taar/locale/top10_dict.json
-EnsembleRecommender | s3://telemetry-parquet/taar/ensemble/ensemble_weight.json
+RecommendationManager Whitelist | gs://moz-fx-data-taar-pr-prod-e0f7-prod-models/addon_recommender/only_guids_top_200.json.bz2
+Similarity Recommender | gs://moz-fx-data-taar-pr-prod-e0f7-prod-models/taar/similarity/donors.json.bz2 <br> gs://moz-fx-data-taar-pr-prod-e0f7-prod-models/taar/similarity/lr_curves.json.bz2
+CollaborativeRecommender |  gs://moz-fx-data-taar-pr-prod-e0f7-prod-models/addon_recommender/item_matrix.json.bz2 <br> gs://moz-fx-data-taar-pr-prod-e0f7-prod-models/addon_recommender/addon_mapping.json.bz2
+LocaleRecommender | gs://moz-fx-data-taar-pr-prod-e0f7-prod-models/taar/locale/top10_dict.json.bz2
+EnsembleRecommender | gs://moz-fx-data-taar-pr-prod-e0f7-prod-models/taar/ensemble/ensemble_weight.json.bz2
+TAAR lite | gs://moz-fx-data-taar-pr-prod-e0f7-prod-models/taar/lite/guid_install_ranking.json.bz2 <br/> gs://moz-fx-data-taar-pr-prod-e0f7-prod-models/taar/lite/guid_coinstallation.json.bz2
 
 
-
-### AWS enviroment configuration
-
-TAAR breaks out all S3 data load configuration into enviroment
-variables.  This ensures that running under test has no chance of
-clobbering the production data in the event that a developer has AWS
-configuration keys installed locally in `~/.aws/`
-
-Production enviroment variables required for TAAR
+# Production enviroment variables required for TAAR
 
 ## Collaborative Recommender
 
 Env Variable | Value 
 ------- | --- 
-TAAR_ITEM_MATRIX_BUCKET | "telemetry-parquet"
-TAAR_ITEM_MATRIX_KEY  | "telemetry-ml/addon_recommender/item_matrix.json"
-TAAR_ADDON_MAPPING_BUCKET | "telemetry-parquet"
-TAAR_ADDON_MAPPING_KEY | "telemetry-ml/addon_recommender/addon_mapping.json"
+TAAR_ITEM_MATRIX_BUCKET | "moz-fx-data-taar-pr-prod-e0f7-prod-models"
+TAAR_ITEM_MATRIX_KEY  | "addon_recommender/item_matrix.json.bz2"
+TAAR_ADDON_MAPPING_BUCKET | "moz-fx-data-taar-pr-prod-e0f7-prod-models"
+TAAR_ADDON_MAPPING_KEY | "addon_recommender/addon_mapping.json.bz2"
 
 ## Ensemble Recommender
 
 Env Variable | Value
 --- | --- 
-TAAR_ENSEMBLE_BUCKET  | "telemetry-parquet"
-TAAR_ENSEMBLE_KEY | "taar/ensemble/ensemble_weight.json"
+TAAR_ENSEMBLE_BUCKET  | "moz-fx-data-taar-pr-prod-e0f7-prod-models"
+TAAR_ENSEMBLE_KEY | "taar/ensemble/ensemble_weight.json.bz2"
 
 ## Locale Recommender
 
 Env Variable | Value
 --- | --- 
-TAAR_LOCALE_BUCKET | "telemetry-parquet"
-TAAR_LOCALE_KEY | "taar/locale/top10_dict.json"
+TAAR_LOCALE_BUCKET | "moz-fx-data-taar-pr-prod-e0f7-prod-models"
+TAAR_LOCALE_KEY | "taar/locale/top10_dict.json.bz2"
 
 ## Similarity Recommender
 
 Env Variable | Value
 --- | --- 
-TAAR_SIMILARITY_BUCKET | "telemetry-parquet"
-TAAR_SIMILARITY_DONOR_KEY | "taar/similarity/donors.json"
-TAAR_SIMILARITY_LRCURVES_KEY | "taar/similarity/lr_curves.json"
+TAAR_SIMILARITY_BUCKET | "moz-fx-data-taar-pr-prod-e0f7-prod-models"
+TAAR_SIMILARITY_DONOR_KEY | "taar/similarity/donors.json.bz2"
+TAAR_SIMILARITY_LRCURVES_KEY | "taar/similarity/lr_curves.json.bz2"
+
+
+## TAAR Lite
+
+Env Variable | Value
+--- | --- 
+TAARLITE_GUID_COINSTALL_BUCKET | "moz-fx-data-taar-pr-prod-e0f7-prod-models"
+TAARLITE_GUID_COINSTALL_KEY | "taar/lite/guid_coinstallation.json.bz2"
+TAARLITE_GUID_RANKING_KEY | "taar/lite/guid_install_ranking.json.bz2"
 
 
 ## Google Cloud Platform resources
