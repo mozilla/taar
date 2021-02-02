@@ -27,4 +27,3 @@ class LoggingStub(IMozLogging):
 
     def set_log_level(self, level):
         pass
-

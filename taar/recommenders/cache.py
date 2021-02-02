@@ -172,9 +172,7 @@ class TAARCache:
             # This truncates the size of the coinstall list for
             # performance reasons
             return dict(
-                sorted(raw_dict.items(), key=lambda x: x[1], reverse=True)[
-                :TAARLITE_TRUNCATE
-                ]
+                sorted(raw_dict.items(), key=lambda x: x[1], reverse=True)[:TAARLITE_TRUNCATE]
             )
         return default
 
