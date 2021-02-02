@@ -5,9 +5,9 @@
 from .base_recommender import AbstractRecommender
 from itertools import groupby
 from scipy.spatial import distance
-from taar.logs import IMozLogging
+from taar.logs.interfaces import IMozLogging
 import numpy as np
-from taar.recommenders.redis_cache import TAARCache
+from taar.recommenders.cache import TAARCache
 
 import markus
 
@@ -46,34 +46,14 @@ class SimilarityRecommender(AbstractRecommender):
     def __init__(self, ctx):
         self._ctx = ctx
 
-        self._redis_cache = TAARCache.get_instance(self._ctx)
+        self._cache = self._ctx[TAARCache]
 
         self.logger = self._ctx[IMozLogging].get_logger("taar")
-
-    @property
-    def categorical_features(self):
-        return self._redis_cache.similarity_categorical_features()
-
-    @property
-    def continuous_features(self):
-        return self._redis_cache.similarity_continuous_features()
-
-    @property
-    def num_donors(self):
-        return self._redis_cache.similarity_num_donors
-
-    @property
-    def donors_pool(self):
-        return self._redis_cache.similarity_donors()
-
-    @property
-    def lr_curves(self):
-        return self._redis_cache.similarity_lrcurves()
 
     def _get_cache(self, extra_data):
         tmp = extra_data.get("cache", None)
         if tmp is None:
-            tmp = self._redis_cache.cache_context()
+            tmp = self._cache.cache_context()
         return tmp
 
     """

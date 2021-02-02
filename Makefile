@@ -34,7 +34,7 @@ test-container:
 	docker run -e CODECOV_TOKEN=${CODECOV_TOKEN} -it taar:latest test
 
 run_local:
-	. bin/test_env.sh && python taar/flask_app.py -H 0.0.0.0
+	. bin/test_env.sh && python taar/flask_app.py -H 0.0.0.0 -P 8001
 
 shell:
 	docker run -it taar:latest bash 

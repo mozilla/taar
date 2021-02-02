@@ -1,12 +1,12 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
-
+from taar.recommenders.cache import TAARCache
 from taar.recommenders.ensemble_recommender import EnsembleRecommender
 import mock
 import contextlib
 import fakeredis
-from taar.recommenders.redis_cache import TAARCache
+from taar.recommenders.redis_cache import TAARCacheRedis
 from .noop_fixtures import (
     noop_taarlocale_dataload,
     noop_taarcollab_dataload,
@@ -59,14 +59,14 @@ def mock_install_mock_ensemble_data(ctx):
     ]
 
     with contextlib.ExitStack() as stack:
-        TAARCache._instance = None
+        TAARCacheRedis._instance = None
         stack.enter_context(
-            mock.patch.object(TAARCache, "_fetch_ensemble_weights", return_value=DATA,)
+            mock.patch.object(TAARCacheRedis, "_fetch_ensemble_weights", return_value=DATA, )
         )
 
         stack.enter_context(
             mock.patch.object(
-                TAARCache, "_fetch_whitelist", return_value=WHITELIST_DATA,
+                TAARCacheRedis, "_fetch_whitelist", return_value=WHITELIST_DATA,
             )
         )
 
@@ -75,7 +75,7 @@ def mock_install_mock_ensemble_data(ctx):
         # Patch fakeredis in
         stack.enter_context(
             mock.patch.object(
-                TAARCache,
+                TAARCacheRedis,
                 "init_redis_connections",
                 return_value={
                     0: fakeredis.FakeStrictRedis(db=0),
@@ -86,7 +86,9 @@ def mock_install_mock_ensemble_data(ctx):
         )
 
         # Initialize redis
-        TAARCache.get_instance(ctx).safe_load_data()
+        cache = TAARCacheRedis.get_instance(ctx)
+        cache.safe_load_data()
+        ctx[TAARCache] = cache
         yield stack
 
 

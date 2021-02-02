@@ -10,9 +10,10 @@ from sentry_sdk import capture_exception
 
 # TAAR specific libraries
 from taar.context import default_context
-from taar.logs import ContextFilter
+from taar.logs.moz_logging import ContextFilter, Logging
 from taar.profile_fetcher import ProfileFetcher
 from taar import recommenders
+from taar.recommenders.redis_cache import TAARCacheRedis
 
 from taar.settings import (
     TAAR_MAX_RESULTS,
@@ -25,7 +26,7 @@ from taar.settings import (
 
 def acquire_taarlite_singleton(PROXY_MANAGER):
     if PROXY_MANAGER.getTaarLite() is None:
-        ctx = default_context(log_level=PYTHON_LOG_LEVEL)
+        ctx = default_context(cache_cls=TAARCacheRedis, logger_cls=Logging, log_level=PYTHON_LOG_LEVEL)
         root_ctx = ctx.child()
         instance = recommenders.GuidBasedRecommender(root_ctx)
         PROXY_MANAGER.setTaarLite(instance)
@@ -34,9 +35,9 @@ def acquire_taarlite_singleton(PROXY_MANAGER):
 
 def acquire_taar_singleton(PROXY_MANAGER):
     if PROXY_MANAGER.getTaarRM() is None:
-        ctx = default_context(log_level=PYTHON_LOG_LEVEL)
-        profile_fetcher = ProfileFetcher(ctx)
+        ctx = default_context(cache_cls=TAARCacheRedis, logger_cls=Logging, log_level=PYTHON_LOG_LEVEL)
 
+        profile_fetcher = ProfileFetcher(ctx)
         ctx["profile_fetcher"] = profile_fetcher
 
         # Lock the context down after we've got basic bits installed

@@ -18,6 +18,9 @@ In practice this makes testing easier and allows us to specialize
 configuration information as we pass the context through an object
 chain.
 """
+from taar.logs.interfaces import IMozLogging
+from taar.logs.stubs import LoggingStub
+from taar.recommenders.cache import TAARCache
 
 
 class InvalidInterface(Exception):
@@ -49,7 +52,7 @@ class Context:
             result = self._delegate[key]
         return result
 
-    def get(self, key, default):
+    def get(self, key, default=None):
         try:
             result = self[key]
         except KeyError:
@@ -81,22 +84,23 @@ class Context:
         return instance
 
 
-def _default_context(log_level=None):
+def _default_context(cache_cls=TAARCache, logger_cls=LoggingStub, log_level=None):
     ctx = Context()
-    from taar.logs import Logging
-    from taar.logs import IMozLogging
 
-    logger = Logging(ctx)
-
+    logger = logger_cls(ctx)
     if log_level:
         logger.set_log_level(log_level)
 
     ctx[IMozLogging] = logger
+    ctx[TAARCache] = cache_cls.get_instance(ctx)
     return ctx
 
 
-def default_context(log_level=None):
-    ctx = _default_context(log_level)
+# The point of all this is to ensure that Ensemble recommender Spark job works with default context
+# with minimal dependencies
+
+def default_context(cache_cls=TAARCache, logger_cls=LoggingStub, log_level=None):
+    ctx = _default_context(cache_cls, logger_cls, log_level)
     from taar.recommenders import CollaborativeRecommender
     from taar.recommenders import SimilarityRecommender
     from taar.recommenders import LocaleRecommender

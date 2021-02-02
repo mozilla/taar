@@ -7,6 +7,7 @@ from flask import url_for
 
 import pytest
 
+from taar.recommenders.redis_cache import TAARCacheRedis
 from taar.settings import TAARLITE_MAX_RESULTS
 from taar.context import default_context
 from .test_guid_based_recommender import mock_coinstall_ranking_context
@@ -99,7 +100,7 @@ class PlatformRecommendationManager(FakeRecommendationManager):
 
 class ProfileFetcherEnabledRecommendationManager(FakeRecommendationManager):
     def __init__(self, *args, **kwargs):
-        self._ctx = default_context()
+        self._ctx = default_context(TAARCacheRedis)
         self._ctx["profile_fetcher"] = kwargs["profile_fetcher"]
         super(ProfileFetcherEnabledRecommendationManager, self).__init__(args, kwargs)
 

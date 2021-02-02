@@ -4,10 +4,10 @@
 
 import markus
 
-from taar.logs import IMozLogging
+from taar.logs.interfaces import IMozLogging
 
 from .base_recommender import AbstractRecommender
-from taar.recommenders.redis_cache import TAARCache
+from taar.recommenders.cache import TAARCache
 
 metrics = markus.get_metrics("taar")
 
@@ -28,17 +28,13 @@ class LocaleRecommender(AbstractRecommender):
 
         self.logger = self._ctx[IMozLogging].get_logger("taar")
 
-        self._redis_cache = TAARCache.get_instance(self._ctx)
+        self._cache = self._ctx[TAARCache]
 
     def _get_cache(self, extra_data):
         tmp = extra_data.get("cache", None)
         if tmp is None:
-            tmp = self._redis_cache.cache_context()
+            tmp = self._cache.cache_context()
         return tmp
-
-    @property
-    def top_addons_per_locale(self):
-        return self._redis_cache.top_addons_per_locale()
 
     def can_recommend(self, client_data, extra_data={}):
         cache = self._get_cache(extra_data)

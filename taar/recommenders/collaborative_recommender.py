@@ -2,15 +2,15 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from taar.logs import IMozLogging
+from taar.logs.interfaces import IMozLogging
 import numpy as np
 import operator as op
 
-from .base_recommender import AbstractRecommender
-
-from taar.recommenders.redis_cache import TAARCache
+from taar.recommenders.base_recommender import AbstractRecommender
 
 import markus
+
+from taar.recommenders.cache import TAARCache
 
 metrics = markus.get_metrics("taar")
 
@@ -40,29 +40,21 @@ class CollaborativeRecommender(AbstractRecommender):
 
         self.logger = self._ctx[IMozLogging].get_logger("taar")
 
-        self._redis_cache = TAARCache.get_instance(self._ctx)
+        self._cache = self._ctx[TAARCache]
 
     def _get_cache(self, extra_data):
         tmp = extra_data.get("cache", None)
         if tmp is None:
-            tmp = self._redis_cache.cache_context()
+            tmp = self._cache.cache_context()
         return tmp
-
-    @property
-    def addon_mapping(self):
-        return self._redis_cache.collab_addon_mapping()
-
-    @property
-    def raw_item_matrix(self):
-        return self._redis_cache.collab_raw_item_matrix()
 
     def can_recommend(self, client_data, extra_data={}):
         cache = self._get_cache(extra_data)
         # We can't recommend if we don't have our data files.
         if (
-            cache["raw_item_matrix"] is None
-            or cache["collab_model"] is None
-            or cache["addon_mapping"] is None
+                cache["raw_item_matrix"] is None
+                or cache["collab_model"] is None
+                or cache["addon_mapping"] is None
         ):
             return False
 
@@ -104,10 +96,10 @@ class CollaborativeRecommender(AbstractRecommender):
             hashed_id = addon.get("id")
             str_hashed_id = str(hashed_id)
             if (
-                hashed_id in installed_addons_as_hashes
-                or str_hashed_id not in cache["addon_mapping"]
-                or cache["addon_mapping"][str_hashed_id].get("isWebextension", False)
-                is False
+                    hashed_id in installed_addons_as_hashes
+                    or str_hashed_id not in cache["addon_mapping"]
+                    or cache["addon_mapping"][str_hashed_id].get("isWebextension", False)
+                    is False
             ):
                 continue
 

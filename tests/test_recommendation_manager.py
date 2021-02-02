@@ -24,7 +24,7 @@ from markus.testing import MetricsMock
 import mock
 import contextlib
 import fakeredis
-from taar.recommenders.redis_cache import TAARCache
+from taar.recommenders.redis_cache import TAARCacheRedis
 
 
 @contextlib.contextmanager
@@ -38,14 +38,14 @@ def mock_install_mock_curated_data(ctx):
     }
 
     with contextlib.ExitStack() as stack:
-        TAARCache._instance = None
+        TAARCacheRedis._instance = None
 
         stack.enter_context(
-            mock.patch.object(TAARCache, "_fetch_whitelist", return_value=mock_data)
+            mock.patch.object(TAARCacheRedis, "_fetch_whitelist", return_value=mock_data)
         )
         stack.enter_context(
             mock.patch.object(
-                TAARCache,
+                TAARCacheRedis,
                 "_fetch_ensemble_weights",
                 return_value=mock_ensemble_weights,
             )
@@ -57,13 +57,13 @@ def mock_install_mock_curated_data(ctx):
         stack = noop_taarsimilarity_dataload(stack)
 
         stack.enter_context(
-            mock.patch.object(TAARCache, "_fetch_whitelist", return_value=mock_data)
+            mock.patch.object(TAARCacheRedis, "_fetch_whitelist", return_value=mock_data)
         )
 
         # Patch fakeredis in
         stack.enter_context(
             mock.patch.object(
-                TAARCache,
+                TAARCacheRedis,
                 "init_redis_connections",
                 return_value={
                     0: fakeredis.FakeStrictRedis(db=0),
@@ -83,7 +83,7 @@ def mock_install_mock_curated_data(ctx):
         ctx["recommender_factory"] = MockRecommenderFactory()
 
         # Initialize redis
-        TAARCache.get_instance(ctx).safe_load_data()
+        TAARCacheRedis.get_instance(ctx).safe_load_data()
 
         yield stack
 

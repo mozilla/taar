@@ -7,7 +7,9 @@ import bz2
 
 import contextlib
 import fakeredis
-from taar.recommenders.redis_cache import TAARCache
+
+from taar.recommenders.cache import TAARCache
+from taar.recommenders.redis_cache import TAARCacheRedis
 from .noop_fixtures import (
     noop_taarcollab_dataload,
     noop_taarlite_dataload,
@@ -52,10 +54,10 @@ def install_mock_data(ctx):
 @contextlib.contextmanager
 def mock_locale_data(ctx):
     with contextlib.ExitStack() as stack:
-        TAARCache._instance = None
+        TAARCacheRedis._instance = None
         stack.enter_context(
             mock.patch.object(
-                TAARCache, "_fetch_locale_data", return_value=FAKE_LOCALE_DATA,
+                TAARCacheRedis, "_fetch_locale_data", return_value=FAKE_LOCALE_DATA,
             )
         )
 
@@ -67,7 +69,7 @@ def mock_locale_data(ctx):
         # Patch fakeredis in
         stack.enter_context(
             mock.patch.object(
-                TAARCache,
+                TAARCacheRedis,
                 "init_redis_connections",
                 return_value={
                     0: fakeredis.FakeStrictRedis(db=0),
@@ -78,7 +80,9 @@ def mock_locale_data(ctx):
         )
 
         # Initialize redis
-        TAARCache.get_instance(ctx).safe_load_data()
+        cache = TAARCacheRedis.get_instance(ctx)
+        cache.safe_load_data()
+        ctx[TAARCache] = cache
         yield stack
 
 

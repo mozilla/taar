@@ -3,27 +3,9 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 # copy paste from https://github.com/mozilla/srgutil to get rid of this heavy legacy dependency
-
-try:
-    from abc import ABC
-except Exception:
-    from abc import ABCMeta
-
-    class ABC(object):
-        """Helper class that provides a standard way to create an ABC using
-        inheritance.
-        """
-        __metaclass__ = ABCMeta
-        __slots__ = ()
-
+from taar.logs.interfaces import IMozLogging
 import logging.config
 import sys
-
-
-class IMozLogging(ABC):
-    def get_logger(self, name):
-        """Get a logger with the current configuration
-        """
 
 
 class ContextFilter(logging.Filter):

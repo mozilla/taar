@@ -10,6 +10,7 @@ import logging
 import numpy as np
 import scipy.stats
 
+from taar.recommenders.cache import TAARCache
 from taar.recommenders.similarity_recommender import (
     CATEGORICAL_FEATURES,
     CONTINUOUS_FEATURES,
@@ -31,7 +32,7 @@ from .noop_fixtures import (
     noop_taarlocale_dataload,
     noop_taarensemble_dataload,
 )
-from taar.recommenders.redis_cache import TAARCache
+from taar.recommenders.redis_cache import TAARCacheRedis
 
 
 def noop_loaders(stack):
@@ -82,13 +83,13 @@ def generate_a_fake_taar_client():
 def mock_install_no_data(ctx):
 
     with contextlib.ExitStack() as stack:
-        TAARCache._instance = None
+        TAARCacheRedis._instance = None
         stack.enter_context(
-            mock.patch.object(TAARCache, "_fetch_similarity_donors", return_value="",)
+            mock.patch.object(TAARCacheRedis, "_fetch_similarity_donors", return_value="", )
         )
 
         stack.enter_context(
-            mock.patch.object(TAARCache, "_fetch_similarity_lrcurves", return_value="",)
+            mock.patch.object(TAARCacheRedis, "_fetch_similarity_lrcurves", return_value="", )
         )
 
         stack = noop_loaders(stack)
@@ -96,7 +97,7 @@ def mock_install_no_data(ctx):
         # Patch fakeredis in
         stack.enter_context(
             mock.patch.object(
-                TAARCache,
+                TAARCacheRedis,
                 "init_redis_connections",
                 return_value={
                     0: fakeredis.FakeStrictRedis(db=0),
@@ -107,7 +108,9 @@ def mock_install_no_data(ctx):
         )
 
         # Initialize redis
-        TAARCache.get_instance(ctx).safe_load_data()
+        cache = TAARCacheRedis.get_instance(ctx)
+        cache.safe_load_data()
+        ctx[TAARCache] = cache
         yield stack
 
 
@@ -115,10 +118,10 @@ def mock_install_no_data(ctx):
 def mock_install_categorical_data(ctx):
 
     with contextlib.ExitStack() as stack:
-        TAARCache._instance = None
+        TAARCacheRedis._instance = None
         stack.enter_context(
             mock.patch.object(
-                TAARCache,
+                TAARCacheRedis,
                 "_fetch_similarity_donors",
                 return_value=CATEGORICAL_FEATURE_FIXTURE_DATA,
             )
@@ -126,7 +129,7 @@ def mock_install_categorical_data(ctx):
 
         stack.enter_context(
             mock.patch.object(
-                TAARCache,
+                TAARCacheRedis,
                 "_fetch_similarity_lrcurves",
                 return_value=generate_fake_lr_curves(1000),
             )
@@ -136,7 +139,7 @@ def mock_install_categorical_data(ctx):
         # Patch fakeredis in
         stack.enter_context(
             mock.patch.object(
-                TAARCache,
+                TAARCacheRedis,
                 "init_redis_connections",
                 return_value={
                     0: fakeredis.FakeStrictRedis(db=0),
@@ -147,7 +150,9 @@ def mock_install_categorical_data(ctx):
         )
 
         # Initialize redis
-        TAARCache.get_instance(ctx).safe_load_data()
+        cache = TAARCacheRedis.get_instance(ctx)
+        cache.safe_load_data()
+        ctx[TAARCache] = cache
         yield stack
 
 
@@ -157,16 +162,16 @@ def mock_install_continuous_data(ctx):
     lrs_data = generate_fake_lr_curves(1000)
 
     with contextlib.ExitStack() as stack:
-        TAARCache._instance = None
+        TAARCacheRedis._instance = None
         stack.enter_context(
             mock.patch.object(
-                TAARCache, "_fetch_similarity_donors", return_value=cts_data,
+                TAARCacheRedis, "_fetch_similarity_donors", return_value=cts_data,
             )
         )
 
         stack.enter_context(
             mock.patch.object(
-                TAARCache, "_fetch_similarity_lrcurves", return_value=lrs_data,
+                TAARCacheRedis, "_fetch_similarity_lrcurves", return_value=lrs_data,
             )
         )
         stack = noop_loaders(stack)
@@ -174,7 +179,7 @@ def mock_install_continuous_data(ctx):
         # Patch fakeredis in
         stack.enter_context(
             mock.patch.object(
-                TAARCache,
+                TAARCacheRedis,
                 "init_redis_connections",
                 return_value={
                     0: fakeredis.FakeStrictRedis(db=0),
@@ -185,7 +190,9 @@ def mock_install_continuous_data(ctx):
         )
 
         # Initialize redis
-        TAARCache.get_instance(ctx).safe_load_data()
+        cache = TAARCacheRedis.get_instance(ctx)
+        cache.safe_load_data()
+        ctx[TAARCache] = cache
         yield stack
 
 
