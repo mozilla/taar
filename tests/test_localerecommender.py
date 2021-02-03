@@ -2,29 +2,24 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import mock
 import bz2
-
 import contextlib
+import json
+
 import fakeredis
+import mock
+from google.cloud import storage
 
 from taar.recommenders.cache import TAARCache
+from taar.recommenders.locale_recommender import LocaleRecommender
 from taar.recommenders.redis_cache import TAARCacheRedis
+from taar.settings import TAAR_LOCALE_KEY, TAAR_LOCALE_BUCKET
 from .noop_fixtures import (
     noop_taarcollab_dataload,
     noop_taarlite_dataload,
     noop_taarsimilarity_dataload,
     noop_taarensemble_dataload,
 )
-import json
-
-from google.cloud import storage
-from taar.recommenders import LocaleRecommender
-from taar.settings import TAAR_LOCALE_KEY, TAAR_LOCALE_BUCKET
-
-from markus import TIMING
-from markus.testing import MetricsMock
-
 
 FAKE_LOCALE_DATA = {
     "te-ST": [
@@ -116,25 +111,22 @@ def test_recommendations(test_ctx):
     The JSON output for this recommender should be a list of 2-tuples
     of (GUID, weight).
     """
-    with MetricsMock() as mm:
-        with mock_locale_data(test_ctx):
-            r = LocaleRecommender(test_ctx)
+    with mock_locale_data(test_ctx):
+        r = LocaleRecommender(test_ctx)
 
-            recommendations = r.recommend({"locale": "en"}, 10)
+        recommendations = r.recommend({"locale": "en"}, 10)
 
-            # Make sure the structure of the recommendations is correct and that we
-            # recommended the the right addon.
-            assert isinstance(recommendations, list)
-            assert len(recommendations) == len(FAKE_LOCALE_DATA["en"])
+        # Make sure the structure of the recommendations is correct and that we
+        # recommended the the right addon.
+        assert isinstance(recommendations, list)
+        assert len(recommendations) == len(FAKE_LOCALE_DATA["en"])
 
-            # Make sure that the reported addons are the one from the fake data.
-            for (addon_id, weight), (expected_id, expected_weight) in zip(
+        # Make sure that the reported addons are the one from the fake data.
+        for (addon_id, weight), (expected_id, expected_weight) in zip(
                 recommendations, FAKE_LOCALE_DATA["en"]
-            ):
-                assert addon_id == expected_id
-                assert weight == expected_weight
-
-            assert mm.has_record(TIMING, "taar.locale_recommend")
+        ):
+            assert addon_id == expected_id
+            assert weight == expected_weight
 
 
 def test_recommender_extra_data(test_ctx):
@@ -149,7 +141,7 @@ def test_recommender_extra_data(test_ctx):
 
         # Make sure that the reported addons are the one from the fake data.
         for (addon_id, weight), (expected_id, expected_weight) in zip(
-            data, FAKE_LOCALE_DATA[expected_locale]
+                data, FAKE_LOCALE_DATA[expected_locale]
         ):
             assert addon_id == expected_id
             assert weight == expected_weight

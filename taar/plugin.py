@@ -12,39 +12,44 @@ from sentry_sdk import capture_exception
 from taar.context import default_context
 from taar.logs.moz_logging import ContextFilter, Logging
 from taar.profile_fetcher import ProfileFetcher
-from taar import recommenders
+from taar.recommenders.guid_based_recommender import GuidBasedRecommender
+from taar.recommenders.recommendation_manager import RecommenderFactory, RecommendationManager
 from taar.recommenders.redis_cache import TAARCacheRedis
+from taar.recommenders.cache import TAARCache
 
 from taar.settings import (
     TAAR_MAX_RESULTS,
     TAARLITE_MAX_RESULTS,
     STATSD_HOST,
     STATSD_PORT,
-    PYTHON_LOG_LEVEL
+    PYTHON_LOG_LEVEL,
+    NO_REDIS
 )
 
 
 def acquire_taarlite_singleton(PROXY_MANAGER):
     if PROXY_MANAGER.getTaarLite() is None:
-        ctx = default_context(cache_cls=TAARCacheRedis, logger_cls=Logging, log_level=PYTHON_LOG_LEVEL)
+        cache_cls = TAARCache if NO_REDIS else TAARCacheRedis
+        ctx = default_context(cache_cls=cache_cls, logger_cls=Logging, log_level=PYTHON_LOG_LEVEL)
         root_ctx = ctx.child()
-        instance = recommenders.GuidBasedRecommender(root_ctx)
+        instance = GuidBasedRecommender(root_ctx)
         PROXY_MANAGER.setTaarLite(instance)
     return PROXY_MANAGER.getTaarLite()
 
 
 def acquire_taar_singleton(PROXY_MANAGER):
     if PROXY_MANAGER.getTaarRM() is None:
-        ctx = default_context(cache_cls=TAARCacheRedis, logger_cls=Logging, log_level=PYTHON_LOG_LEVEL)
+        cache_cls = TAARCache if NO_REDIS else TAARCacheRedis
+        ctx = default_context(cache_cls=cache_cls, logger_cls=Logging, log_level=PYTHON_LOG_LEVEL)
 
         profile_fetcher = ProfileFetcher(ctx)
         ctx["profile_fetcher"] = profile_fetcher
 
         # Lock the context down after we've got basic bits installed
         root_ctx = ctx.child()
-        r_factory = recommenders.RecommenderFactory(root_ctx)
+        r_factory = RecommenderFactory(root_ctx)
         root_ctx["recommender_factory"] = r_factory
-        instance = recommenders.RecommendationManager(root_ctx.child())
+        instance = RecommendationManager(root_ctx.child())
         PROXY_MANAGER.setTaarRM(instance)
     return PROXY_MANAGER.getTaarRM()
 

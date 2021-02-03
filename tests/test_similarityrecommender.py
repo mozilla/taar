@@ -6,7 +6,6 @@ import json
 import six
 import logging
 
-
 import numpy as np
 import scipy.stats
 
@@ -19,9 +18,6 @@ from taar.recommenders.similarity_recommender import (
 
 from .similarity_data import CONTINUOUS_FEATURE_FIXTURE_DATA
 from .similarity_data import CATEGORICAL_FEATURE_FIXTURE_DATA
-
-from markus import TIMING
-from markus.testing import MetricsMock
 
 import fakeredis
 import mock
@@ -81,7 +77,6 @@ def generate_a_fake_taar_client():
 
 @contextlib.contextmanager
 def mock_install_no_data(ctx):
-
     with contextlib.ExitStack() as stack:
         TAARCacheRedis._instance = None
         stack.enter_context(
@@ -116,7 +111,6 @@ def mock_install_no_data(ctx):
 
 @contextlib.contextmanager
 def mock_install_categorical_data(ctx):
-
     with contextlib.ExitStack() as stack:
         TAARCacheRedis._instance = None
         stack.enter_context(
@@ -234,23 +228,20 @@ def test_can_recommend(test_ctx, caplog):
 
 
 def test_recommendations(test_ctx):
-    with MetricsMock() as mm:
-        # Create a new instance of a SimilarityRecommender.
-        with mock_install_continuous_data(test_ctx):
-            r = SimilarityRecommender(test_ctx)
+    # Create a new instance of a SimilarityRecommender.
+    with mock_install_continuous_data(test_ctx):
+        r = SimilarityRecommender(test_ctx)
 
-            recommendation_list = r.recommend(generate_a_fake_taar_client(), 1)
+        recommendation_list = r.recommend(generate_a_fake_taar_client(), 1)
 
-            assert isinstance(recommendation_list, list)
-            assert len(recommendation_list) == 1
+        assert isinstance(recommendation_list, list)
+        assert len(recommendation_list) == 1
 
-            recommendation, weight = recommendation_list[0]
+        recommendation, weight = recommendation_list[0]
 
-            # Make sure that the reported addons are the expected ones from the most similar donor.
-            assert "{test-guid-1}" == recommendation
-            assert type(weight) == np.float64
-
-            assert mm.has_record(TIMING, stat="taar.similarity_recommend")
+        # Make sure that the reported addons are the expected ones from the most similar donor.
+        assert "{test-guid-1}" == recommendation
+        assert type(weight) == np.float64
 
 
 def test_get_lr(test_ctx):

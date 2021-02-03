@@ -1,5 +1,8 @@
 import numpy as np
-from jsoncache.loader import gcs_json_loader
+import bz2
+import io
+import json
+from google.cloud import storage
 
 # TAARLite configuration
 from taar.logs.interfaces import IMozLogging
@@ -30,6 +33,7 @@ from taar.settings import (
     # Whitelist data
     TAAR_WHITELIST_BUCKET,
     TAAR_WHITELIST_KEY,
+    DISABLE_TAAR_LITE
 )
 
 # taarlite guid guid coinstallation matrix
@@ -252,43 +256,63 @@ class TAARCache:
 
     # GCS fetching
 
-    @staticmethod
-    def _fetch_coinstall_data():
-        return gcs_json_loader(
+    def _load_from_gcs(self, bucket, path):
+        """
+        Load a JSON object off of a GCS bucket and path.
+
+        If the path ends with '.bz2', decompress the object prior to JSON
+        decode.
+        """
+        try:
+            with io.BytesIO() as tmpfile:
+                client = storage.Client()
+                bucket = client.get_bucket(bucket)
+                blob = bucket.blob(path)
+                blob.download_to_file(tmpfile)
+                tmpfile.seek(0)
+                payload = tmpfile.read()
+
+                if path.endswith(".bz2"):
+                    payload = bz2.decompress(payload)
+                    path = path[:-4]
+
+                if path.endswith(".json"):
+                    payload = json.loads(payload.decode("utf8"))
+
+                return payload
+        except Exception:
+            self.logger.exception(f"Error loading from gcs://{bucket}/{path}")
+
+        return None
+
+    def _fetch_coinstall_data(self):
+        return self._load_from_gcs(
             TAARLITE_GUID_COINSTALL_BUCKET, TAARLITE_GUID_COINSTALL_KEY
         )
 
-    @staticmethod
-    def _fetch_ranking_data():
-        return gcs_json_loader(TAARLITE_GUID_COINSTALL_BUCKET, TAARLITE_GUID_RANKING_KEY)
+    def _fetch_ranking_data(self):
+        return self._load_from_gcs(TAARLITE_GUID_COINSTALL_BUCKET, TAARLITE_GUID_RANKING_KEY)
 
-    @staticmethod
-    def _fetch_locale_data():
-        return gcs_json_loader(TAAR_LOCALE_BUCKET, TAAR_LOCALE_KEY)
+    def _fetch_locale_data(self):
+        return self._load_from_gcs(TAAR_LOCALE_BUCKET, TAAR_LOCALE_KEY)
 
-    @staticmethod
-    def _fetch_collaborative_mapping_data():
-        return gcs_json_loader(TAAR_ADDON_MAPPING_BUCKET, TAAR_ADDON_MAPPING_KEY)
+    def _fetch_collaborative_mapping_data(self):
+        return self._load_from_gcs(TAAR_ADDON_MAPPING_BUCKET, TAAR_ADDON_MAPPING_KEY)
 
-    @staticmethod
-    def _fetch_collaborative_item_matrix():
-        return gcs_json_loader(TAAR_ITEM_MATRIX_BUCKET, TAAR_ITEM_MATRIX_KEY)
+    def _fetch_collaborative_item_matrix(self):
+        return self._load_from_gcs(TAAR_ITEM_MATRIX_BUCKET, TAAR_ITEM_MATRIX_KEY)
 
-    @staticmethod
-    def _fetch_similarity_donors():
-        return gcs_json_loader(TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY, )
+    def _fetch_similarity_donors(self):
+        return self._load_from_gcs(TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY, )
 
-    @staticmethod
-    def _fetch_similarity_lrcurves():
-        return gcs_json_loader(TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY, )
+    def _fetch_similarity_lrcurves(self):
+        return self._load_from_gcs(TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY, )
 
-    @staticmethod
-    def _fetch_ensemble_weights():
-        return gcs_json_loader(TAAR_ENSEMBLE_BUCKET, TAAR_ENSEMBLE_KEY)
+    def _fetch_ensemble_weights(self):
+        return self._load_from_gcs(TAAR_ENSEMBLE_BUCKET, TAAR_ENSEMBLE_KEY)
 
-    @staticmethod
-    def _fetch_whitelist():
-        return gcs_json_loader(TAAR_WHITELIST_BUCKET, TAAR_WHITELIST_KEY)
+    def _fetch_whitelist(self):
+        return self._load_from_gcs(TAAR_WHITELIST_BUCKET, TAAR_WHITELIST_KEY)
 
     # Data update
 
@@ -503,8 +527,10 @@ class TAARCache:
     def _copy_data(self, db):
 
         # Update TAARlite
-        self._update_rank_data(db)
-        self._update_coinstall_data(db)
+        # it loads a lot of data which we don't need for Ensemble Spark job
+        if not DISABLE_TAAR_LITE:
+            self._update_rank_data(db)
+            self._update_coinstall_data(db)
 
         # Update TAAR locale data
         self._update_locale_data(db)

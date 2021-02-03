@@ -2,14 +2,11 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import markus
 
 from taar.logs.interfaces import IMozLogging
 
 from .base_recommender import AbstractRecommender
 from taar.recommenders.cache import TAARCache
-
-metrics = markus.get_metrics("taar")
 
 
 class LocaleRecommender(AbstractRecommender):
@@ -59,23 +56,7 @@ class LocaleRecommender(AbstractRecommender):
 
         return True
 
-    @metrics.timer_decorator("locale_recommend")
     def recommend(self, client_data, limit, extra_data={}):
-        try:
-            result_list = self._recommend(client_data, limit, extra_data)
-        except Exception as e:
-            result_list = []
-            metrics.incr("error_locale", value=1)
-            self.logger.exception(
-                "Locale recommender crashed for {}".format(
-                    client_data.get("client_id", "no-client-id")
-                ),
-                e,
-            )
-
-        return result_list
-
-    def _recommend(self, client_data, limit, extra_data={}):
         cache = self._get_cache(extra_data)
         # If we have data coming from multiple sourecs, prefer the one
         # from 'client_data'.

@@ -7,6 +7,9 @@ from decouple import config
 
 PYTHON_LOG_LEVEL = config("PYTHON_LOG_LEVEL", "INFO")
 
+NO_REDIS = config("NO_REDIS", False, cast=bool)
+DISABLE_TAAR_LITE = config("DISABLE_TAAR_LITE", False, cast=bool)
+
 REDIS_HOST = config("REDIS_HOST", "localhost", cast=str)
 REDIS_PORT = config("REDIS_PORT", 6379, cast=int)
 

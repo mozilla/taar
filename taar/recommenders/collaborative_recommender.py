@@ -8,11 +8,7 @@ import operator as op
 
 from taar.recommenders.base_recommender import AbstractRecommender
 
-import markus
-
 from taar.recommenders.cache import TAARCache
-
-metrics = markus.get_metrics("taar")
 
 
 def java_string_hashcode(s):
@@ -115,21 +111,10 @@ class CollaborativeRecommender(AbstractRecommender):
         recommendations = [(s[0], s[1]) for s in sorted_dists[:limit]]
         return recommendations
 
-    @metrics.timer_decorator("collaborative_recommend")
     def recommend(self, client_data, limit, extra_data={}):
         # Addons identifiers are stored as positive hash values within the model.
-        try:
-            recommendations = self._recommend(client_data, limit, extra_data)
-        except Exception as e:
-            recommendations = []
 
-            metrics.incr("error_collaborative", value=1)
-            self.logger.exception(
-                "Collaborative recommender crashed for {}".format(
-                    client_data.get("client_id", "no-client-id")
-                ),
-                e,
-            )
+        recommendations = self._recommend(client_data, limit, extra_data)
 
         log_data = (
             client_data["client_id"],

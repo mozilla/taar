@@ -135,6 +135,9 @@ def test_recommendations(test_ctx):
             assert recommendation_list == EXPECTED_RESULTS
 
             assert mm.has_record(TIMING, "taar.ensemble_recommend")
+            assert mm.has_record(TIMING, "taar.collaborative_recommend")
+            assert mm.has_record(TIMING, "taar.locale_recommend")
+            assert mm.has_record(TIMING, "taar.similarity_recommend")
 
 
 def test_preinstalled_guids(test_ctx):

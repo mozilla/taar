@@ -6,29 +6,22 @@
 Test cases for the TAAR CollaborativeRecommender
 """
 
-import numpy
+import contextlib
 
 import fakeredis
 import mock
-import contextlib
+import numpy
 
 from taar.recommenders.cache import TAARCache
-from taar.recommenders.redis_cache import TAARCacheRedis
-
-
 from taar.recommenders.collaborative_recommender import CollaborativeRecommender
 from taar.recommenders.collaborative_recommender import positive_hash
-
-from markus import TIMING
-from markus.testing import MetricsMock
-
+from taar.recommenders.redis_cache import TAARCacheRedis
 from .noop_fixtures import (
     noop_taarlocale_dataload,
     noop_taarlite_dataload,
     noop_taarensemble_dataload,
     noop_taarsimilarity_dataload,
 )
-
 
 """
 We need to generate a synthetic list of addons and relative weights
@@ -195,34 +188,30 @@ def test_empty_recommendations(test_ctx):
 
 
 def test_best_recommendation(test_ctx):
-    with MetricsMock() as mm:
+    # Make sure the structure of the recommendations is correct and that we
+    # recommended the the right addon.
+    with mock_install_mock_data(test_ctx):
+        r = CollaborativeRecommender(test_ctx)
 
-        # Make sure the structure of the recommendations is correct and that we
-        # recommended the the right addon.
-        with mock_install_mock_data(test_ctx):
-            r = CollaborativeRecommender(test_ctx)
+        # An non-empty set of addons should give a list of recommendations
+        fixture_client_data = {
+            "installed_addons": ["addon4.id"],
+            "client_id": "test_client",
+        }
+        assert r.can_recommend(fixture_client_data)
+        recommendations = r.recommend(fixture_client_data, 1)
 
-            # An non-empty set of addons should give a list of recommendations
-            fixture_client_data = {
-                "installed_addons": ["addon4.id"],
-                "client_id": "test_client",
-            }
-            assert r.can_recommend(fixture_client_data)
-            recommendations = r.recommend(fixture_client_data, 1)
+        assert isinstance(recommendations, list)
+        assert len(recommendations) == 1
 
-            assert isinstance(recommendations, list)
-            assert len(recommendations) == 1
-
-            # Verify that addon2 - the most heavy weighted addon was
-            # recommended
-            result = recommendations[0]
-            assert type(result) is tuple
-            assert len(result) == 2
-            assert result[0] == "addon2.id"
-            assert type(result[1]) is numpy.float64
-            assert numpy.isclose(result[1], numpy.float64("0.3225"))
-
-            assert mm.has_record(TIMING, stat="taar.collaborative_recommend")
+        # Verify that addon2 - the most heavy weighted addon was
+        # recommended
+        result = recommendations[0]
+        assert type(result) is tuple
+        assert len(result) == 2
+        assert result[0] == "addon2.id"
+        assert type(result[1]) is numpy.float64
+        assert numpy.isclose(result[1], numpy.float64("0.3225"))
 
 
 def test_recommendation_weights(test_ctx):

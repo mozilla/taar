@@ -2,7 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from taar.recommenders import RecommendationManager
+from taar.recommenders.recommendation_manager import RecommendationManager
 from taar.recommenders.base_recommender import AbstractRecommender
 
 from .noop_fixtures import (

@@ -2,16 +2,12 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from .base_recommender import AbstractRecommender
+from taar.recommenders.base_recommender import AbstractRecommender
 from itertools import groupby
 from scipy.spatial import distance
 from taar.logs.interfaces import IMozLogging
 import numpy as np
 from taar.recommenders.cache import TAARCache
-
-import markus
-
-metrics = markus.get_metrics("taar")
 
 FLOOR_DISTANCE_ADJUSTMENT = 0.001
 
@@ -214,19 +210,6 @@ class SimilarityRecommender(AbstractRecommender):
         )
         return recommendations_out
 
-    @metrics.timer_decorator("similarity_recommend")
     def recommend(self, client_data, limit, extra_data={}):
-        try:
-            recommendations_out = self._recommend(client_data, limit, extra_data)
-        except Exception as e:
-            recommendations_out = []
-
-            metrics.incr("error_similarity", value=1)
-            self.logger.exception(
-                "Similarity recommender crashed for {}".format(
-                    client_data.get("client_id", "no-client-id")
-                ),
-                e,
-            )
-
+        recommendations_out = self._recommend(client_data, limit, extra_data)
         return recommendations_out[:limit]
