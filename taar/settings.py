@@ -10,9 +10,10 @@ class AppSettings:
     PYTHON_LOG_LEVEL = config("PYTHON_LOG_LEVEL", "INFO")
     STATSD_HOST = config("STATSD_HOST", default="localhost", cast=str)
     STATSD_PORT = config("STATSD_PORT", default=8125, cast=int)
-    NO_REDIS = config("NO_REDIS", False, cast=bool)
-    TAAR_MAX_RESULTS = config("TAAR_MAX_RESULTS", default=10, cast=int)
 
+    DISABLE_REDIS = config("DISABLE_REDIS", False, cast=bool)
+
+    TAAR_MAX_RESULTS = config("TAAR_MAX_RESULTS", default=10, cast=int)
     TAARLITE_MAX_RESULTS = config("TAARLITE_MAX_RESULTS", default=4, cast=int)
 
     # Bigtable config

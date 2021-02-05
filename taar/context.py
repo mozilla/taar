@@ -113,7 +113,7 @@ def app_context():
     logger.set_log_level(AppSettings.PYTHON_LOG_LEVEL)
     ctx[IMozLogging] = logger
 
-    if AppSettings.NO_REDIS:
+    if AppSettings.DISABLE_REDIS:
         ctx['cache_settings'] = DefaultCacheSettings
         ctx[ITAARCache] = TAARCache.get_instance(ctx)
     else:
