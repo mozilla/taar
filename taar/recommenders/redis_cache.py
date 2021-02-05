@@ -8,11 +8,7 @@ import threading
 import redis
 
 from taar.recommenders.cache import TAARCache, RANKING_PREFIX, COINSTALL_PREFIX
-from taar.settings import (
-    REDIS_HOST,
-    REDIS_PORT,
-    TAARLITE_MUTEX_TTL,
-)
+
 
 # This marks which of the redis databases is currently
 # active for read
@@ -54,7 +50,12 @@ class TAARCacheRedis(TAARCache):
         return cls._instance
 
     def __init__(self, ctx, i_didnt_read_the_docs=True):
-        super(TAARCacheRedis, self).__init__(ctx, i_didnt_read_the_docs)
+        super(TAARCacheRedis, self).__init__(ctx)
+
+        if i_didnt_read_the_docs:
+            raise RuntimeError(
+                "You cannot call this method directly - use get_instance"
+            )
 
         self._last_db = None
         # Keep an integer handle (or None) on the last known database
@@ -88,9 +89,9 @@ class TAARCacheRedis(TAARCache):
         method to enable mocking for tests
         """
         return {
-            0: redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=0),
-            1: redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=1),
-            2: redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=2),
+            0: redis.Redis(host=self._settings.REDIS_HOST, port=self._settings.REDIS_PORT, db=0),
+            1: redis.Redis(host=self._settings.REDIS_HOST, port=self._settings.REDIS_PORT, db=1),
+            2: redis.Redis(host=self._settings.REDIS_HOST, port=self._settings.REDIS_PORT, db=2),
         }
 
     def safe_load_data(self):
@@ -107,7 +108,7 @@ class TAARCacheRedis(TAARCache):
         #
         # The thread barrier will autoexpire in 10 minutes in the
         # event of process termination inside the critical section.
-        self._r0.set(UPDATE_CHECK, self._ident, nx=True, ex=TAARLITE_MUTEX_TTL)
+        self._r0.set(UPDATE_CHECK, self._ident, nx=True, ex=self._settings.TAARLITE_MUTEX_TTL)
         self.logger.info(f"UPDATE_CHECK field is set: {self._ident}")
 
         # This is a concurrency barrier to make sure only the pinned

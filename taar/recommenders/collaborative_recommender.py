@@ -2,13 +2,11 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from taar.logs.interfaces import IMozLogging
+from taar.interfaces import IMozLogging, ITAARCache
 import numpy as np
 import operator as op
 
 from taar.recommenders.base_recommender import AbstractRecommender
-
-from taar.recommenders.cache import TAARCache
 
 
 def java_string_hashcode(s):
@@ -36,7 +34,7 @@ class CollaborativeRecommender(AbstractRecommender):
 
         self.logger = self._ctx[IMozLogging].get_logger("taar")
 
-        self._cache = self._ctx[TAARCache]
+        self._cache = self._ctx[ITAARCache]
 
     def _get_cache(self, extra_data):
         tmp = extra_data.get("cache", None)

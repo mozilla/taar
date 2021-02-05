@@ -7,11 +7,10 @@ import itertools
 import markus
 from sentry_sdk import capture_exception
 
-from taar.logs.interfaces import IMozLogging
+from taar.interfaces import IMozLogging, ITAARCache
 from taar.recommenders.debug import log_timer_debug
 from taar.utils import hasher
 from taar.recommenders.base_recommender import AbstractRecommender
-from taar.recommenders.cache import TAARCache
 
 metrics = markus.get_metrics("taar")
 
@@ -34,7 +33,7 @@ class EnsembleRecommender(AbstractRecommender):
         self.RECOMMENDER_KEYS = ["collaborative", "similarity", "locale"]
         self._ctx = ctx
 
-        self._redis_cache = self._ctx[TAARCache]
+        self._redis_cache = self._ctx[ITAARCache]
         self.logger = self._ctx[IMozLogging].get_logger("taar.ensemble")
 
         assert "recommender_factory" in self._ctx

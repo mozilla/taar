@@ -1,7 +1,7 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
-from taar.recommenders.cache import TAARCache
+from taar.interfaces import ITAARCache
 from taar.recommenders.ensemble_recommender import EnsembleRecommender
 import mock
 import contextlib
@@ -88,7 +88,7 @@ def mock_install_mock_ensemble_data(ctx):
         # Initialize redis
         cache = TAARCacheRedis.get_instance(ctx)
         cache.safe_load_data()
-        ctx[TAARCache] = cache
+        ctx[ITAARCache] = cache
         yield stack
 
 

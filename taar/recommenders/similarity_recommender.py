@@ -5,9 +5,8 @@
 from taar.recommenders.base_recommender import AbstractRecommender
 from itertools import groupby
 from scipy.spatial import distance
-from taar.logs.interfaces import IMozLogging
+from taar.interfaces import IMozLogging, ITAARCache
 import numpy as np
-from taar.recommenders.cache import TAARCache
 
 FLOOR_DISTANCE_ADJUSTMENT = 0.001
 
@@ -42,7 +41,7 @@ class SimilarityRecommender(AbstractRecommender):
     def __init__(self, ctx):
         self._ctx = ctx
 
-        self._cache = self._ctx[TAARCache]
+        self._cache = self._ctx[ITAARCache]
 
         self.logger = self._ctx[IMozLogging].get_logger("taar")
 

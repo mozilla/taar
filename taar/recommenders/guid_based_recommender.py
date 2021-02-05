@@ -3,11 +3,10 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 
-from taar.logs.interfaces import IMozLogging
+from taar.interfaces import IMozLogging, ITAARCache
 
 import markus
 
-from taar.recommenders.cache import TAARCache
 from taar.recommenders.debug import log_timer_debug
 
 metrics = markus.get_metrics("taar")
@@ -53,7 +52,7 @@ class GuidBasedRecommender:
         self._ctx = ctx
         self.logger = self._ctx[IMozLogging].get_logger("taarlite")
 
-        self._cache = ctx[TAARCache]
+        self._cache = ctx[ITAARCache]
         self.logger.info("GUIDBasedRecommender is initialized")
 
     def cache_ready(self):

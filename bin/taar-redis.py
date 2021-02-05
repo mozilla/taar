@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 from taar.recommenders.cache import TAARCache
-from taar.recommenders.redis_cache import TAARCacheRedis
-from taar.context import default_context
+from taar.context import app_context
 import click
 
 
@@ -22,7 +21,7 @@ def main(reset, load, info):
         print("No options were set!")
         return
 
-    ctx = default_context(TAARCacheRedis)
+    ctx = app_context()
     cache = ctx[TAARCache]
 
     if reset:

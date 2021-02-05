@@ -4,8 +4,7 @@
 
 import markus
 
-from taar.logs.interfaces import IMozLogging
-from taar.recommenders.cache import TAARCache
+from taar.interfaces import IMozLogging, ITAARCache
 from taar.recommenders.debug import log_timer_debug
 from taar.recommenders.ensemble_recommender import (
     EnsembleRecommender,
@@ -55,7 +54,7 @@ class RecommendationManager:
 
         # The whitelist data is only used for test client IDs
 
-        self._cache = self._ctx[TAARCache]
+        self._cache = self._ctx[ITAARCache]
 
     @metrics.timer_decorator("profile_recommendation")
     def recommend(self, client_id, limit, extra_data={}):

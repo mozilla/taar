@@ -3,10 +3,9 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 
-from taar.logs.interfaces import IMozLogging
+from taar.interfaces import IMozLogging, ITAARCache
 
 from .base_recommender import AbstractRecommender
-from taar.recommenders.cache import TAARCache
 
 
 class LocaleRecommender(AbstractRecommender):
@@ -25,7 +24,7 @@ class LocaleRecommender(AbstractRecommender):
 
         self.logger = self._ctx[IMozLogging].get_logger("taar")
 
-        self._cache = self._ctx[TAARCache]
+        self._cache = self._ctx[ITAARCache]
 
     def _get_cache(self, extra_data):
         tmp = extra_data.get("cache", None)

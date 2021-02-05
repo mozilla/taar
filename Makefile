@@ -36,5 +36,9 @@ test-container:
 run_local:
 	. bin/test_env.sh && python taar/flask_app.py -H 0.0.0.0 -P 8001
 
+run_package_test:
+	python setup.py develop
+	python bin/run_package_test.py
+
 shell:
 	docker run -it taar:latest bash 

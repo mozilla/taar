@@ -10,10 +10,10 @@ import fakeredis
 import mock
 from google.cloud import storage
 
-from taar.recommenders.cache import TAARCache
+from taar.interfaces import ITAARCache
 from taar.recommenders.locale_recommender import LocaleRecommender
 from taar.recommenders.redis_cache import TAARCacheRedis
-from taar.settings import TAAR_LOCALE_KEY, TAAR_LOCALE_BUCKET
+from taar.settings import DefaultCacheSettings
 from .noop_fixtures import (
     noop_taarcollab_dataload,
     noop_taarlite_dataload,
@@ -39,8 +39,8 @@ def install_mock_data(ctx):
     byte_data = bz2.compress(byte_data)
 
     client = storage.Client()
-    bucket = client.get_bucket(TAAR_LOCALE_BUCKET)
-    blob = bucket.blob(TAAR_LOCALE_KEY)
+    bucket = client.get_bucket(DefaultCacheSettings.TAAR_LOCALE_BUCKET)
+    blob = bucket.blob(DefaultCacheSettings.TAAR_LOCALE_KEY)
     blob.upload_from_string(byte_data)
 
     return ctx
@@ -77,7 +77,7 @@ def mock_locale_data(ctx):
         # Initialize redis
         cache = TAARCacheRedis.get_instance(ctx)
         cache.safe_load_data()
-        ctx[TAARCache] = cache
+        ctx[ITAARCache] = cache
         yield stack
 
 

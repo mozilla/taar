@@ -12,7 +12,7 @@ import fakeredis
 import mock
 import numpy
 
-from taar.recommenders.cache import TAARCache
+from taar.interfaces import ITAARCache
 from taar.recommenders.collaborative_recommender import CollaborativeRecommender
 from taar.recommenders.collaborative_recommender import positive_hash
 from taar.recommenders.redis_cache import TAARCacheRedis
@@ -77,7 +77,7 @@ def mock_install_none_mock_data(ctx):
         # Initialize redis
         cache = TAARCacheRedis.get_instance(ctx)
         cache.safe_load_data()
-        ctx[TAARCache] = cache
+        ctx[ITAARCache] = cache
         yield stack
 
 
@@ -140,7 +140,7 @@ def mock_install_mock_data(ctx):
         # Initialize redis
         cache = TAARCacheRedis.get_instance(ctx)
         cache.safe_load_data()
-        ctx[TAARCache] = cache
+        ctx[ITAARCache] = cache
         yield stack
 
 

@@ -3,7 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 # copy paste from https://github.com/mozilla/srgutil to get rid of this heavy legacy dependency
-from taar.logs.interfaces import IMozLogging
+from taar.interfaces import IMozLogging
 import logging.config
 import sys
 

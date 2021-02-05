@@ -9,28 +9,17 @@ import markus
 from sentry_sdk import capture_exception
 
 # TAAR specific libraries
-from taar.context import default_context
-from taar.logs.moz_logging import ContextFilter, Logging
+from taar.context import app_context
+from taar.logs.moz_logging import ContextFilter
 from taar.profile_fetcher import ProfileFetcher
 from taar.recommenders.guid_based_recommender import GuidBasedRecommender
 from taar.recommenders.recommendation_manager import RecommenderFactory, RecommendationManager
-from taar.recommenders.redis_cache import TAARCacheRedis
-from taar.recommenders.cache import TAARCache
-
-from taar.settings import (
-    TAAR_MAX_RESULTS,
-    TAARLITE_MAX_RESULTS,
-    STATSD_HOST,
-    STATSD_PORT,
-    PYTHON_LOG_LEVEL,
-    NO_REDIS
-)
+from taar.settings import AppSettings
 
 
 def acquire_taarlite_singleton(PROXY_MANAGER):
     if PROXY_MANAGER.getTaarLite() is None:
-        cache_cls = TAARCache if NO_REDIS else TAARCacheRedis
-        ctx = default_context(cache_cls=cache_cls, logger_cls=Logging, log_level=PYTHON_LOG_LEVEL)
+        ctx = app_context()
         root_ctx = ctx.child()
         instance = GuidBasedRecommender(root_ctx)
         PROXY_MANAGER.setTaarLite(instance)
@@ -39,8 +28,7 @@ def acquire_taarlite_singleton(PROXY_MANAGER):
 
 def acquire_taar_singleton(PROXY_MANAGER):
     if PROXY_MANAGER.getTaarRM() is None:
-        cache_cls = TAARCache if NO_REDIS else TAARCacheRedis
-        ctx = default_context(cache_cls=cache_cls, logger_cls=Logging, log_level=PYTHON_LOG_LEVEL)
+        ctx = app_context()
 
         profile_fetcher = ProfileFetcher(ctx)
         ctx["profile_fetcher"] = profile_fetcher
@@ -126,8 +114,8 @@ def configure_plugin(app):  # noqa: C901
                 # server. Use DatadogMetrics client
                 "class": "markus.backends.datadog.DatadogMetrics",
                 "options": {
-                    "statsd_host": STATSD_HOST,
-                    "statsd_port": STATSD_PORT,
+                    "statsd_host": AppSettings.STATSD_HOST,
+                    "statsd_port": AppSettings.STATSD_PORT,
                     "statsd_namespace": "",
                 },
             }
@@ -152,10 +140,10 @@ def configure_plugin(app):  # noqa: C901
 
         with ContextFilter(taarlite_recommender.logger, set_extra):
             recommendations = taarlite_recommender.recommend(
-                client_data=cdict, limit=TAARLITE_MAX_RESULTS
+                client_data=cdict, limit=AppSettings.TAARLITE_MAX_RESULTS
             )
 
-        if len(recommendations) != TAARLITE_MAX_RESULTS:
+        if len(recommendations) != AppSettings.TAARLITE_MAX_RESULTS:
             recommendations = []
 
         # Strip out weights from TAAR results to maintain compatibility
@@ -252,7 +240,7 @@ def configure_plugin(app):  # noqa: C901
 
         with ContextFilter(recommendation_manager.logger, set_extra):
             recommendations = recommendation_manager.recommend(
-                client_id=client_id, limit=TAAR_MAX_RESULTS, extra_data=extra_data
+                client_id=client_id, limit=AppSettings.TAAR_MAX_RESULTS, extra_data=extra_data
             )
 
         promoted_guids = extra_data.get("options", {}).get("promoted", [])

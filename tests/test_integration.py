@@ -7,9 +7,8 @@ from flask import url_for
 
 import pytest
 
-from taar.recommenders.redis_cache import TAARCacheRedis
-from taar.settings import TAARLITE_MAX_RESULTS
-from taar.context import default_context
+from taar.settings import AppSettings
+from taar.context import app_context
 from .test_guid_based_recommender import mock_coinstall_ranking_context
 
 try:
@@ -24,7 +23,6 @@ def hasher(uuid):
 
 @pytest.fixture
 def app():
-
     from taar.plugin import configure_plugin
     from taar.plugin import PROXY_MANAGER
 
@@ -100,7 +98,7 @@ class PlatformRecommendationManager(FakeRecommendationManager):
 
 class ProfileFetcherEnabledRecommendationManager(FakeRecommendationManager):
     def __init__(self, *args, **kwargs):
-        self._ctx = default_context(TAARCacheRedis)
+        self._ctx = app_context()
         self._ctx["profile_fetcher"] = kwargs["profile_fetcher"]
         super(ProfileFetcherEnabledRecommendationManager, self).__init__(args, kwargs)
 
@@ -200,10 +198,7 @@ def test_locale_recommendation(client, locale_recommendation_manager):
 
 
 def test_platform_recommendation(client, platform_recommendation_manager):
-    uri = (
-        url_for("recommendations", hashed_client_id=hasher(uuid.uuid4()))
-        + "?platform=WOW64"
-    )
+    uri = url_for("recommendations", hashed_client_id=hasher(uuid.uuid4())) + "?platform=WOW64"
     response = client.post(uri)
     assert response.status_code == 200
     assert response.headers["Content-Type"] == "application/json"
@@ -254,7 +249,7 @@ def test_mixed_and_promoted_and_taar_adodns(client, static_recommendation_manage
 
 
 def test_overlapping_mixed_and_promoted_and_taar_adodns(
-    client, static_recommendation_manager
+        client, static_recommendation_manager
 ):
     """
     Test that we can provide addon suggestions that also get clobbered
@@ -266,7 +261,7 @@ def test_overlapping_mixed_and_promoted_and_taar_adodns(
         json=dict(
             {
                 "options": {
-                    "promoted": [["test-addon-1", 10], ["guid2", 5], ["guid55", 8],]
+                    "promoted": [["test-addon-1", 10], ["guid2", 5], ["guid55", 8], ]
                 }
             }
         ),
@@ -274,7 +269,7 @@ def test_overlapping_mixed_and_promoted_and_taar_adodns(
     )
     # The result should order the GUIDs in descending order of weight
     expected = {
-        "results": ["test-addon-1", "guid55", "guid2", "test-addon-2", "test-addon-N",]
+        "results": ["test-addon-1", "guid55", "guid2", "test-addon-2", "test-addon-N", ]
     }
     assert res.json == expected
 
@@ -334,11 +329,10 @@ def test_taarlite(client, test_ctx, TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKI
     """
 
     with mock_coinstall_ranking_context(
-        test_ctx, TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING
+            test_ctx, TAARLITE_MOCK_DATA, TAARLITE_MOCK_GUID_RANKING
     ):
-
-        url = url_for("taarlite_recommendations", guid="guid-1",)
+        url = url_for("taarlite_recommendations", guid="guid-1", )
         res = client.get(url, follow_redirects=True)
 
-        assert len(res.json["results"]) == TAARLITE_MAX_RESULTS
+        assert len(res.json["results"]) == AppSettings.TAARLITE_MAX_RESULTS
         assert res.json["results"] == ["guid-5", "guid-6", "guid-3", "guid-2"]

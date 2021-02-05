@@ -4,37 +4,7 @@ import io
 import json
 from google.cloud import storage
 
-# TAARLite configuration
-from taar.logs.interfaces import IMozLogging
-from taar.settings import (
-    TAARLITE_GUID_COINSTALL_BUCKET,
-    TAARLITE_GUID_COINSTALL_KEY,
-    TAARLITE_GUID_RANKING_KEY,
-    TAARLITE_TRUNCATE,
-)
-
-# TAAR configuration
-from taar.settings import (
-    # Locale
-    TAAR_LOCALE_BUCKET,
-    TAAR_LOCALE_KEY,
-    # Collaborative dta
-    TAAR_ADDON_MAPPING_BUCKET,
-    TAAR_ADDON_MAPPING_KEY,
-    TAAR_ITEM_MATRIX_BUCKET,
-    TAAR_ITEM_MATRIX_KEY,
-    # Similarity data
-    TAAR_SIMILARITY_BUCKET,
-    TAAR_SIMILARITY_DONOR_KEY,
-    TAAR_SIMILARITY_LRCURVES_KEY,
-    # Ensemble data
-    TAAR_ENSEMBLE_BUCKET,
-    TAAR_ENSEMBLE_KEY,
-    # Whitelist data
-    TAAR_WHITELIST_BUCKET,
-    TAAR_WHITELIST_KEY,
-    DISABLE_TAAR_LITE
-)
+from taar.interfaces import IMozLogging, ITAARCache
 
 # taarlite guid guid coinstallation matrix
 COINSTALL_PREFIX = "coinstall|"
@@ -83,7 +53,7 @@ ENSEMBLE_WEIGHTS = "taar_ensemble_weights|"
 WHITELIST_DATA = "taar_whitelist_data|"
 
 
-class TAARCache:
+class TAARCache(ITAARCache):
     _instance = None
 
     """
@@ -92,15 +62,10 @@ class TAARCache:
         EnsembleRecommender weights update Spark job independently from Redis
     """
 
-    def __init__(self, ctx, i_didnt_read_the_docs=False):
+    def __init__(self, ctx):
         """
         Don't call this directly - use get_instance instace
         """
-        if i_didnt_read_the_docs:
-            raise RuntimeError(
-                "You cannot call this method directly - use get_instance"
-            )
-
         self._dict_db = {}
 
         self._similarity_num_donors = 0
@@ -113,12 +78,13 @@ class TAARCache:
         self.logger = None
 
         moz_logging = self._ctx.get(IMozLogging)
+        self._settings = self._ctx['cache_settings']
         self.logger = moz_logging.get_logger("taar") if moz_logging else None
 
     @classmethod
     def get_instance(cls, ctx):
         if cls._instance is None:
-            cls._instance = TAARCache(ctx, i_didnt_read_the_docs=False)
+            cls._instance = TAARCache(ctx)
         return cls._instance
 
     # TAARCacheRedis compatibility
@@ -176,7 +142,7 @@ class TAARCache:
             # This truncates the size of the coinstall list for
             # performance reasons
             return dict(
-                sorted(raw_dict.items(), key=lambda x: x[1], reverse=True)[:TAARLITE_TRUNCATE]
+                sorted(raw_dict.items(), key=lambda x: x[1], reverse=True)[:self._settings.TAARLITE_TRUNCATE]
             )
         return default
 
@@ -286,33 +252,33 @@ class TAARCache:
         return None
 
     def _fetch_coinstall_data(self):
-        return self._load_from_gcs(
-            TAARLITE_GUID_COINSTALL_BUCKET, TAARLITE_GUID_COINSTALL_KEY
-        )
+        return self._load_from_gcs(self._settings.TAARLITE_GUID_COINSTALL_BUCKET,
+                                   self._settings.TAARLITE_GUID_COINSTALL_KEY)
 
     def _fetch_ranking_data(self):
-        return self._load_from_gcs(TAARLITE_GUID_COINSTALL_BUCKET, TAARLITE_GUID_RANKING_KEY)
+        return self._load_from_gcs(self._settings.TAARLITE_GUID_COINSTALL_BUCKET,
+                                   self._settings.TAARLITE_GUID_RANKING_KEY)
 
     def _fetch_locale_data(self):
-        return self._load_from_gcs(TAAR_LOCALE_BUCKET, TAAR_LOCALE_KEY)
+        return self._load_from_gcs(self._settings.TAAR_LOCALE_BUCKET, self._settings.TAAR_LOCALE_KEY)
 
     def _fetch_collaborative_mapping_data(self):
-        return self._load_from_gcs(TAAR_ADDON_MAPPING_BUCKET, TAAR_ADDON_MAPPING_KEY)
+        return self._load_from_gcs(self._settings.TAAR_ADDON_MAPPING_BUCKET, self._settings.TAAR_ADDON_MAPPING_KEY)
 
     def _fetch_collaborative_item_matrix(self):
-        return self._load_from_gcs(TAAR_ITEM_MATRIX_BUCKET, TAAR_ITEM_MATRIX_KEY)
+        return self._load_from_gcs(self._settings.TAAR_ITEM_MATRIX_BUCKET, self._settings.TAAR_ITEM_MATRIX_KEY)
 
     def _fetch_similarity_donors(self):
-        return self._load_from_gcs(TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_DONOR_KEY, )
+        return self._load_from_gcs(self._settings.TAAR_SIMILARITY_BUCKET, self._settings.TAAR_SIMILARITY_DONOR_KEY)
 
     def _fetch_similarity_lrcurves(self):
-        return self._load_from_gcs(TAAR_SIMILARITY_BUCKET, TAAR_SIMILARITY_LRCURVES_KEY, )
+        return self._load_from_gcs(self._settings.TAAR_SIMILARITY_BUCKET, self._settings.TAAR_SIMILARITY_LRCURVES_KEY)
 
     def _fetch_ensemble_weights(self):
-        return self._load_from_gcs(TAAR_ENSEMBLE_BUCKET, TAAR_ENSEMBLE_KEY)
+        return self._load_from_gcs(self._settings.TAAR_ENSEMBLE_BUCKET, self._settings.TAAR_ENSEMBLE_KEY)
 
     def _fetch_whitelist(self):
-        return self._load_from_gcs(TAAR_WHITELIST_BUCKET, TAAR_WHITELIST_KEY)
+        return self._load_from_gcs(self._settings.TAAR_WHITELIST_BUCKET, self._settings.TAAR_WHITELIST_KEY)
 
     # Data update
 
@@ -528,7 +494,7 @@ class TAARCache:
 
         # Update TAARlite
         # it loads a lot of data which we don't need for Ensemble Spark job
-        if not DISABLE_TAAR_LITE:
+        if not self._settings.DISABLE_TAAR_LITE:
             self._update_rank_data(db)
             self._update_coinstall_data(db)
 
@@ -541,8 +507,9 @@ class TAARCache:
         # Update TAAR similarity data
         self._update_similarity_data(db)
 
-        # Update TAAR ensemble data
-        self._update_ensemble_data(db)
+        if not self._settings.DISABLE_ENSEMBLE:
+            # Update TAAR ensemble data
+            self._update_ensemble_data(db)
 
-        # Update TAAR ensemble data
-        self._update_whitelist_data(db)
+            # Update TAAR ensemble data
+            self._update_whitelist_data(db)

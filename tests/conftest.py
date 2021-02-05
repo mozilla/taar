@@ -3,8 +3,7 @@ These are global fixtures automagically loaded by pytest
 """
 
 import pytest
-from taar.context import _default_context
-from taar.recommenders.redis_cache import TAARCacheRedis
+from taar.context import app_context
 
 FAKE_LOCALE_DATA = {
     "te-ST": [
@@ -19,7 +18,7 @@ FAKE_LOCALE_DATA = {
 
 @pytest.fixture(scope='function')
 def test_ctx():
-    ctx = _default_context(TAARCacheRedis)
+    ctx = app_context()
     return ctx
 
 

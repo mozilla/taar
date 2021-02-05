@@ -5,6 +5,7 @@ import pytest
 import mock
 import contextlib
 
+from taar.interfaces import ITAARCache
 from .noop_fixtures import (
     noop_taarlocale_dataload,
     noop_taarcollab_dataload,
@@ -15,7 +16,7 @@ from .noop_fixtures import (
 from taar.recommenders.guid_based_recommender import GuidBasedRecommender
 from taar.recommenders.redis_cache import TAARCacheRedis
 
-from taar.recommenders.cache import NORMDATA_GUID_ROW_NORM_PREFIX, TAARCache
+from taar.recommenders.cache import NORMDATA_GUID_ROW_NORM_PREFIX
 
 from taar.recommenders.ua_parser import parse_ua, OSNAME_TO_ID
 
@@ -125,7 +126,7 @@ def mock_coinstall_ranking_context(ctx, mock_coinstall, mock_ranking):
         # Initialize redis
         cache = TAARCacheRedis.get_instance(ctx)
         cache.safe_load_data()
-        ctx[TAARCache] = cache
+        ctx[ITAARCache] = cache
         yield stack
 
 

@@ -18,9 +18,7 @@ In practice this makes testing easier and allows us to specialize
 configuration information as we pass the context through an object
 chain.
 """
-from taar.logs.interfaces import IMozLogging
-from taar.logs.stubs import LoggingStub
-from taar.recommenders.cache import TAARCache
+from taar.interfaces import IMozLogging, ITAARCache
 
 
 class InvalidInterface(Exception):
@@ -84,23 +82,44 @@ class Context:
         return instance
 
 
-def _default_context(cache_cls=TAARCache, logger_cls=LoggingStub, log_level=None):
+def package_context():
+    """
+    Prepare context with minimal dependencies for TAAR package to be used in Ensemble recommender Spark job
+    """
+    from taar.settings import PackageCacheSettings
+    from taar.logs.stubs import LoggingStub
+    from taar.recommenders.cache import TAARCache
+
     ctx = Context()
+    ctx['cache_settings'] = PackageCacheSettings
+    ctx[IMozLogging] = LoggingStub(ctx)
+    ctx[ITAARCache] = TAARCache(ctx)
 
-    logger = logger_cls(ctx)
-    if log_level:
-        logger.set_log_level(log_level)
-
-    ctx[IMozLogging] = logger
-    ctx[TAARCache] = cache_cls.get_instance(ctx)
     return ctx
 
 
-# The point of all this is to ensure that Ensemble recommender Spark job works with default context
-# with minimal dependencies
+def app_context():
+    """
+    Prepare context for TAAR web servie
+    """
+    from taar.settings import AppSettings, DefaultCacheSettings, RedisCacheSettings
+    from taar.recommenders.cache import TAARCache
+    from taar.recommenders.redis_cache import TAARCacheRedis
+    from taar.logs.moz_logging import Logging
 
-def default_context(cache_cls=TAARCache, logger_cls=LoggingStub, log_level=None):
-    ctx = _default_context(cache_cls, logger_cls, log_level)
+    ctx = Context()
+
+    logger = Logging(ctx)
+    logger.set_log_level(AppSettings.PYTHON_LOG_LEVEL)
+    ctx[IMozLogging] = logger
+
+    if AppSettings.NO_REDIS:
+        ctx['cache_settings'] = DefaultCacheSettings
+        ctx[ITAARCache] = TAARCache.get_instance(ctx)
+    else:
+        ctx['cache_settings'] = RedisCacheSettings
+        ctx[ITAARCache] = TAARCacheRedis.get_instance(ctx)
+
     from taar.recommenders import CollaborativeRecommender
     from taar.recommenders import SimilarityRecommender
     from taar.recommenders import LocaleRecommender

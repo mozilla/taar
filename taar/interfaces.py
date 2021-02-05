@@ -24,3 +24,11 @@ class IMozLogging(ABC):
     def set_log_level(self, level):
         """Set the logs level, fox example 'DEBUG'
         """
+
+
+class ITAARCache(ABC):
+    def safe_load_data(self):
+        raise NotImplementedError()
+
+    def cache_context(self):
+        raise NotImplementedError()

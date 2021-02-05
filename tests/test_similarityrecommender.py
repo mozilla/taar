@@ -9,7 +9,7 @@ import logging
 import numpy as np
 import scipy.stats
 
-from taar.recommenders.cache import TAARCache
+from taar.interfaces import ITAARCache
 from taar.recommenders.similarity_recommender import (
     CATEGORICAL_FEATURES,
     CONTINUOUS_FEATURES,
@@ -105,7 +105,7 @@ def mock_install_no_data(ctx):
         # Initialize redis
         cache = TAARCacheRedis.get_instance(ctx)
         cache.safe_load_data()
-        ctx[TAARCache] = cache
+        ctx[ITAARCache] = cache
         yield stack
 
 
@@ -146,7 +146,7 @@ def mock_install_categorical_data(ctx):
         # Initialize redis
         cache = TAARCacheRedis.get_instance(ctx)
         cache.safe_load_data()
-        ctx[TAARCache] = cache
+        ctx[ITAARCache] = cache
         yield stack
 
 
@@ -186,7 +186,7 @@ def mock_install_continuous_data(ctx):
         # Initialize redis
         cache = TAARCacheRedis.get_instance(ctx)
         cache.safe_load_data()
-        ctx[TAARCache] = cache
+        ctx[ITAARCache] = cache
         yield stack
 
 
