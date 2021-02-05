@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from taar.recommenders.cache import TAARCache
+from taar.interfaces import ITAARCache
 from taar.context import app_context
 import click
 
@@ -22,7 +22,7 @@ def main(reset, load, info):
         return
 
     ctx = app_context()
-    cache = ctx[TAARCache]
+    cache = ctx[ITAARCache]
 
     if reset:
         if cache.reset():
