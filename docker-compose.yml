@@ -42,8 +42,8 @@ services:
     - TAAR_ITEM_MATRIX_KEY=addon_recommender/item_matrix.json.bz2
     - TAAR_ADDON_MAPPING_BUCKET=moz-fx-data-taar-pr-prod-e0f7-prod-models
     - TAAR_ADDON_MAPPING_KEY=addon_recommender/addon_mapping.json.bz2
-    - TAAR_ENSEMBLE_BUCKET=taar_models
-    - TAAR_ENSEMBLE_KEY=taar/ensemble/ensemble_weight.json
+    - TAAR_ENSEMBLE_BUCKET=moz-fx-data-taar-pr-prod-e0f7-prod-models
+    - TAAR_ENSEMBLE_KEY=taar/ensemble/ensemble_weight.json.bz2
     - TAAR_WHITELIST_BUCKET=moz-fx-data-taar-pr-prod-e0f7-prod-models
     - TAAR_WHITELIST_KEY=addon_recommender/only_guids_top_200.json.bz2
     - TAAR_LOCALE_BUCKET=moz-fx-data-taar-pr-prod-e0f7-prod-models
