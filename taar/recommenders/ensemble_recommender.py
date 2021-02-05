@@ -7,11 +7,10 @@ import itertools
 import markus
 from sentry_sdk import capture_exception
 
-from taar.logs import IMozLogging
+from taar.interfaces import IMozLogging, ITAARCache
 from taar.recommenders.debug import log_timer_debug
-from taar.recommenders.redis_cache import TAARCache
 from taar.utils import hasher
-from .base_recommender import AbstractRecommender
+from taar.recommenders.base_recommender import AbstractRecommender
 
 metrics = markus.get_metrics("taar")
 
@@ -34,7 +33,7 @@ class EnsembleRecommender(AbstractRecommender):
         self.RECOMMENDER_KEYS = ["collaborative", "similarity", "locale"]
         self._ctx = ctx
 
-        self._redis_cache = TAARCache.get_instance(self._ctx)
+        self._redis_cache = self._ctx[ITAARCache]
         self.logger = self._ctx[IMozLogging].get_logger("taar.ensemble")
 
         assert "recommender_factory" in self._ctx
@@ -122,17 +121,7 @@ class EnsembleRecommender(AbstractRecommender):
         ensemble_weights = cache["ensemble_weights"]
 
         for rkey in self.RECOMMENDER_KEYS:
-            with log_timer_debug(f"{rkey} recommend invoked", self.logger):
-                recommender = self._recommender_map[rkey]
-                if recommender.can_recommend(client_data, extra_data):
-                    raw_results = recommender.recommend(
-                        client_data, extended_limit, extra_data
-                    )
-                    reweighted_results = []
-                    for guid, weight in raw_results:
-                        item = (guid, weight * ensemble_weights[rkey])
-                        reweighted_results.append(item)
-                    flattened_results.extend(reweighted_results)
+            self._recommend_single(client_data, ensemble_weights, extended_limit, extra_data, flattened_results, rkey)
 
         # Sort the results by the GUID
         flattened_results.sort(key=lambda item: item[0])
@@ -169,3 +158,27 @@ class EnsembleRecommender(AbstractRecommender):
             % log_data
         )
         return results
+
+    def _recommend_single(self, client_data, ensemble_weights, extended_limit, extra_data, flattened_results, rkey):
+        with log_timer_debug(f"{rkey} recommend invoked", self.logger):
+            recommender = self._recommender_map[rkey]
+            if not recommender.can_recommend(client_data, extra_data):
+                return
+            with metrics.timer(f"{rkey}_recommend"):
+                try:
+                    raw_results = recommender.recommend(
+                        client_data, extended_limit, extra_data
+                    )
+                except Exception as e:
+                    metrics.incr(f"error_{rkey}", value=1)
+                    self.logger.exception(
+                        "{} recommender crashed for {}".format(rkey,
+                                                               client_data.get("client_id", "no-client-id")
+                                                               ),
+                        e,
+                    )
+            reweighted_results = []
+            for guid, weight in raw_results:
+                item = (guid, weight * ensemble_weights[rkey])
+                reweighted_results.append(item)
+            flattened_results.extend(reweighted_results)

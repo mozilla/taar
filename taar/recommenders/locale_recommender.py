@@ -2,14 +2,10 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import markus
 
-from taar.logs import IMozLogging
+from taar.interfaces import IMozLogging, ITAARCache
 
 from .base_recommender import AbstractRecommender
-from taar.recommenders.redis_cache import TAARCache
-
-metrics = markus.get_metrics("taar")
 
 
 class LocaleRecommender(AbstractRecommender):
@@ -28,17 +24,13 @@ class LocaleRecommender(AbstractRecommender):
 
         self.logger = self._ctx[IMozLogging].get_logger("taar")
 
-        self._redis_cache = TAARCache.get_instance(self._ctx)
+        self._cache = self._ctx[ITAARCache]
 
     def _get_cache(self, extra_data):
         tmp = extra_data.get("cache", None)
         if tmp is None:
-            tmp = self._redis_cache.cache_context()
+            tmp = self._cache.cache_context()
         return tmp
-
-    @property
-    def top_addons_per_locale(self):
-        return self._redis_cache.top_addons_per_locale()
 
     def can_recommend(self, client_data, extra_data={}):
         cache = self._get_cache(extra_data)
@@ -63,23 +55,7 @@ class LocaleRecommender(AbstractRecommender):
 
         return True
 
-    @metrics.timer_decorator("locale_recommend")
     def recommend(self, client_data, limit, extra_data={}):
-        try:
-            result_list = self._recommend(client_data, limit, extra_data)
-        except Exception as e:
-            result_list = []
-            metrics.incr("error_locale", value=1)
-            self.logger.exception(
-                "Locale recommender crashed for {}".format(
-                    client_data.get("client_id", "no-client-id")
-                ),
-                e,
-            )
-
-        return result_list
-
-    def _recommend(self, client_data, limit, extra_data={}):
         cache = self._get_cache(extra_data)
         # If we have data coming from multiple sourecs, prefer the one
         # from 'client_data'.

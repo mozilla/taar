@@ -2,16 +2,11 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from .base_recommender import AbstractRecommender
+from taar.recommenders.base_recommender import AbstractRecommender
 from itertools import groupby
 from scipy.spatial import distance
-from taar.logs import IMozLogging
+from taar.interfaces import IMozLogging, ITAARCache
 import numpy as np
-from taar.recommenders.redis_cache import TAARCache
-
-import markus
-
-metrics = markus.get_metrics("taar")
 
 FLOOR_DISTANCE_ADJUSTMENT = 0.001
 
@@ -46,34 +41,14 @@ class SimilarityRecommender(AbstractRecommender):
     def __init__(self, ctx):
         self._ctx = ctx
 
-        self._redis_cache = TAARCache.get_instance(self._ctx)
+        self._cache = self._ctx[ITAARCache]
 
         self.logger = self._ctx[IMozLogging].get_logger("taar")
-
-    @property
-    def categorical_features(self):
-        return self._redis_cache.similarity_categorical_features()
-
-    @property
-    def continuous_features(self):
-        return self._redis_cache.similarity_continuous_features()
-
-    @property
-    def num_donors(self):
-        return self._redis_cache.similarity_num_donors
-
-    @property
-    def donors_pool(self):
-        return self._redis_cache.similarity_donors()
-
-    @property
-    def lr_curves(self):
-        return self._redis_cache.similarity_lrcurves()
 
     def _get_cache(self, extra_data):
         tmp = extra_data.get("cache", None)
         if tmp is None:
-            tmp = self._redis_cache.cache_context()
+            tmp = self._cache.cache_context()
         return tmp
 
     """
@@ -234,19 +209,6 @@ class SimilarityRecommender(AbstractRecommender):
         )
         return recommendations_out
 
-    @metrics.timer_decorator("similarity_recommend")
     def recommend(self, client_data, limit, extra_data={}):
-        try:
-            recommendations_out = self._recommend(client_data, limit, extra_data)
-        except Exception as e:
-            recommendations_out = []
-
-            metrics.incr("error_similarity", value=1)
-            self.logger.exception(
-                "Similarity recommender crashed for {}".format(
-                    client_data.get("client_id", "no-client-id")
-                ),
-                e,
-            )
-
+        recommendations_out = self._recommend(client_data, limit, extra_data)
         return recommendations_out[:limit]

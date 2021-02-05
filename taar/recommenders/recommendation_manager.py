@@ -4,14 +4,13 @@
 
 import markus
 
-from taar.logs import IMozLogging
+from taar.interfaces import IMozLogging, ITAARCache
 from taar.recommenders.debug import log_timer_debug
 from taar.recommenders.ensemble_recommender import (
     EnsembleRecommender,
     is_test_client,
 )
 from taar.recommenders.randomizer import reorder_guids
-from taar.recommenders.redis_cache import TAARCache
 
 metrics = markus.get_metrics("taar")
 
@@ -45,7 +44,7 @@ class RecommendationManager:
         """Initialize the user profile fetcher and the recommenders.
         """
         self._ctx = ctx
-        self.logger = self._ctx[IMozLogging].get_logger("taar")
+        self.logger = self._ctx[IMozLogging].get_logger("taar") if self._ctx[IMozLogging] else None
 
         assert "profile_fetcher" in self._ctx
 
@@ -55,7 +54,7 @@ class RecommendationManager:
 
         # The whitelist data is only used for test client IDs
 
-        self._redis_cache = TAARCache.get_instance(self._ctx)
+        self._cache = self._ctx[ITAARCache]
 
     @metrics.timer_decorator("profile_recommendation")
     def recommend(self, client_id, limit, extra_data={}):
@@ -72,7 +71,7 @@ class RecommendationManager:
         with log_timer_debug("recommmend executed", self.logger):
             # Read everything from redis now
             with log_timer_debug("redis read", self.logger):
-                extra_data["cache"] = self._redis_cache.cache_context()
+                extra_data["cache"] = self._cache.cache_context()
 
             if is_test_client(client_id):
                 # Just create a stub client_info blob

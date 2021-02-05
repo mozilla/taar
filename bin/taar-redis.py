@@ -1,7 +1,6 @@
 #!/usr/bin/env python
-
-from taar.recommenders.redis_cache import TAARCache
-from taar.context import default_context
+from taar.interfaces import ITAARCache
+from taar.context import app_context
 import click
 
 
@@ -22,8 +21,9 @@ def main(reset, load, info):
         print("No options were set!")
         return
 
-    ctx = default_context()
-    cache = TAARCache.get_instance(ctx)
+    ctx = app_context()
+    cache = ctx[ITAARCache]
+
     if reset:
         if cache.reset():
             print("Successfully flushed db0 bookkeeping database.")

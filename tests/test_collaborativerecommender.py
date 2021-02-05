@@ -6,27 +6,22 @@
 Test cases for the TAAR CollaborativeRecommender
 """
 
-import numpy
+import contextlib
 
 import fakeredis
 import mock
-import contextlib
-from taar.recommenders.redis_cache import TAARCache
+import numpy
 
-
+from taar.interfaces import ITAARCache
 from taar.recommenders.collaborative_recommender import CollaborativeRecommender
 from taar.recommenders.collaborative_recommender import positive_hash
-
-from markus import TIMING
-from markus.testing import MetricsMock
-
+from taar.recommenders.redis_cache import TAARCacheRedis
 from .noop_fixtures import (
     noop_taarlocale_dataload,
     noop_taarlite_dataload,
     noop_taarensemble_dataload,
     noop_taarsimilarity_dataload,
 )
-
 
 """
 We need to generate a synthetic list of addons and relative weights
@@ -51,16 +46,16 @@ def mock_install_none_mock_data(ctx):
     we always get 404 errors.
     """
     with contextlib.ExitStack() as stack:
-        TAARCache._instance = None
+        TAARCacheRedis._instance = None
 
         stack.enter_context(
             mock.patch.object(
-                TAARCache, "_fetch_collaborative_item_matrix", return_value="",
+                TAARCacheRedis, "_fetch_collaborative_item_matrix", return_value="",
             )
         )
         stack.enter_context(
             mock.patch.object(
-                TAARCache, "_fetch_collaborative_mapping_data", return_value="",
+                TAARCacheRedis, "_fetch_collaborative_mapping_data", return_value="",
             )
         )
 
@@ -69,7 +64,7 @@ def mock_install_none_mock_data(ctx):
         # Patch fakeredis in
         stack.enter_context(
             mock.patch.object(
-                TAARCache,
+                TAARCacheRedis,
                 "init_redis_connections",
                 return_value={
                     0: fakeredis.FakeStrictRedis(db=0),
@@ -80,7 +75,9 @@ def mock_install_none_mock_data(ctx):
         )
 
         # Initialize redis
-        TAARCache.get_instance(ctx).safe_load_data()
+        cache = TAARCacheRedis.get_instance(ctx)
+        cache.safe_load_data()
+        ctx[ITAARCache] = cache
         yield stack
 
 
@@ -109,17 +106,17 @@ def mock_install_mock_data(ctx):
         fake_mapping[str(java_hash)] = addon
 
     with contextlib.ExitStack() as stack:
-        TAARCache._instance = None
+        TAARCacheRedis._instance = None
         stack.enter_context(
             mock.patch.object(
-                TAARCache,
+                TAARCacheRedis,
                 "_fetch_collaborative_item_matrix",
                 return_value=fake_addon_matrix,
             )
         )
         stack.enter_context(
             mock.patch.object(
-                TAARCache,
+                TAARCacheRedis,
                 "_fetch_collaborative_mapping_data",
                 return_value=fake_mapping,
             )
@@ -130,7 +127,7 @@ def mock_install_mock_data(ctx):
         # Patch fakeredis in
         stack.enter_context(
             mock.patch.object(
-                TAARCache,
+                TAARCacheRedis,
                 "init_redis_connections",
                 return_value={
                     0: fakeredis.FakeStrictRedis(db=0),
@@ -141,7 +138,9 @@ def mock_install_mock_data(ctx):
         )
 
         # Initialize redis
-        TAARCache.get_instance(ctx).safe_load_data()
+        cache = TAARCacheRedis.get_instance(ctx)
+        cache.safe_load_data()
+        ctx[ITAARCache] = cache
         yield stack
 
 
@@ -189,34 +188,30 @@ def test_empty_recommendations(test_ctx):
 
 
 def test_best_recommendation(test_ctx):
-    with MetricsMock() as mm:
+    # Make sure the structure of the recommendations is correct and that we
+    # recommended the the right addon.
+    with mock_install_mock_data(test_ctx):
+        r = CollaborativeRecommender(test_ctx)
 
-        # Make sure the structure of the recommendations is correct and that we
-        # recommended the the right addon.
-        with mock_install_mock_data(test_ctx):
-            r = CollaborativeRecommender(test_ctx)
+        # An non-empty set of addons should give a list of recommendations
+        fixture_client_data = {
+            "installed_addons": ["addon4.id"],
+            "client_id": "test_client",
+        }
+        assert r.can_recommend(fixture_client_data)
+        recommendations = r.recommend(fixture_client_data, 1)
 
-            # An non-empty set of addons should give a list of recommendations
-            fixture_client_data = {
-                "installed_addons": ["addon4.id"],
-                "client_id": "test_client",
-            }
-            assert r.can_recommend(fixture_client_data)
-            recommendations = r.recommend(fixture_client_data, 1)
+        assert isinstance(recommendations, list)
+        assert len(recommendations) == 1
 
-            assert isinstance(recommendations, list)
-            assert len(recommendations) == 1
-
-            # Verify that addon2 - the most heavy weighted addon was
-            # recommended
-            result = recommendations[0]
-            assert type(result) is tuple
-            assert len(result) == 2
-            assert result[0] == "addon2.id"
-            assert type(result[1]) is numpy.float64
-            assert numpy.isclose(result[1], numpy.float64("0.3225"))
-
-            assert mm.has_record(TIMING, stat="taar.collaborative_recommend")
+        # Verify that addon2 - the most heavy weighted addon was
+        # recommended
+        result = recommendations[0]
+        assert type(result) is tuple
+        assert len(result) == 2
+        assert result[0] == "addon2.id"
+        assert type(result[1]) is numpy.float64
+        assert numpy.isclose(result[1], numpy.float64("0.3225"))
 
 
 def test_recommendation_weights(test_ctx):

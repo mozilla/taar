@@ -2,20 +2,16 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from taar.logs import IMozLogging
+from taar.interfaces import IMozLogging
 from google.cloud import bigtable
 from google.cloud.bigtable import column_family
 from google.cloud.bigtable import row_filters
 import json
 import zlib
 import datetime
-from taar.settings import (
-    BIGTABLE_PROJECT_ID,
-    BIGTABLE_INSTANCE_ID,
-    BIGTABLE_TABLE_ID,
-)
 import markus
 
+from taar.settings import AppSettings
 
 metrics = markus.get_metrics("taar")
 
@@ -102,9 +98,9 @@ class ProfileFetcher:
         if self.__client is None:
             self.__client = BigTableProfileController(
                 self._ctx,
-                project_id=BIGTABLE_PROJECT_ID,
-                instance_id=BIGTABLE_INSTANCE_ID,
-                table_id=BIGTABLE_TABLE_ID,
+                project_id=AppSettings.BIGTABLE_PROJECT_ID,
+                instance_id=AppSettings.BIGTABLE_INSTANCE_ID,
+                table_id=AppSettings.BIGTABLE_TABLE_ID,
             )
         return self.__client
 

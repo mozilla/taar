@@ -3,11 +3,10 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 
-from taar.logs import IMozLogging
+from taar.interfaces import IMozLogging, ITAARCache
 
 import markus
 
-from taar.recommenders.redis_cache import TAARCache
 from taar.recommenders.debug import log_timer_debug
 
 metrics = markus.get_metrics("taar")
@@ -53,15 +52,15 @@ class GuidBasedRecommender:
         self._ctx = ctx
         self.logger = self._ctx[IMozLogging].get_logger("taarlite")
 
-        self._redis_cache = TAARCache.get_instance(self._ctx)
+        self._cache = ctx[ITAARCache]
         self.logger.info("GUIDBasedRecommender is initialized")
 
     def cache_ready(self):
-        return self._redis_cache.is_active()
+        return self._cache.is_active()
 
     def can_recommend(self, client_data):
         # We can't recommend if we don't have our data files.
-        if not self._redis_cache.is_active():
+        if not self._cache.is_active():
             return False
 
         # If we have data coming from other sources, we can use that for
@@ -71,10 +70,10 @@ class GuidBasedRecommender:
             return False
 
         # Use a dictionary keyed on the query guid
-        if not self._redis_cache.has_coinstalls_for(addon_guid):
+        if not self._cache.has_coinstalls_for(addon_guid):
             return False
 
-        if not self._redis_cache.get_coinstalls(addon_guid):
+        if not self._cache.get_coinstalls(addon_guid):
             return False
 
         return True
@@ -85,7 +84,7 @@ class GuidBasedRecommender:
         TAAR lite will yield 4 recommendations for the AMO page
         """
 
-        if not self._redis_cache.is_active():
+        if not self._cache.is_active():
             return []
 
         with log_timer_debug(f"Results computed", self.logger):
@@ -95,7 +94,7 @@ class GuidBasedRecommender:
 
             # Get the raw co-installation result dictionary
             with log_timer_debug("Get filtered coinstallations", self.logger):
-                result_dict = self._redis_cache.get_filtered_coinstall(addon_guid, {})
+                result_dict = self._cache.get_filtered_coinstall(addon_guid, {})
 
             with log_timer_debug("acquire normalization method", self.logger):
                 normalize = client_data.get("normalize", NORM_MODE_ROWNORMSUM)
@@ -144,7 +143,7 @@ class GuidBasedRecommender:
                 )
                 for k, v in rank_sorted[:TWICE_LIMIT]:
                     lex_value = "{0:020.10f}.{1:010d}".format(
-                        v, self._redis_cache.get_rankings(k, 0)
+                        v, self._cache.get_rankings(k, 0)
                     )
                     result_list.append((k, lex_value))
 
@@ -169,7 +168,7 @@ class GuidBasedRecommender:
         output_result_dict = {}
         for result_guid, result_count in input_coinstall_dict.items():
             output_result_dict[result_guid] = (
-                1.0 * result_count / self._redis_cache.guid_maps_rowcount(result_guid)
+                1.0 * result_count / self._cache.guid_maps_rowcount(result_guid)
             )
         return output_result_dict
 
@@ -182,7 +181,7 @@ class GuidBasedRecommender:
         def generate_row_sum_list():
             for guid, guid_weight in input_coinstall_dict.items():
                 norm_guid_weight = (
-                    guid_weight * 1.0 / self._redis_cache.guid_maps_count_map(guid)
+                    guid_weight * 1.0 / self._cache.guid_maps_count_map(guid)
                 )
 
                 yield guid, norm_guid_weight
@@ -205,7 +204,7 @@ class GuidBasedRecommender:
         ):
             output_dict = {}
             for output_guid, output_guid_weight in tmp_dict.items():
-                guid_row_norm_list = self._redis_cache.guid_maps_row_norm(
+                guid_row_norm_list = self._cache.guid_maps_row_norm(
                     output_guid, []
                 )
                 if len(guid_row_norm_list) == 0:
@@ -270,7 +269,7 @@ class GuidBasedRecommender:
         # Add in the next level
         level -= 1
         for guid in consolidated_coinstall_dict.keys():
-            next_level_coinstalls = self._redis_cache.get_coinstalls(guid, {})
+            next_level_coinstalls = self._cache.get_coinstalls(guid, {})
             if next_level_coinstalls != {}:
                 # Normalize the next bunch of suggestions
                 next_level_coinstalls = self._normalize_row_weights(

@@ -8,34 +8,51 @@ services:
     image: "taar:latest"
     depends_on:
     - redis
+    volumes:
+      - /Users/epavlov/.gcp_creds:/app/.gcp_creds
     environment:
-    - MUSICMATCH_API=${MUSICMATCH_API}
     - WORKERS=1
     - THREADS=2
     - LOG_LEVEL=20
-    - GOOGLE_APPLICATION_CREDENTIALS=/app/.gcp_creds/vng-taar-dev-clientinfo-svc.json
+    - GOOGLE_APPLICATION_CREDENTIALS=/app/.gcp_creds/moz-fx-data-taar-pr-prod-e0f7-bf36ebdc13e9.json
     - REDIS_HOST=redis
     - TAAR_API_PLUGIN=taar.plugin
-    - TAAR_ITEM_MATRIX_BUCKET=telemetry-public-analysis-2
-    - TAAR_ITEM_MATRIX_KEY=telemetry-ml/addon_recommender/item_matrix.json
-    - TAAR_ADDON_MAPPING_BUCKET=telemetry-public-analysis-2
-    - TAAR_ADDON_MAPPING_KEY=telemetry-ml/addon_recommender/addon_mapping.json
-    - TAAR_ENSEMBLE_BUCKET=telemetry-parquet
-    - TAAR_ENSEMBLE_KEY=taar/ensemble/ensemble_weight.json
-    - TAAR_WHITELIST_BUCKET=telemetry-parquet
-    - TAAR_WHITELIST_KEY=telemetry-ml/addon_recommender/only_guids_top_200.json
-    - TAAR_LOCALE_BUCKET=telemetry-parquet
-    - TAAR_LOCALE_KEY=taar/locale/top10_dict.json
-    - TAAR_SIMILARITY_BUCKET=telemetry-parquet
-    - TAAR_SIMILARITY_DONOR_KEY=taar/similarity/donors.json
-    - TAAR_SIMILARITY_LRCURVES_KEY=taar/similarity/lr_curves.json
     - TAAR_MAX_RESULTS=10
     - TAARLITE_MAX_RESULTS=4
-    - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-    - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-    - BIGTABLE_PROJECT_ID=${BIGTABLE_PROJECT_ID}
-    - BIGTABLE_INSTANCE_ID=${BIGTABLE_INSTANCE_ID}
-    - BIGTABLE_TABLE_ID=${BIGTABLE_TABLE_ID}
+    - BIGTABLE_PROJECT_ID=moz-fx-data-taar-pr-prod-e0f7
+    - BIGTABLE_INSTANCE_ID=taar-prod-202006
+    - BIGTABLE_TABLE_ID=taar_profile
     ports:
     - "8000:8000"
+  populate-redis:
+    image: "taar:latest"
+    command:
+    - python
+    - /opt/conda/bin/taar-redis.py
+    - --load
+    depends_on:
+    - redis
+    volumes:
+      - /Users/epavlov/.gcp_creds:/app/.gcp_creds
+    environment:
+    - LOG_LEVEL=20
+    - GOOGLE_APPLICATION_CREDENTIALS=/app/.gcp_creds/moz-fx-data-taar-pr-prod-e0f7-bf36ebdc13e9.json
+    - REDIS_HOST=redis
+    - TAAR_ITEM_MATRIX_BUCKET=moz-fx-data-taar-pr-prod-e0f7-prod-models
+    - TAAR_ITEM_MATRIX_KEY=addon_recommender/item_matrix.json.bz2
+    - TAAR_ADDON_MAPPING_BUCKET=moz-fx-data-taar-pr-prod-e0f7-prod-models
+    - TAAR_ADDON_MAPPING_KEY=addon_recommender/addon_mapping.json.bz2
+    - TAAR_ENSEMBLE_BUCKET=moz-fx-data-taar-pr-prod-e0f7-prod-models
+    - TAAR_ENSEMBLE_KEY=taar/ensemble/ensemble_weight.json.bz2
+    - TAAR_WHITELIST_BUCKET=moz-fx-data-taar-pr-prod-e0f7-prod-models
+    - TAAR_WHITELIST_KEY=addon_recommender/only_guids_top_200.json.bz2
+    - TAAR_LOCALE_BUCKET=moz-fx-data-taar-pr-prod-e0f7-prod-models
+    - TAAR_LOCALE_KEY=taar/locale/top10_dict.json.bz2
+    - TAAR_SIMILARITY_BUCKET=moz-fx-data-taar-pr-prod-e0f7-prod-models
+    - TAAR_SIMILARITY_DONOR_KEY=taar/similarity/donors.json.bz2
+    - TAAR_SIMILARITY_LRCURVES_KEY=taar/similarity/lr_curves.json.bz2
+    - TAARLITE_GUID_COINSTALL_BUCKET=moz-fx-data-taar-pr-prod-e0f7-prod-models
+    - TAARLITE_GUID_COINSTALL_KEY=taar/lite/guid_coinstallation.json.bz2
+    - TAARLITE_GUID_RANKING_KEY=taar/lite/guid_install_ranking.json.bz2
+
 

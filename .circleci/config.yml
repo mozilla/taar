@@ -22,7 +22,7 @@ jobs:
       - setup_remote_docker:
           docker_layer_caching: true
       - run: apt-get update; apt-get install make -y
-      - run: . /opt/conda/etc/profile.d/conda.sh && conda env create -n taar-37 --file enviroment.yml
+      - run: . /opt/conda/etc/profile.d/conda.sh && conda env create -n taar-37 --file environment.yml
       - run: . /opt/conda/etc/profile.d/conda.sh && conda activate taar-37 && python setup.py install && make pytest
 
 workflows:

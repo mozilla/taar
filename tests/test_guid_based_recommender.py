@@ -5,6 +5,7 @@ import pytest
 import mock
 import contextlib
 
+from taar.interfaces import ITAARCache
 from .noop_fixtures import (
     noop_taarlocale_dataload,
     noop_taarcollab_dataload,
@@ -13,10 +14,9 @@ from .noop_fixtures import (
 )
 
 from taar.recommenders.guid_based_recommender import GuidBasedRecommender
-from taar.recommenders.redis_cache import TAARCache
+from taar.recommenders.redis_cache import TAARCacheRedis
 
-from taar.recommenders.redis_cache import NORMDATA_GUID_ROW_NORM_PREFIX
-
+from taar.recommenders.cache import NORMDATA_GUID_ROW_NORM_PREFIX
 
 from taar.recommenders.ua_parser import parse_ua, OSNAME_TO_ID
 
@@ -92,16 +92,16 @@ RESULTS = {
 def mock_coinstall_ranking_context(ctx, mock_coinstall, mock_ranking):
 
     with contextlib.ExitStack() as stack:
-        TAARCache._instance = None
+        TAARCacheRedis._instance = None
 
         stack.enter_context(
             mock.patch.object(
-                TAARCache, "_fetch_ranking_data", return_value=mock_ranking,
+                TAARCacheRedis, "_fetch_ranking_data", return_value=mock_ranking,
             )
         )
         stack.enter_context(
             mock.patch.object(
-                TAARCache, "_fetch_coinstall_data", return_value=mock_coinstall,
+                TAARCacheRedis, "_fetch_coinstall_data", return_value=mock_coinstall,
             )
         )
 
@@ -113,7 +113,7 @@ def mock_coinstall_ranking_context(ctx, mock_coinstall, mock_ranking):
         # Patch fakeredis in
         stack.enter_context(
             mock.patch.object(
-                TAARCache,
+                TAARCacheRedis,
                 "init_redis_connections",
                 return_value={
                     0: fakeredis.FakeStrictRedis(db=0),
@@ -124,7 +124,9 @@ def mock_coinstall_ranking_context(ctx, mock_coinstall, mock_ranking):
         )
 
         # Initialize redis
-        TAARCache.get_instance(ctx).safe_load_data()
+        cache = TAARCacheRedis.get_instance(ctx)
+        cache.safe_load_data()
+        ctx[ITAARCache] = cache
         yield stack
 
 
@@ -267,7 +269,7 @@ def test_missing_rownorm_data_issue_31(
         EXPECTED_RESULTS = RESULTS["rownorm_sum_tiebreak"]
 
         # Explicitly destroy the guid-4 key in the row_norm data
-        recommender._redis_cache._db().delete(NORMDATA_GUID_ROW_NORM_PREFIX + "guid-4")
+        recommender._cache._db().delete(NORMDATA_GUID_ROW_NORM_PREFIX + "guid-4")
         for i, row in enumerate(EXPECTED_RESULTS):
             if row[0] == "guid-4":
                 del EXPECTED_RESULTS[i]
@@ -293,7 +295,7 @@ def test_divide_by_zero_rownorm_data_issue_31(
 
         # Explicitly set the guid-4 key in the row_norm data to have a sum
         # of zero weights
-        recommender._redis_cache._db().set(
+        recommender._cache._db().set(
             NORMDATA_GUID_ROW_NORM_PREFIX + "guid-4", json.dumps([0, 0, 0])
         )
 
