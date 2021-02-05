@@ -257,6 +257,7 @@ Airflow Variable | Value
 --- | ---
 taar_gcp_project_id | The Google Cloud Platform project where BigQuery temporary tables, Cloud Storage buckets for Avro files and BigTable reside for TAAR.
 taar_etl_storage_bucket | The Cloud Storage bucket name where temporary Avro files will reside when transferring data from BigQuery to BigTable. 
+taar_etl_model_storage_bucket | The main GCS bucket where the models are stored
 taar_bigtable_instance_id | The BigTable instance ID for TAAR user profile information
 taar_dataflow_subnetwork | The subnetwork required to communicate between Cloud Dataflow
 

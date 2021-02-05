@@ -33,6 +33,7 @@ and are autodeployed to gs://moz-fx-data-prod-airflow-dataproc-artifacts/jobs
 * [taar_etl_.taar_amodump](https://github.com/mozilla/taar_gcp_etl/blob/master/taar_etl/taar_amodump.py)
 * [taar_etl.taar_amowhitelist](https://github.com/mozilla/taar_gcp_etl/blob/master/taar_etl/taar_amowhitelist.py)
 * [taar_etl.taar_update_whitelist](https://github.com/mozilla/taar_gcp_etl/blob/master/taar_etl/taar_update_whitelist.py)
+* [taar_etl.taar_lite_guid_ranking](https://github.com/mozilla/taar_gcp_etl/blob/master/taar_etl/taar_lite_guid_ranking.py)
 
 
 #### 4. TAAR User profile information
@@ -93,6 +94,17 @@ image for production.
 Autopush on tag is currently enabled for staging environment.
 
 You must inform operations to push the tag to production enviroment.  
+
+
+## Deploying Pypi package required for Ensemble Spark job
+
+Update package version in setup.py
+
+`make all`
+
+`make upload`
+
+Update package version in `taar_weekly` airflow DAG.
 
 
 
