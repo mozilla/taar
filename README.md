@@ -13,9 +13,6 @@ Table of Contents
   * [Build and run tests](#build-and-run-tests)
   * [Pinning dependencies](#pinning-dependencies)
   * [Instructions for releasing updates to production](#instructions-for-releasing-updates-to-production)
-  * [Dependencies](#dependencies)
-    * [AWS resources](#aws-resources)
-    * [AWS enviroment configuration](#aws-enviroment-configuration)
   * [Collaborative Recommender](#collaborative-recommender)
   * [Ensemble Recommender](#ensemble-recommender)
   * [Locale Recommender](#locale-recommender)
@@ -26,8 +23,8 @@ Table of Contents
     * [Google Cloud BigTable](#google-cloud-bigtable)
   * [Production Configuration Settings](#production-configuration-settings)
   * [Deleting individual user data from all TAAR resources](#deleting-individual-user-data-from-all-taar-resources)
-  * [Airflow enviroment configuration](#airflow-enviroment-configuration)
-  * [Staging Enviroment](#staging-enviroment)
+  * [Airflow environment configuration](#airflow-environment-configuration)
+  * [Staging Environment](#staging-environment)
   * [A note on cdist optimization\.](#a-note-on-cdist-optimization)
 
 
@@ -86,9 +83,9 @@ container and run the test suite inside the container.
 
 ## Pinning dependencies
 
-TAAR uses miniconda and a enviroment.yml file to manage versioning.
+TAAR uses miniconda and a environment.yml file to manage versioning.
 
-To update versions, edit the `enviroment.yml` with the new dependency
+To update versions, edit the `environment.yml` with the new dependency
 you need then run `make conda_update`.
 
 If you are unfamiliar with using conda, see the [official
@@ -131,7 +128,7 @@ EnsembleRecommender | gs://moz-fx-data-taar-pr-prod-e0f7-prod-models/taar/ensemb
 TAAR lite | gs://moz-fx-data-taar-pr-prod-e0f7-prod-models/taar/lite/guid_install_ranking.json.bz2 <br/> gs://moz-fx-data-taar-pr-prod-e0f7-prod-models/taar/lite/guid_coinstallation.json.bz2
 
 
-# Production enviroment variables required for TAAR
+# Production environment variables required for TAAR
 
 ## Collaborative Recommender
 
@@ -215,7 +212,7 @@ The table ID for user profile information is `taar_profile`.
 
 ## Production Configuration Settings
 
-Production enviroment settings are stored in a [private repository](https://github.com/mozilla-services/cloudops-deployment/blob/master/projects/data/puppet/yaml/type/data.api.prod.taar.yaml).
+Production environment settings are stored in a [private repository](https://github.com/mozilla-services/cloudops-deployment/blob/master/projects/data/puppet/yaml/type/data.api.prod.taar.yaml).
 
 
 ## Deleting individual user data from all TAAR resources
@@ -248,7 +245,7 @@ Users who wish to remove their data from TAAR need to:
 
 
 
-## Airflow enviroment configuration
+## Airflow environment configuration
 
 TAAR requires some configuration to be stored in Airflow variables for
 the ETL jobs to run to completion correctly.
@@ -262,9 +259,9 @@ taar_bigtable_instance_id | The BigTable instance ID for TAAR user profile infor
 taar_dataflow_subnetwork | The subnetwork required to communicate between Cloud Dataflow
 
 
-## Staging Enviroment
+## Staging Environment
 
-The staging enviroment of the TAAR service in GCP can be reached using
+The staging environment of the TAAR service in GCP can be reached using
 curl.
 
 ```
@@ -305,7 +302,7 @@ Usage: taarlite-redis.py [OPTIONS]
 
   Manage the TAARLite redis cache.
 
-  This expecte that the following enviroment variables are set:
+  This expecte that the following environment variables are set:
 
   REDIS_HOST REDIS_PORT
 
