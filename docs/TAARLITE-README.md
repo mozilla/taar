@@ -11,7 +11,7 @@ accept listed addons.
 #### ETL workflow AMO guid-guid TAAR-lite
 * [taar_amodump.py](https://github.com/mozilla/taar_gcp_etl/blob/master/taar_etl/taar_amodump.py)
 	* Scheduled to run daily
-	* Collects all listed addons by callign the [AMO public API](https://addons.mozilla.org/api/v3/addons/search/) endpoint
+	* Collects all listed addons by callign the [AMO public API](https://addons.mozilla.org/api/v4/addons/search/) endpoint
 	* Applies filter returning only Firefox Web Browser Extensions
 	* Writes __extended_addons_database.json__
 * [taar_amowhitelist.py](https://github.com/mozilla/taar_gcp_etl/blob/master/taar_etl/taar_amowhitelist.py)
